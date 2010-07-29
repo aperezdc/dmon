@@ -15,12 +15,12 @@
 
 
 #define _dmon_help_message \
-	"Usage: %s [options] cmd [cmd-options] -- log [log-options]\n" \
-	"Launch a simple daemon, providing logging and respawning.\n" \
-	"\n" \
+    "Usage: %s [options] cmd [cmd-options] -- log [log-options]\n" \
+    "Launch a simple daemon, providing logging and respawning.\n" \
+    "\n" \
     "  -e         Redirect command stderr to stdout.\n" \
-	"  -h, -?     Show this help text.\n" \
-	"\n"
+    "  -h, -?     Show this help text.\n" \
+    "\n"
 
 
 static int   log_fds[2]  = { -1, -1 };
