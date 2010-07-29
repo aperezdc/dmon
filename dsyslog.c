@@ -157,6 +157,9 @@ main (int argc, char **argv)
         }
     }
 
+    /* We will be no longer using standard output. */
+    close (fd_out);
+
     if (optind >= argc) {
         format (fd_err, "@c: process name not specified.\n", argv[0]);
         format (fd_err, _dlog_help_message, argv[0]);
