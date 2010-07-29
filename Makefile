@@ -13,7 +13,7 @@ all: dmon dlog dsyslog
 
 dmon: dmon.o dmon-util.o
 dlog: dlog.o dmon-util.o
-dsyslog: dsyslog.o dmon-util.o
+dsyslog: dsyslog.o dmon-util.o iolib.o
 
 man: dmon.8 dlog.8 dsyslog.8
 
@@ -21,7 +21,7 @@ man: dmon.8 dlog.8 dsyslog.8
 	rst2man $< $@
 
 clean:
-	$(RM) dmon.o dlog.o dsyslog.o dmon-util.o
+	$(RM) dmon.o dlog.o dsyslog.o dmon-util.o iolib.o
 	$(RM) dmon dlog dsyslog
 
 
