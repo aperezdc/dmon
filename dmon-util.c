@@ -46,3 +46,6 @@ fd_cloexec (int fd)
         die ("unable to set FD_CLOEXEC");
 }
 
+
+/* vim: expandtab shiftwidth=4 tabstop=4
+ */

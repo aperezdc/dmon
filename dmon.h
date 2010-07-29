@@ -22,3 +22,5 @@ void __dprintf (const char*, ...);
 
 #endif /* !__dmon_h__ */
 
+/* vim: expandtab shiftwidth=4 tabstop=4
+ */

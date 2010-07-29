@@ -157,4 +157,5 @@ main (int argc, char **argv)
 	exit (EXIT_SUCCESS);
 }
 
-
+/* vim: expandtab shiftwidth=4 tabstop=4
+ */

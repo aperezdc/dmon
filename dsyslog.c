@@ -121,11 +121,11 @@ int
 main (int argc, char **argv)
 {
     int c;
-	int flags = 0;
-	int facility = name_to_facility (DEFAULT_FACILITY);
-	int priority = name_to_priority (DEFAULT_PRIORITY);
-	buffer linebuf = BUFFER;
-	buffer overflow = BUFFER;
+    int flags = 0;
+    int facility = name_to_facility (DEFAULT_FACILITY);
+    int priority = name_to_priority (DEFAULT_PRIORITY);
+    buffer linebuf = BUFFER;
+    buffer overflow = BUFFER;
 
     while ((c = getopt (argc, argv, "?hcf:p:")) != -1) {
         switch (c) {
@@ -191,4 +191,5 @@ main (int argc, char **argv)
 	exit (EXIT_SUCCESS);
 }
 
-
+/* vim: expandtab shiftwidth=4 tabstop=4
+ */
