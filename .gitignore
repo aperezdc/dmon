@@ -1,0 +1,6 @@
+dmon
+*.o
+.*.sw[op]
+debian/files
+debian/*.debhelper.log
+debian/*.substvars
