@@ -73,7 +73,7 @@ main (int argc, char **argv)
     }
     else {
         close (fd_out);
-        log_fd = open (argv[optind], O_CREAT | O_APPEND | O_WRONLY, 0777);
+        log_fd = open (argv[optind], O_CREAT | O_APPEND | O_WRONLY, 0666);
         if (log_fd < 0) {
             format (fd_err, "@c: cannot open '@c': @E\n", argv[0], argv[optind]);
             exit (EXIT_FAILURE);
