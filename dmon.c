@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <fcntl.h>
 #include <errno.h>
 
 
@@ -299,10 +300,40 @@ setup_signals (void)
 }
 
 
+static void
+become_daemon (void)
+{
+    pid_t pid;
+    int nullfd = open ("/dev/null", O_RDWR, 0);
+
+    if (nullfd < 0)
+        die ("cannot daemonize, unable to open '/dev/null': @E");
+
+    fd_cloexec (nullfd);
+
+    if (dup2 (nullfd, fd_in) < 0)
+        die ("cannot daemonize, unable to redirect stdin: @E");
+    if (dup2 (nullfd, fd_out) < 0)
+        die ("cannot daemonize, unable to redirect stdout: @E");
+    if (dup2 (nullfd, fd_err) < 0)
+        die ("cannot daemonize, unable to redirect stderr: @E");
+
+    pid = fork ();
+
+    if (pid < 0) die ("cannot daemonize: @E");
+    if (pid > 0) _exit (EXIT_SUCCESS);
+
+    if (setsid () == -1)
+        _exit (111);
+}
+
+
 #define _dmon_help_message                                           \
     "Usage: @c [options] cmd [cmd-options] [-- log [log-options]]\n" \
     "Launch a simple daemon, providing logging and respawning.\n"    \
     "\n"                                                             \
+    "  -p PATH    Write PID to the a file in the given PATH.\n"      \
+    "  -n         Do not daemonize, stay in foreground.\n"           \
     "  -e         Redirect command stderr to stdout.\n"              \
     "  -s         Forward signals to command process.\n"             \
     "  -S         Forward signals to log process.\n"                 \
@@ -313,14 +344,19 @@ setup_signals (void)
 int
 main (int argc, char **argv)
 {
+	const char *pidfile = NULL;
+	int pidfile_fd = -1;
+	int daemonize = 1;
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSs")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSsnp:")) != -1) {
 		switch (c) {
+            case 'p': pidfile = optarg; break;
             case 'e': redir_errfd = 1; break;
             case 's': cmd_signals = 1; break;
             case 'S': log_signals = 1; break;
+            case 'n': daemonize = 0; break;
 			case 'h':
 			case '?':
 				format (fd_out, _dmon_help_message, argv[0]);
@@ -372,6 +408,22 @@ main (int argc, char **argv)
         }
     }
 #endif /* DEBUG_TRACE */
+
+    if (pidfile) {
+        pidfile_fd = open (pidfile, O_TRUNC | O_CREAT | O_WRONLY, 0666);
+        if (pidfile_fd < 0) {
+            die ("@c: cannot open '@c' for writing: @E", argv[0], pidfile);
+        }
+    }
+
+    if (daemonize)
+        become_daemon ();
+
+    /* We have a valid file descriptor: write PID */
+    if (pidfile_fd >= 0) {
+        format (pidfile_fd, "@L\n", (unsigned) getpid ());
+        close (pidfile_fd);
+    }
 
     setup_signals ();
 
