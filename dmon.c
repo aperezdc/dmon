@@ -1,11 +1,11 @@
 /*
- * dmon-monitor.c
+ * dmon.c
  * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
-#include "dmon.h"
+#include "util.h"
 #include "iolib.h"
 #include <assert.h>
 #include <stdlib.h>

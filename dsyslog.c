@@ -1,11 +1,11 @@
 /*
- * dmon-syslog.c
+ * dsyslog.c
  * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
-#include "dmon.h"
+#include "util.h"
 #include "iolib.h"
 #include <stdlib.h>
 #include <syslog.h>
