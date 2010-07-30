@@ -6,10 +6,10 @@
  */
 
 #include "dmon.h"
+#include "iolib.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <fcntl.h>
 
 
@@ -19,9 +19,9 @@ __dprintf (const char *fmt, ...)
     va_list args;
 
     va_start (args, fmt);
-    vfprintf (stderr, fmt, args);
+    vformat (fd_err, fmt, args);
     va_end (args);
-    fflush (stderr);
+    fsync (fd_err);
 }
 
 
@@ -31,9 +31,10 @@ die (const char *fmt, ...)
     va_list args;
 
     va_start (args, fmt);
-    vfprintf (stderr, fmt, args);
+    vformat (fd_err, fmt, args);
+    format (fd_err, "\n");
     va_end (args);
-    fflush (stderr);
+    fsync (fd_err);
 
     exit (111);
 }

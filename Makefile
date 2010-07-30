@@ -11,8 +11,8 @@ prefix   ?= /usr/local
 
 all: dmon dlog dsyslog
 
-dmon: dmon.o dmon-util.o
-dlog: dlog.o dmon-util.o
+dmon: dmon.o dmon-util.o iolib.o
+dlog: dlog.o dmon-util.o iolib.o
 dsyslog: dsyslog.o dmon-util.o iolib.o
 
 man: dmon.8 dlog.8 dsyslog.8
