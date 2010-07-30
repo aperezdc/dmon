@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 #include <errno.h>
 
 
@@ -23,45 +24,69 @@
     "\n"
 
 
-static int   log_fds[2]  = { -1, -1 };
-static pid_t log_pid     = 0;
-static pid_t cmd_pid     = 0;
-static int   should_exit = 0;
-static int   redir_errfd = 0;
+typedef enum {
+    A_NONE = 0,
+    A_START,
+    A_STOP,
+} action_t;
+
+
+typedef struct {
+    pid_t    pid;
+    action_t action;
+    int      argc;
+    char   **argv;
+    int      write_fd;
+    int      read_fd;
+    int      signal;
+} task_t;
+
+#define TASK  { 0, A_START, 0, NULL, -1, -1, -1 }
+
+#define NO_SIGNAL (-1)
+
+static int    log_fds[2]  = { -1, -1 };
+static task_t cmd_task    = TASK;
+static task_t log_task    = TASK;
+static int    redir_errfd = 0;
+static int    running     = 1;
+
+#define log_enabled  (log_fds[0] != -1)
 
 
 static void
-spawn_child (pid_t *pid, char **argv, int write_fd, int read_fd, int redir_err)
+task_start (task_t *task)
 {
-    assert (pid != NULL);
-    assert (argv != NULL);
+    assert (task != NULL);
 
-    if ((*pid = fork ()) < 0)
+    if ((task->pid = fork ()) < 0)
         die ("fork failed: @E");
 
+    task->action = A_NONE;
+
     /* We got a valid PID, return */
-    if (*pid > 0) {
-        dprint (("child pid = @L\n", (unsigned) *pid));
+    if (task->pid > 0) {
+        dprint (("child pid = @L\n", (unsigned) task->pid));
         return;
     }
 
     /* Execute child */
-    if (write_fd >= 0) {
-        dprint (("redirecting write_fd = @i -> @i\n", write_fd, fd_out));
-        if (dup2 (write_fd, fd_out) < 0) {
+    if (task->write_fd >= 0) {
+        dprint (("redirecting write_fd = @i -> @i\n", task->write_fd, fd_out));
+        if (dup2 (task->write_fd, fd_out) < 0) {
             dprint (("redirection failed: @E\n"));
             _exit (111);
         }
     }
-    if (read_fd >= 0) {
-        dprint (("redirecting read_fd = @i -> @i\n", read_fd, fd_in));
-        if (dup2 (read_fd, fd_in) < 0) {
+    if (task->read_fd >= 0) {
+        dprint (("redirecting read_fd = @i -> @i\n", task->read_fd, fd_in));
+        if (dup2 (task->read_fd, fd_in) < 0) {
             dprint (("redirection failed: @E\n"));
             _exit (111);
         }
     }
 
-    if (redir_err) {
+    if (redir_errfd) {
         dprint (("redirecting stderr -> stdout\n"));
         if (dup2 (fd_out, fd_err) < 0) {
             dprint (("could not redirect stderr: @E\n"));
@@ -69,8 +94,59 @@ spawn_child (pid_t *pid, char **argv, int write_fd, int read_fd, int redir_err)
         }
     }
 
-    execvp (argv[0], argv);
+    execvp (task->argv[0], task->argv);
     _exit (111);
+}
+
+
+static void
+task_signal_dispatch (task_t *task)
+{
+    assert (task != NULL);
+
+    if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
+        return;
+
+    if (kill (task->pid, task->signal) < 0) {
+        die ("cannot send signal @i to process @L: @E",
+             task->signal, (unsigned) task->pid);
+    }
+    task->signal = NO_SIGNAL;
+}
+
+
+static void
+task_signal (task_t *task, int signal)
+{
+    assert (task != NULL);
+
+    if (signal == NO_SIGNAL)
+        return;
+
+    /* Dispatch pending signal first if needed */
+    task_signal_dispatch (task);
+
+    /* Then send our own */
+    task->signal = signal;
+    task_signal_dispatch (task);
+}
+
+
+static void
+task_action (task_t *task)
+{
+    switch (task->action) {
+        case A_NONE: /* Nothing to do */
+            return;
+        case A_START:
+            task_start (task);
+            break;
+        case A_STOP:
+            task->action = A_NONE;
+            task_signal (task, SIGTERM);
+            task_signal (task, SIGCONT);
+            break;
+    }
 }
 
 
@@ -78,12 +154,6 @@ spawn_child (pid_t *pid, char **argv, int write_fd, int read_fd, int redir_err)
 int
 main (int argc, char **argv)
 {
-	char **log_argv = NULL;
-	int    log_argc = 0;
-
-	char **cmd_argv = NULL;
-	int    cmd_argc = 0;
-
 	char c;
 	int i;
 
@@ -104,25 +174,25 @@ main (int argc, char **argv)
 	}
 
 
-	cmd_argv = argv + optind;
+	cmd_task.argv = argv + optind;
     i = optind;
 
 	/* Skip over until "--" is found */
 	while (i < argc && strcmp (argv[i], "--") != 0) {
-		cmd_argc++;
+		cmd_task.argc++;
 		i++;
 	}
 
 	/* There is a log command */
 	if (i < argc && strcmp (argv[i], "--") == 0) {
-		log_argc = argc - cmd_argc - optind - 1;
-		log_argv = argv + argc - log_argc;
-        log_argv[log_argc] = NULL;
+		log_task.argc = argc - cmd_task.argc - optind - 1;
+		log_task.argv = argv + argc - log_task.argc;
+        log_task.argv[log_task.argc] = NULL;
 	}
 
-    cmd_argv[cmd_argc] = NULL;
+    cmd_task.argv[cmd_task.argc] = NULL;
 
-    if (log_argc > 0) {
+    if (log_task.argc > 0) {
         pipe (log_fds);
         dprint (("pipe_read = @i, pipe_write = @i\n", log_fds[0], log_fds[1]));
         fd_cloexec (log_fds[0]);
@@ -131,28 +201,30 @@ main (int argc, char **argv)
 
 #ifdef DEBUG_TRACE
     {
-        char **xxargv = cmd_argv;
+        char **xxargv = cmd_task.argv;
         format (fd_err, "cmd:");
         while (*xxargv) format (fd_err, " @c", *xxargv++);
         format (fd_err, "\n");
-    }
-#endif /* DEBUG_TRACE */
-
-    spawn_child (&cmd_pid, cmd_argv, log_fds[1], -1, redir_errfd);
-    if (log_argc > 0) {
-#ifdef DEBUG_TRACE
-        {
-            char **xxargv = log_argv;
+        if (log_enabled) {
+            char **xxargv = log_task.argv;
             format (fd_err, "log:");
             while (*xxargv) format (fd_err, " @c", *xxargv++);
             format (fd_err, "\n");
         }
-#endif /* DEBUG_TRACE */
-        spawn_child (&log_pid, log_argv, -1, log_fds[0], 0);
     }
+#endif /* DEBUG_TRACE */
 
-    while (should_exit == 0)
+    cmd_task.write_fd = log_fds[1];
+    log_task.read_fd  = log_fds[0];
+
+    while (running) {
+        task_action (&cmd_task);
+        if (log_enabled)
+            task_action (&log_task);
+
+        /* Wait for signals to arrive. */
         pause ();
+    }
 
 	exit (EXIT_SUCCESS);
 }
