@@ -7,6 +7,8 @@
 
 #include "util.h"
 #include "iolib.h"
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,19 +17,11 @@
 #include <errno.h>
 
 
-#define _dmon_help_message \
-    "Usage: @c [options] cmd [cmd-options] -- log [log-options]\n" \
-    "Launch a simple daemon, providing logging and respawning.\n" \
-    "\n" \
-    "  -e         Redirect command stderr to stdout.\n" \
-    "  -h, -?     Show this help text.\n" \
-    "\n"
-
-
 typedef enum {
     A_NONE = 0,
     A_START,
     A_STOP,
+    A_SIGNAL,
 } action_t;
 
 
@@ -49,9 +43,45 @@ static int    log_fds[2]  = { -1, -1 };
 static task_t cmd_task    = TASK;
 static task_t log_task    = TASK;
 static int    redir_errfd = 0;
+static int    log_signals = 0;
+static int    cmd_signals = 0;
+static int    check_child = 0;
 static int    running     = 1;
 
+static const struct {
+    const char *name;
+    int         code;
+} forward_signals[] = {
+    { "CONT", SIGCONT },
+    { "ALRM", SIGALRM },
+    { "QUIT", SIGQUIT },
+    { "USR1", SIGUSR1 },
+    { "USR2", SIGUSR2 },
+    { "HUP" , SIGHUP  },
+    { "NONE", NO_SIGNAL },
+    { "TERM", SIGTERM },
+    { "INT" , SIGINT  },
+    { "KILL", SIGKILL },
+    { "CONT", SIGCONT },
+    { NULL  , NO_SIGNAL },
+};
+
 #define log_enabled  (log_fds[0] != -1)
+
+
+const char*
+signal_to_name (int signum)
+{
+    static const char *unknown = "(unknown)";
+    int i = 0;
+
+    while (forward_signals[i].name != NULL) {
+        if (forward_signals[i].code == signum)
+            return forward_signals[i].name;
+        i++;
+    }
+    return unknown;
+}
 
 
 static void
@@ -107,6 +137,9 @@ task_signal_dispatch (task_t *task)
     if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
         return;
 
+    dprint (("dispatch signal @i to process @L\n",
+             task->signal, (unsigned) task->pid));
+
     if (kill (task->pid, task->signal) < 0) {
         die ("cannot send signal @i to process @L: @E",
              task->signal, (unsigned) task->pid);
@@ -116,25 +149,24 @@ task_signal_dispatch (task_t *task)
 
 
 static void
-task_signal (task_t *task, int signal)
+task_signal (task_t *task, int signum)
 {
     assert (task != NULL);
-
-    if (signal == NO_SIGNAL)
-        return;
 
     /* Dispatch pending signal first if needed */
     task_signal_dispatch (task);
 
     /* Then send our own */
-    task->signal = signal;
+    task->signal = signum;
     task_signal_dispatch (task);
 }
 
 
 static void
-task_action (task_t *task)
+task_action_dispatch (task_t *task)
 {
+    assert (task != NULL);
+
     switch (task->action) {
         case A_NONE: /* Nothing to do */
             return;
@@ -146,9 +178,134 @@ task_action (task_t *task)
             task_signal (task, SIGTERM);
             task_signal (task, SIGCONT);
             break;
+        case A_SIGNAL:
+            task->action = A_NONE;
+            task_signal_dispatch (task);
+            break;
     }
 }
 
+
+static void
+task_action (task_t *task, action_t action)
+{
+    assert (task != NULL);
+
+    /* Dispatch pending action. */
+    task_action_dispatch (task);
+
+    /* Send our own action. */
+    task->action = action;
+    task_action_dispatch (task);
+}
+
+
+static void
+reap_and_check (void)
+{
+    int status;
+    pid_t pid;
+
+    dprint (("waiting for a children to reap...\n"));
+
+    pid = waitpid (-1, &status, WNOHANG);
+
+    if (pid == cmd_task.pid) {
+        dprint (("reaped cmd process @L\n", (unsigned) pid));
+        cmd_task.action = A_START;
+    }
+    else if (log_enabled && pid == log_task.pid) {
+        dprint (("reaped log process @L\n", (unsigned) pid));
+        log_task.action = A_START;
+    }
+    else {
+        dprint (("reaped unknown process @L", (unsigned) pid));
+    }
+}
+
+
+static void
+handle_signal (int signum)
+{
+    unsigned i = 0;
+
+    dprint (("handle signal @c\n", signal_to_name (signum)));
+
+    /* Receiving INT/TERM signal will stop gracefully */
+    if (signum == SIGINT || signum == SIGTERM) {
+        running = 0;
+        return;
+    }
+
+    /* Handle CHLD: check children */
+    if (signum == SIGCHLD) {
+        check_child = 1;
+        return;
+    }
+
+    while (forward_signals[i].code != NO_SIGNAL) {
+        if (signum == forward_signals[i++].code)
+            break;
+    }
+
+    if (signum != NO_SIGNAL) {
+        /* Try to forward signals */
+        if (cmd_signals) {
+            dprint (("delayed signal @i for cmd process\n", signum));
+            cmd_task.action = A_SIGNAL;
+            cmd_task.signal = signum;
+        }
+        if (log_signals && log_enabled) {
+            dprint (("delayed signal @i for log process\n", signum));
+            log_task.action = A_SIGNAL;
+            log_task.signal = signum;
+        }
+    }
+
+    return;
+}
+
+
+static void
+safe_sigaction (const char *name, int signum, struct sigaction *sa)
+{
+    if (sigaction (signum, sa, NULL) < 0) {
+        die ("could not set handler for signal @c (@i): @E",
+             name, signum);
+    }
+}
+
+static void
+setup_signals (void)
+{
+    unsigned i = 0;
+    struct sigaction sa;
+
+    sa.sa_handler = handle_signal;
+    sa.sa_flags = SA_NOCLDSTOP;
+    sigfillset(&sa.sa_mask);
+
+    while (forward_signals[i].code!= NO_SIGNAL) {
+        safe_sigaction (forward_signals[i].name,
+                        forward_signals[i].code, &sa);
+        i++;
+    }
+
+    safe_sigaction ("CHLD", SIGCHLD, &sa);
+    safe_sigaction ("TERM", SIGTERM, &sa);
+    safe_sigaction ("INT" , SIGINT , &sa);
+}
+
+
+#define _dmon_help_message                                           \
+    "Usage: @c [options] cmd [cmd-options] [-- log [log-options]]\n" \
+    "Launch a simple daemon, providing logging and respawning.\n"    \
+    "\n"                                                             \
+    "  -e         Redirect command stderr to stdout.\n"              \
+    "  -s         Forward signals to command process.\n"             \
+    "  -S         Forward signals to log process.\n"                 \
+    "  -h, -?     Show this help text.\n"                            \
+    "\n"
 
 
 int
@@ -157,11 +314,11 @@ main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?he")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSs")) != -1) {
 		switch (c) {
-            case 'e':
-                redir_errfd = 1;
-                break;
+            case 'e': redir_errfd = 1; break;
+            case 's': cmd_signals = 1; break;
+            case 'S': log_signals = 1; break;
 			case 'h':
 			case '?':
 				format (fd_out, _dmon_help_message, argv[0]);
@@ -214,17 +371,29 @@ main (int argc, char **argv)
     }
 #endif /* DEBUG_TRACE */
 
+    setup_signals ();
+
     cmd_task.write_fd = log_fds[1];
     log_task.read_fd  = log_fds[0];
 
     while (running) {
-        task_action (&cmd_task);
+        dprint ((">>> loop iteration\n"));
+        if (check_child)
+            reap_and_check ();
+
+        task_action_dispatch (&cmd_task);
         if (log_enabled)
-            task_action (&log_task);
+            task_action_dispatch (&log_task);
 
         /* Wait for signals to arrive. */
         pause ();
     }
+
+    dprint (("exiting gracefully...\n"));
+
+    task_action (&cmd_task, A_STOP);
+    if (log_enabled)
+        task_action (&log_task, A_STOP);
 
 	exit (EXIT_SUCCESS);
 }
