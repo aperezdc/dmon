@@ -219,6 +219,8 @@ static void format_long(buffer *b, long n, int base) {
 
 /* Format a list of arguments into the buffer. */
 static void vaformat(buffer *b, const char *fmt, va_list va) {
+	int last_errno = errno;
+
 	while (1) {
 		const char *p = strchr(fmt, '@');
 		if (p == NULL)
@@ -228,6 +230,14 @@ static void vaformat(buffer *b, const char *fmt, va_list va) {
 		++p;
 
 		switch (*p) {
+		case 'e': {
+			format_long(b, last_errno, 10);
+			break;
+		}
+		case 'E': {
+			bappends(b, strerror(last_errno));
+			break;
+		}
 		case 'c': {
 			char *s = va_arg(va, char *);
 			bappends(b, s);

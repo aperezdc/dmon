@@ -87,6 +87,8 @@ int readlineb(int fd, buffer *b, int max, buffer *overflow);
      '@X' for unsigned int (hex)
      '@l' for long (decimal)
      '@L' for unsigned long (decimal)
+     '@e' for latest numeric errno value
+     '@E' for latest string errno value
      '@a' for an IP address in network byte order as an unsigned long
    Returns 0 on success, -1 on error. */
 int format(int fd, const char *format, ...);
