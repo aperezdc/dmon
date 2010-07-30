@@ -7,6 +7,8 @@
 #define NULL 0
 #endif
 
+#include <stdarg.h>
+
 /* Default file descriptors. */
 extern int fd_in, fd_out, fd_err;
 
@@ -88,6 +90,10 @@ int readlineb(int fd, buffer *b, int max, buffer *overflow);
      '@a' for an IP address in network byte order as an unsigned long
    Returns 0 on success, -1 on error. */
 int format(int fd, const char *format, ...);
+
+/* Like format, but passing a list of arguments. */
+int vformat(int fd, const char *format, va_list va);
+
 /* Like format, but appends formatted data to a buffer. */
 void bformat(buffer *b, const char *format, ...);
 

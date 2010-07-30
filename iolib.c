@@ -313,6 +313,19 @@ int format(int fd, const char *fmt, ...) {
 	return r;
 }
 
+
+int vformat(int fd, const char *fmt, va_list va)
+{
+    int r;
+    buffer b = BUFFER;
+
+    vaformat(&b, fmt, va);
+    r = writeba(fd, &b);
+    bfree(&b);
+
+    return r;
+}
+
 void bformat(buffer *b, const char *fmt, ...) {
 	va_list va;
 
