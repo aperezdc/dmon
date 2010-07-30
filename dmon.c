@@ -36,18 +36,19 @@ typedef struct {
     int      signal;
 } task_t;
 
-#define TASK  { 0, A_START, 0, NULL, -1, -1, -1 }
-
+#define NO_PID    (-1)
 #define NO_SIGNAL (-1)
+#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL }
 
-static int    log_fds[2]  = { -1, -1 };
-static task_t cmd_task    = TASK;
-static task_t log_task    = TASK;
-static int    redir_errfd = 0;
-static int    log_signals = 0;
-static int    cmd_signals = 0;
-static int    check_child = 0;
-static int    running     = 1;
+static int    log_fds[2]   = { -1, -1 };
+static task_t cmd_task     = TASK;
+static task_t log_task     = TASK;
+static int    success_exit = 0;
+static int    redir_errfd  = 0;
+static int    log_signals  = 0;
+static int    cmd_signals  = 0;
+static int    check_child  = 0;
+static int    running      = 1;
 
 static const struct {
     const char *name;
@@ -178,8 +179,10 @@ task_action_dispatch (task_t *task)
             break;
         case A_STOP:
             task->action = A_NONE;
-            task_signal (task, SIGTERM);
-            task_signal (task, SIGCONT);
+            if (task->pid != NO_PID) {
+                task_signal (task, SIGTERM);
+                task_signal (task, SIGCONT);
+            }
             break;
         case A_SIGNAL:
             task->action = A_NONE;
@@ -215,11 +218,25 @@ reap_and_check (void)
 
     if (pid == cmd_task.pid) {
         dprint (("reaped cmd process @L\n", (unsigned) pid));
-        cmd_task.action = A_START;
+
+        cmd_task.pid = NO_PID;
+
+        /*
+         * If exit-on-success was request AND the process exited ok,
+         * then we do not want to respawn, but to gracefully shutdown.
+         */
+        if (success_exit && WIFEXITED (status) && WEXITSTATUS (status) == 0) {
+            dprint (("cmd process ended successfully, will exit\n"));
+            running = 0;
+        }
+        else {
+            cmd_task.action = A_START;
+        }
     }
     else if (log_enabled && pid == log_task.pid) {
         dprint (("reaped log process @L\n", (unsigned) pid));
         log_task.action = A_START;
+        log_task.pid = NO_PID;
     }
     else {
         dprint (("reaped unknown process @L", (unsigned) pid));
@@ -333,6 +350,7 @@ become_daemon (void)
     "Launch a simple daemon, providing logging and respawning.\n"    \
     "\n"                                                             \
     "  -p PATH    Write PID to the a file in the given PATH.\n"      \
+    "  -1         Exit if command exits with a zero return code.\n"  \
     "  -n         Do not daemonize, stay in foreground.\n"           \
     "  -e         Redirect command stderr to stdout.\n"              \
     "  -s         Forward signals to command process.\n"             \
@@ -350,9 +368,10 @@ main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSsnp:")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSsnp:1")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
+            case '1': success_exit = 1; break;
             case 'e': redir_errfd = 1; break;
             case 's': cmd_signals = 1; break;
             case 'S': log_signals = 1; break;
@@ -432,8 +451,12 @@ main (int argc, char **argv)
 
     while (running) {
         dprint ((">>> loop iteration\n"));
-        if (check_child)
+        if (check_child) {
             reap_and_check ();
+
+            /* reap_and_check() may request stopping on successful exit */
+            if (!running) break;
+        }
 
         task_action_dispatch (&cmd_task);
         if (log_enabled)

@@ -40,6 +40,12 @@ Command line options:
               output streams. This is useful for debugging and, to a limited
               extent, to run interactive programs.
 
+-1            Run command only once: if the command exits with a success
+              status (i.e. exit code is zero), then ``dmon`` will exit and
+              stop the logging process. If the program dies due to a signal
+              or with a non-zero exit status, it is respawned. This option
+              tends to be used in conjunction with ``-n``.
+
 -e            Redirect both the standard error and standard output streams
               to the log command. If not specified, only the standard output
               is redirected.
