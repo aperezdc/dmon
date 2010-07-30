@@ -69,6 +69,7 @@ static const struct {
 #define log_enabled  (log_fds[0] != -1)
 
 
+#ifdef DEBUG_TRACE
 const char*
 signal_to_name (int signum)
 {
@@ -82,6 +83,7 @@ signal_to_name (int signum)
     }
     return unknown;
 }
+#endif /* DEBUG_TRACE */
 
 
 static void
