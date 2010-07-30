@@ -15,13 +15,13 @@
 #include <time.h>
 
 
-#define _dlog_help_message                                   \
-    "Usage: @c [options] path\n"                             \
-    "Save lines from standard input to a log file.\n"        \
-    "\n"                                                     \
-    "  -b        Buffered operation, do not use fsync().\n"  \
-    "  -c        Do not prepend a timestamp to each line.\n" \
-    "  -h, -?    Show this help message.\n"                  \
+#define _dlog_help_message                                      \
+    "Usage: @c [options] [logfile]\n"                           \
+    "Save lines from standard input to a log file or stdout.\n" \
+    "\n"                                                        \
+    "  -b        Buffered operation, do not use fsync().\n"     \
+    "  -c        Do not prepend a timestamp to each line.\n"    \
+    "  -h, -?    Show this help message.\n"                     \
     "\n"
 
 #ifndef TSTAMP_FMT
@@ -67,19 +67,19 @@ main (int argc, char **argv)
     }
 
     /* We will be no longer using standard output. */
-    close (fd_out);
 
     if (optind >= argc) {
-        format (fd_err, "@c: log file path not specified.\n", argv[0]);
-        format (fd_err, _dlog_help_message, argv[0]);
-        exit (EXIT_FAILURE);
+        log_fd = fd_out;
+    }
+    else {
+        close (fd_out);
+        log_fd = open (argv[optind], O_CREAT | O_APPEND | O_WRONLY, 0777);
+        if (log_fd < 0) {
+            format (fd_err, "@c: cannot open '@c': @E\n", argv[0], argv[optind]);
+            exit (EXIT_FAILURE);
+        }
     }
 
-    log_fd = open (argv[optind], O_CREAT | O_APPEND | O_WRONLY, 0777);
-    if (log_fd < 0) {
-        format (fd_err, "@c: cannot open '@c': @E\n", argv[0], argv[optind]);
-        exit (EXIT_FAILURE);
-    }
 
     while (running) {
         int ret = readlineb (fd_in, &linebuf, 0, &overflow);

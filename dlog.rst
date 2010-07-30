@@ -13,7 +13,7 @@ Send lines from standard input to a log file
 SYNOPSIS
 ========
 
-``dlog [options] path``
+``dlog [options] [logfile]``
 
 
 DESCRIPTION
@@ -21,6 +21,8 @@ DESCRIPTION
 
 The ``dlog`` program sends lines given as standard input to a log file,
 one line at a time, optionally adding a timestamp in front of each line.
+If the log file is not specified, then lines are printed back to standard
+output. The latter may be useful to add timestamps in shell pipelines.
 
 
 USAGE
