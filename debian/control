@@ -1,0 +1,22 @@
+Source: dmon
+Section: utils
+Priority: optional
+Homepage: http://furi-ku.org/+/cgit/code/dmon
+Maintainer: Adrian Perez <aperez@igalia.com>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.4
+
+Package: dmon
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Tools for daemonizing and supervising processes.
+ The dmon package includes dmon itself, used for converting regular
+ non-detaching programs into daemons, while optionally logging their
+ output into a pipe to a second program which may act as a logger.
+ .
+ It also includes two simple logging programs: dlog will send its
+ input to a file, optionally with timestamps preprended to lines,
+ and dsyslog will send each line to the system logger.
+ .
+ You can think about dmon as a simple micro-daemontools.
+
