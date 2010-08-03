@@ -471,6 +471,9 @@ main (int argc, char **argv)
     }
 #endif /* DEBUG_TRACE */
 
+    if (cmd_task.argc == 0)
+        die ("@c: No command to run given.", argv[0]);
+
     if (pidfile) {
         pidfile_fd = open (pidfile, O_TRUNC | O_CREAT | O_WRONLY, 0666);
         if (pidfile_fd < 0) {
