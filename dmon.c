@@ -40,15 +40,16 @@ typedef struct {
 #define NO_SIGNAL (-1)
 #define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL }
 
-static int    log_fds[2]   = { -1, -1 };
-static task_t cmd_task     = TASK;
-static task_t log_task     = TASK;
-static int    success_exit = 0;
-static int    redir_errfd  = 0;
-static int    log_signals  = 0;
-static int    cmd_signals  = 0;
-static int    check_child  = 0;
-static int    running      = 1;
+static int           log_fds[2]   = { -1, -1 };
+static task_t        cmd_task     = TASK;
+static task_t        log_task     = TASK;
+static int           success_exit = 0;
+static int           redir_errfd  = 0;
+static int           log_signals  = 0;
+static int           cmd_signals  = 0;
+static unsigned long cmd_timeout  = 0;
+static int           check_child  = 0;
+static int           running      = 1;
 
 static const struct {
     const char *name;
@@ -263,6 +264,19 @@ handle_signal (int signum)
         return;
     }
 
+    /*
+     * If we have a maximum time to run the process, and we receive SIGALRM,
+     * then the timeout was reached. As per signal(7) it is safe to kill(2)
+     * the process from a signal handler, so we do that and then mark it for
+     * respawning.
+     */
+    if (cmd_timeout && signum == SIGALRM) {
+        task_action (&cmd_task, A_STOP);
+        cmd_task.action = A_START;
+        alarm (cmd_timeout);
+        return;
+    }
+
     while (forward_signals[i].code != NO_SIGNAL) {
         if (signum == forward_signals[i++].code)
             break;
@@ -345,11 +359,36 @@ become_daemon (void)
 }
 
 
+static int
+parse_time_arg (const char *str, unsigned long *result)
+{
+    char *endpos = NULL;
+
+    assert (str != NULL);
+    assert (result != NULL);
+
+    *result = strtoul (str, &endpos, 0);
+    if (endpos == NULL || *endpos == '\0')
+        return 0;
+
+    switch (*endpos) {
+        case 'w': *result *= 60 * 60 * 24 * 7; break;
+        case 'd': *result *= 60 * 60 * 24; break;
+        case 'h': *result *= 60 * 60; break;
+        case 'm': *result *= 60; break;
+        default: return 1;
+    }
+
+    return 0;
+}
+
+
 #define _dmon_help_message                                           \
     "Usage: @c [options] cmd [cmd-options] [-- log [log-options]]\n" \
     "Launch a simple daemon, providing logging and respawning.\n"    \
     "\n"                                                             \
     "  -p PATH    Write PID to the a file in the given PATH.\n"      \
+    "  -t TIME    If command takes longer than TIME, restart it.\n"  \
     "  -1         Exit if command exits with a zero return code.\n"  \
     "  -n         Do not daemonize, stay in foreground.\n"           \
     "  -e         Redirect command stderr to stdout.\n"              \
@@ -368,7 +407,7 @@ main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSsnp:1")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSsnp:1t:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -376,6 +415,10 @@ main (int argc, char **argv)
             case 's': cmd_signals = 1; break;
             case 'S': log_signals = 1; break;
             case 'n': daemonize = 0; break;
+            case 't':
+                if (parse_time_arg (optarg, &cmd_timeout))
+                    die ("@c: Invalid time value '@c'\n", argv[0], optarg);
+                break;
 			case 'h':
 			case '?':
 				format (fd_out, _dmon_help_message, argv[0]);
@@ -445,6 +488,7 @@ main (int argc, char **argv)
     }
 
     setup_signals ();
+    alarm (cmd_timeout);
 
     cmd_task.write_fd = log_fds[1];
     log_task.read_fd  = log_fds[0];

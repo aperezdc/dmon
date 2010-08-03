@@ -35,6 +35,14 @@ Command line options:
               specified *PATH*. You can signal the process to interact with
               it. (See SIGNALS_ below.)
 
+-t SECONDS    If the process takes longer thab *SECONDS* to complete,
+              terminate it by sending the *TERM*/*CONT* signal combo. Then
+              the process will be respawned again. This is useful to ensure
+              that potentially locking processes which should take less than
+              some known time limit do not hog the computer. Most likely,
+              this flag is useful in conjunction with ``-1``, and with
+              ``-n`` e.g. when using it in a `cron(8)` job.
+
 -n            Do not daemonize: ``dmon`` will keep working in foreground,
               without detaching and without closing its standard input and
               output streams. This is useful for debugging and, to a limited
