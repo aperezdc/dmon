@@ -9,6 +9,7 @@
 #define __util_h__
 
 void fd_cloexec (int);
+void safe_sleep (unsigned);
 void die (const char*, ...);
 
 void __dprintf (const char*, ...);

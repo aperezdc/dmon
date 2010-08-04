@@ -105,6 +105,13 @@ task_start (task_t *task)
         return;
     }
 
+    /*
+     * Sleep before exec'ing the child: this is needed to avoid performing
+     * the classical "continued fork-exec without child reaping" DoS attack.
+     * We do this here, as soon as the child has been forked.
+     */
+    safe_sleep (1);
+
     /* Execute child */
     if (task->write_fd >= 0) {
         dprint (("redirecting write_fd = @i -> @i\n", task->write_fd, fd_out));
