@@ -1,14 +1,13 @@
 /*
- * dmon.h
+ * util.h
  * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
-#ifndef __dmon_h__
-#define __dmon_h__
+#ifndef __util_h__
+#define __util_h__
 
-/* dmon-util.c */
 void fd_cloexec (int);
 void die (const char*, ...);
 
@@ -20,7 +19,7 @@ void __dprintf (const char*, ...);
 # define dprint(_x)  ((void)0)
 #endif /* DEBUG_TRACE */
 
-#endif /* !__dmon_h__ */
+#endif /* !__util_h__ */
 
 /* vim: expandtab shiftwidth=4 tabstop=4
  */
