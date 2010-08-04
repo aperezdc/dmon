@@ -1,3 +1,11 @@
+dmon (0.2) stable; urgency=low
+
+  * Now dmon tries to prevent DoS caused by quick fork-exec combos.
+  * An error message is issues when no command is supplied.
+  * Implement timeout (-t) for running commands.
+
+ -- Adrian Perez <aperez@igalia.com>  Wed, 04 Aug 2010 02:38:19 +0200
+
 dmon (0.1) stable; urgency=low
 
   * Initial release.
