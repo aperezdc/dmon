@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 
 
 typedef enum {
@@ -34,11 +35,12 @@ typedef struct {
     int      write_fd;
     int      read_fd;
     int      signal;
+    time_t   started;
 } task_t;
 
 #define NO_PID    (-1)
 #define NO_SIGNAL (-1)
-#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL }
+#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL, 0 }
 
 static int           log_fds[2]   = { -1, -1 };
 static task_t        cmd_task     = TASK;
@@ -50,6 +52,7 @@ static int           cmd_signals  = 0;
 static unsigned long cmd_timeout  = 0;
 static int           check_child  = 0;
 static int           running      = 1;
+
 
 static const struct {
     const char *name;
@@ -92,7 +95,14 @@ signal_to_name (int signum)
 static void
 task_start (task_t *task)
 {
+    time_t now = time (NULL);
+    unsigned sleep_time = (difftime (now, task->started) > 1) ? 0 : 1;
+
     assert (task != NULL);
+
+    dprint (("Last start @Is ago, will wait for @Is\n",
+             (unsigned) difftime (now, task->started), sleep_time));
+    memcpy (&task->started, &now, sizeof (time_t));
 
     if ((task->pid = fork ()) < 0)
         die ("fork failed: @E");
@@ -110,7 +120,7 @@ task_start (task_t *task)
      * the classical "continued fork-exec without child reaping" DoS attack.
      * We do this here, as soon as the child has been forked.
      */
-    safe_sleep (1);
+    safe_sleep (sleep_time);
 
     /* Execute child */
     if (task->write_fd >= 0) {
