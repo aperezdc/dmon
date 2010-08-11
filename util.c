@@ -62,6 +62,9 @@ safe_sleep (unsigned seconds)
     struct timespec ts;
     int retval;
 
+    /* No time? Save up a syscall! */
+    if (!seconds) return;
+
     ts.tv_sec = seconds;
     ts.tv_nsec = 0;
 
