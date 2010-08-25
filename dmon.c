@@ -36,11 +36,13 @@ typedef struct {
     int      read_fd;
     int      signal;
     time_t   started;
+    uid_t    uid;
+    gid_t    gid;
 } task_t;
 
 #define NO_PID    (-1)
 #define NO_SIGNAL (-1)
-#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL, 0 }
+#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL, 0, 0, 0 }
 
 static int           log_fds[2]   = { -1, -1 };
 static task_t        cmd_task     = TASK;
@@ -144,6 +146,18 @@ task_start (task_t *task)
             dprint (("could not redirect stderr: @E\n"));
             exit (111);
         }
+    }
+
+    if (task->gid > 0) {
+        dprint (("set group id @L\n", task->pid));
+        if (setgid (task->gid))
+            die ("could not set groud id: @E");
+    }
+
+    if (task->uid > 0) {
+        dprint (("set user id @L\n", task->uid));
+        if (setuid (task->uid))
+            die ("could not set user id: @E");
     }
 
     execvp (task->argv[0], task->argv);
@@ -406,6 +420,10 @@ parse_time_arg (const char *str, unsigned long *result)
     "\n"                                                             \
     "  -p PATH    Write PID to the a file in the given PATH.\n"      \
     "  -t TIME    If command takes longer than TIME, restart it.\n"  \
+    "  -u UID     User id/name to run process as.\n"                 \
+    "  -U UID     User id/name to run the log process as.\n"         \
+    "  -g GID     Group id/name to run the process as.\n"            \
+    "  -G GID     Group id/name to run the log process as.\n"        \
     "  -1         Exit if command exits with a zero return code.\n"  \
     "  -n         Do not daemonize, stay in foreground.\n"           \
     "  -e         Redirect command stderr to stdout.\n"              \
@@ -424,7 +442,7 @@ main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSsnp:1t:")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSsnp:1t:u:U:g:G:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -434,7 +452,23 @@ main (int argc, char **argv)
             case 'n': daemonize = 0; break;
             case 't':
                 if (parse_time_arg (optarg, &cmd_timeout))
-                    die ("@c: Invalid time value '@c'\n", argv[0], optarg);
+                    die ("@c: Invalid time value '@c'", argv[0], optarg);
+                break;
+            case 'u':
+                if (name_to_uid (optarg, &cmd_task.uid))
+                    die ("@c: Invalid user '@c'", argv[0], optarg);
+                break;
+            case 'U':
+                if (name_to_uid (optarg, &log_task.uid))
+                    die ("@c: Invalid user '@c'", argv[0], optarg);
+                break;
+            case 'g':
+                if (name_to_gid (optarg, &cmd_task.gid))
+                    die ("@c: Invalid group '@c'", argv[0], optarg);
+                break;
+            case 'G':
+                if (name_to_gid (optarg, &log_task.gid))
+                    die ("@c: Invalid group '@c'", argv[0], optarg);
                 break;
 			case 'h':
 			case '?':
