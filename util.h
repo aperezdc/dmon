@@ -8,6 +8,11 @@
 #ifndef __util_h__
 #define __util_h__
 
+#include <sys/types.h>
+
+int name_to_uid (const char*, uid_t*);
+int name_to_gid (const char*, gid_t*);
+
 void fd_cloexec (int);
 void safe_sleep (unsigned);
 void die (const char*, ...);

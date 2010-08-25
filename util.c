@@ -13,12 +13,16 @@
 
 #include "util.h"
 #include "iolib.h"
+#include <assert.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
+#include <grp.h>
+#include <pwd.h>
 
 
 void
@@ -71,6 +75,62 @@ safe_sleep (unsigned seconds)
     do {
         retval = nanosleep (&ts, &ts);
     } while (retval == -1 && errno == EINTR);
+}
+
+
+int
+name_to_uid (const char *str, uid_t *result)
+{
+    struct passwd *pw;
+    unsigned long num;
+    char *dummy;
+
+    assert (str);
+    assert (result);
+
+    num = strtoul (str, &dummy, 0);
+    if (num == ULONG_MAX && errno == ERANGE)
+        return 1;
+
+    if (!dummy || *dummy == '\0') {
+        *result = (uid_t) num;
+        return 0;
+    }
+
+    if ((pw = getpwnam (str)) == NULL)
+        return 1;
+
+    *result = pw->pw_uid;
+    return 0;
+}
+
+
+int
+name_to_gid (const char *str, gid_t *result)
+{
+    struct group *grp;
+    unsigned long num;
+    char *dummy;
+
+    assert (str);
+    assert (result);
+
+    num = strtoul (str, &dummy, 0);
+
+    if (num == ULONG_MAX && errno == ERANGE)
+        return 1;
+
+    if (!dummy || *dummy == '\0') {
+        *result = (gid_t) num;
+        return 0;
+    }
+
+    if ((grp = getgrnam (str)) == NULL)
+        return 1;
+
+
+    *result = grp->gr_gid;
+    return 0;
 }
 
 
