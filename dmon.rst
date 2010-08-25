@@ -43,6 +43,18 @@ Command line options:
               this flag is useful in conjunction with ``-1``, and with
               ``-n`` e.g. when using it in a `cron(8)` job.
 
+-u UID        Executes the command with the credentials of user *UID*,
+              being it an UID number or the name of a system account.
+
+-U UID        Executes the **log** command with the credentials of user
+              *UID*, being it an UID number or the name of a system account.
+
+-g GID        Executes the command with the credentials of group *GID*,
+              being it a GID number or the name of a system group.
+
+-G GID        Executes the **log** command with the credentials of group
+              *GID*, being it a GID number or the name of a system group.
+
 -n            Do not daemonize: ``dmon`` will keep working in foreground,
               without detaching and without closing its standard input and
               output streams. This is useful for debugging and, to a limited
@@ -89,8 +101,8 @@ managed processes. By default, if none of the options are used, those
 signals are ignored.
 
 
-EXAMPLE
-=======
+EXAMPLES
+========
 
 The following command will supervise a shell which prints a string each
 fifth second, and the output is logged to a file with timestamps::
@@ -104,6 +116,12 @@ remove the ``-n``. I may be convenient to specify a PID file path::
   dmon -p example.pid \
     sh -c 'while echo "Hello dmon" ; do sleep 5 ; done' \
     -- dlog logfile
+
+The following example launches the `cron(8)` daemon with the logging
+process running as user and group ``log:log``::
+
+  dmon -p /var/run/crond.pid -U log -G log -e cron -f --
+    -- dlog /var/log/cron.log
 
 If you have a PID file, terminating the daemon is an easy task::
 

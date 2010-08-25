@@ -61,6 +61,26 @@ some known time limit do not hog the computer. Most likely,
 this flag is useful in conjunction with \fB\-1\fP, and with
 \fB\-n\fP e.g. when using it in a \fIcron(8)\fP job.
 .TP
+.BI \-u \ UID
+.
+Executes the command with the credentials of user \fIUID\fP,
+being it an UID number or the name of a system account.
+.TP
+.BI \-U \ UID
+.
+Executes the \fBlog\fP command with the credentials of user
+\fIUID\fP, being it an UID number or the name of a system account.
+.TP
+.BI \-g \ GID
+.
+Executes the command with the credentials of group \fIGID\fP,
+being it a GID number or the name of a system group.
+.TP
+.BI \-G \ GID
+.
+Executes the \fBlog\fP command with the credentials of group
+\fIGID\fP, being it a GID number or the name of a system group.
+.TP
 .B \-n
 .
 Do not daemonize: \fBdmon\fP will keep working in foreground,
@@ -113,7 +133,7 @@ When at least one of \fB\-s\fP or \fB\-S\fP are used, the \fBCONT\fP, \fBALRM\fP
 \fBQUIT\fP, \fBUSR1\fP, \fBUSR2\fP and \fBHUP\fP signals are forwarded to the
 managed processes. By default, if none of the options are used, those
 signals are ignored.
-.SH EXAMPLE
+.SH EXAMPLES
 .sp
 The following command will supervise a shell which prints a string each
 fifth second, and the output is logged to a file with timestamps:
@@ -133,6 +153,16 @@ remove the \fB\-n\fP. I may be convenient to specify a PID file path:
 dmon \-p example.pid \e
   sh \-c \(aqwhile echo "Hello dmon" ; do sleep 5 ; done\(aq \e
   \-\- dlog logfile
+.ft P
+.fi
+.sp
+The following example launches the \fIcron(8)\fP daemon with the logging
+process running as user and group \fBlog:log\fP:
+.sp
+.nf
+.ft C
+dmon \-p /var/run/crond.pid \-U log \-G log \-e cron \-f \-\-
+  \-\- dlog /var/log/cron.log
 .ft P
 .fi
 .sp
