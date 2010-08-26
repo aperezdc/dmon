@@ -418,17 +418,28 @@ parse_time_arg (const char *str, unsigned long *result)
     "Usage: @c [options] cmd [cmd-options] [-- log [log-options]]\n" \
     "Launch a simple daemon, providing logging and respawning.\n"    \
     "\n"                                                             \
+    "Process monitorization:\n"                                      \
+    "\n"                                                             \
     "  -p PATH    Write PID to the a file in the given PATH.\n"      \
-    "  -t TIME    If command takes longer than TIME, restart it.\n"  \
+    "  -n         Do not daemonize, stay in foreground.\n"           \
+    "  -s         Forward signals to command process.\n"             \
+    "  -S         Forward signals to log process.\n"                 \
+    "  -1         Exit if command exits with a zero return code.\n"  \
+    "\n"                                                             \
+    "Process execution environment:\n"                               \
+    "\n"                                                             \
     "  -u UID     User id/name to run process as.\n"                 \
     "  -U UID     User id/name to run the log process as.\n"         \
     "  -g GID     Group id/name to run the process as.\n"            \
     "  -G GID     Group id/name to run the log process as.\n"        \
-    "  -1         Exit if command exits with a zero return code.\n"  \
-    "  -n         Do not daemonize, stay in foreground.\n"           \
     "  -e         Redirect command stderr to stdout.\n"              \
-    "  -s         Forward signals to command process.\n"             \
-    "  -S         Forward signals to log process.\n"                 \
+    "\n"                                                             \
+    "Process execution constraints:\n"                               \
+    "\n"                                                             \
+    "  -t TIME    If command takes longer than TIME, restart it.\n"  \
+    "\n"                                                             \
+    "Getting help:\n"                                                \
+    "\n"                                                             \
     "  -h, -?     Show this help text.\n"                            \
     "\n"
 
