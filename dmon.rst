@@ -43,6 +43,19 @@ Command line options:
               this flag is useful in conjunction with ``-1``, and with
               ``-n`` e.g. when using it in a `cron(8)` job.
 
+-L NUMBER     Enable tracking the system's load average, and suspend the
+              execution of the command process when the system load goes
+              over *NUMBER*. To pause the process, *STOP* signal will be
+              sent to it. You may want to use ``-l`` as well to specify
+              under which load value the process is resumed, otherwise
+              when the system load falls below *NUMBER/2* the process will
+              be resumed.
+
+-l NUMBER     When using ``-L``, the command process execution will be
+              resumed when the system load falls below *NUMBER*, instead of
+              using the default behavior of resuming the process when the
+              load falls below half the limit specified with ``-L``.
+
 -u UID        Executes the command with the credentials of user *UID*,
               being it an UID number or the name of a system account.
 
@@ -122,6 +135,12 @@ process running as user and group ``log:log``::
 
   dmon -p /var/run/crond.pid -U log -G log -e cron -f --
     -- dlog /var/log/cron.log
+
+This example will run a (probably lengthy) backup process, pausing it when
+the system load goes above 3.5 and resuming it when the load drops below
+1.0::
+
+  dmon -1 -n -l 1 -L 3.5 rsync -avz ~/ /backup/homedir
 
 If you have a PID file, terminating the daemon is an easy task::
 

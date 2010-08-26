@@ -61,6 +61,23 @@ some known time limit do not hog the computer. Most likely,
 this flag is useful in conjunction with \fB\-1\fP, and with
 \fB\-n\fP e.g. when using it in a \fIcron(8)\fP job.
 .TP
+.BI \-L \ NUMBER
+.
+Enable tracking the system\(aqs load average, and suspend the
+execution of the command process when the system load goes
+over \fINUMBER\fP. To pause the process, \fISTOP\fP signal will be
+sent to it. You may want to use \fB\-l\fP as well to specify
+under which load value the process is resumed, otherwise
+when the system load falls below \fINUMBER/2\fP the process will
+be resumed.
+.TP
+.BI \-l \ NUMBER
+.
+When using \fB\-L\fP, the command process execution will be
+resumed when the system load falls below \fINUMBER\fP, instead of
+using the default behavior of resuming the process when the
+load falls below half the limit specified with \fB\-L\fP.
+.TP
 .BI \-u \ UID
 .
 Executes the command with the credentials of user \fIUID\fP,
@@ -163,6 +180,16 @@ process running as user and group \fBlog:log\fP:
 .ft C
 dmon \-p /var/run/crond.pid \-U log \-G log \-e cron \-f \-\-
   \-\- dlog /var/log/cron.log
+.ft P
+.fi
+.sp
+This example will run a (probably lengthy) backup process, pausing it when
+the system load goes above 3.5 and resuming it when the load drops below
+1.0:
+.sp
+.nf
+.ft C
+dmon \-1 \-n \-l 1 \-L 3.5 rsync \-avz ~/ /backup/homedir
 .ft P
 .fi
 .sp
