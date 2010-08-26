@@ -5,6 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
+#define _BSD_SOURCE /* getloadavg() */
+
 #include "util.h"
 #include "iolib.h"
 #include <sys/types.h>
@@ -14,6 +16,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
@@ -47,6 +50,8 @@ typedef struct {
 static int           log_fds[2]   = { -1, -1 };
 static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
+static float         load_low     = 0.0f;
+static float         load_high    = 0.0f;
 static int           success_exit = 0;
 static int           redir_errfd  = 0;
 static int           log_signals  = 0;
@@ -54,6 +59,7 @@ static int           cmd_signals  = 0;
 static unsigned long cmd_timeout  = 0;
 static int           check_child  = 0;
 static int           running      = 1;
+static int           paused       = 0;
 
 
 static const struct {
@@ -71,10 +77,15 @@ static const struct {
     { "INT" , SIGINT  },
     { "KILL", SIGKILL },
     { "CONT", SIGCONT },
+    { "STOP", SIGSTOP },
     { NULL  , NO_SIGNAL },
 };
 
+
+#define almost_zerof(_v)  ((_v) < 0.000000001f)
+
 #define log_enabled  (log_fds[0] != -1)
+#define load_enabled (!almost_zerof (load_high))
 
 
 #ifdef DEBUG_TRACE
@@ -414,6 +425,15 @@ parse_time_arg (const char *str, unsigned long *result)
 }
 
 
+static int
+parse_float_arg (const char *str, float *result)
+{
+    assert (str != NULL);
+    assert (result != NULL);
+    return !(sscanf (str, "%f", result) == 1);
+}
+
+
 #define _dmon_help_message                                           \
     "Usage: @c [options] cmd [cmd-options] [-- log [log-options]]\n" \
     "Launch a simple daemon, providing logging and respawning.\n"    \
@@ -437,6 +457,10 @@ parse_time_arg (const char *str, unsigned long *result)
     "Process execution constraints:\n"                               \
     "\n"                                                             \
     "  -t TIME    If command takes longer than TIME, restart it.\n"  \
+    "  -L VALUE   Stop process when system load reaches VALUE.\n"    \
+    "  -l VALUE   Resume process execution when system load drops\n" \
+    "             below VALUE. If not given defaults to half the\n"  \
+    "             value of the value specified with '-L'.\n"         \
     "\n"                                                             \
     "Getting help:\n"                                                \
     "\n"                                                             \
@@ -453,7 +477,7 @@ main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSsnp:1t:u:U:g:G:")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSsnp:1t:u:U:g:G:l:L:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -481,6 +505,14 @@ main (int argc, char **argv)
                 if (name_to_gid (optarg, &log_task.gid))
                     die ("@c: Invalid group '@c'", argv[0], optarg);
                 break;
+            case 'l':
+                if (parse_float_arg (optarg, &load_low))
+                    die ("@c: Invalid number '@c'", argv[0], optarg);
+                break;
+            case 'L':
+                if (parse_float_arg (optarg, &load_high))
+                    die ("@c: Invalid number '@c'", argv[0], optarg);
+                break;
 			case 'h':
 			case '?':
 				format (fd_out, _dmon_help_message, argv[0]);
@@ -492,6 +524,8 @@ main (int argc, char **argv)
 		}
 	}
 
+    if (load_enabled && almost_zerof (load_low))
+        load_low = load_high / 2.0f;
 
 	cmd_task.argv = argv + optind;
     i = optind;
@@ -571,8 +605,37 @@ main (int argc, char **argv)
         if (log_enabled)
             task_action_dispatch (&log_task);
 
-        /* Wait for signals to arrive. */
-        pause ();
+        if (load_enabled) {
+            double load_cur;
+
+            dprint (("checking load after sleeping 1s\n"));
+            interruptible_sleep (1);
+
+            if (getloadavg (&load_cur, 1) == -1)
+                die ("@c: Could not get load average!");
+
+            if (paused) {
+                /* If the current load dropped below load_low -> resume */
+                if (load_cur <= load_low) {
+                    dprint (("resuming... "));
+                    task_signal (&cmd_task, SIGCONT);
+                    paused = 0;
+                }
+            }
+            else {
+                /* If the load went above load_high -> pause */
+                if (load_cur > load_high) {
+                    dprint (("pausing... "));
+                    task_signal (&cmd_task, SIGSTOP);
+                    paused = 1;
+                }
+            }
+        }
+        else {
+            /* Wait for signals to arrive. */
+            dprint (("waiting for signals to come...\n"));
+            pause ();
+        }
     }
 
     dprint (("exiting gracefully...\n"));
