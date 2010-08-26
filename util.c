@@ -79,6 +79,20 @@ safe_sleep (unsigned seconds)
 
 
 int
+interruptible_sleep (unsigned seconds)
+{
+    struct timespec ts;
+
+    if (!seconds) return 0;
+
+    ts.tv_sec = seconds;
+    ts.tv_nsec = 0;
+
+    return !(nanosleep (&ts, NULL) == -1 && errno == EINTR);
+}
+
+
+int
 name_to_uid (const char *str, uid_t *result)
 {
     struct passwd *pw;

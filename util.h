@@ -15,6 +15,7 @@ int name_to_gid (const char*, gid_t*);
 
 void fd_cloexec (int);
 void safe_sleep (unsigned);
+int  interruptible_sleep (unsigned);
 void die (const char*, ...);
 
 void __dprintf (const char*, ...);
