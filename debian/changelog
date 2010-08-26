@@ -1,3 +1,16 @@
+dmon (0.3) stable; urgency=low
+
+  * New options -L/-l to pause-and-resume the process depending on
+    system load.
+  * New options -u/-U/-g/-G to set user and group credentials for
+    main command and logging command.
+  * Fix: A 1-second wait is introduced before executing child processes
+    to avoid fork+exec DoS.
+  * Fix: Now SIGSTOP is forwarded to child processes when using -S/-s.
+  * Handier help output with -h/-?
+
+ -- Adrian Perez <aperez@igalia.com>  Thu, 26 Aug 2010 22:59:54 +0200
+
 dmon (0.2) stable; urgency=low
 
   * Now dmon tries to prevent DoS caused by quick fork-exec combos.
