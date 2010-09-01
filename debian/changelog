@@ -1,3 +1,10 @@
+dmon (0.3.1) stable; urgency=high
+
+  * Fix: Do not handle SIGSTOP. This is very important because without this
+  	fix most dmon use-cases will not work at all.
+
+ -- Adrian Perez <aperez@igalia.com>  Wed, 01 Sep 2010 16:50:48 +0200
+
 dmon (0.3) stable; urgency=low
 
   * New options -L/-l to pause-and-resume the process depending on
