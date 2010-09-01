@@ -67,13 +67,13 @@ static const struct {
     int         code;
 } forward_signals[] = {
     { "CONT", SIGCONT },
-    { "STOP", SIGSTOP },
     { "ALRM", SIGALRM },
     { "QUIT", SIGQUIT },
     { "USR1", SIGUSR1 },
     { "USR2", SIGUSR2 },
     { "HUP" , SIGHUP  },
     { "NONE", NO_SIGNAL },
+    { "STOP", SIGSTOP },
     { "TERM", SIGTERM },
     { "INT" , SIGINT  },
     { "KILL", SIGKILL },
