@@ -47,7 +47,7 @@ Albeit it can be used stan-alone, most of the time you will be running
 SEE ALSO
 ========
 
-`dmon(8)`, `dsyslog(8)`, `rotlog(8)`, `multilog(8)`, `supervise(8)`
+`dmon(8)`, `dslog(8)`, `rotlog(8)`, `multilog(8)`, `supervise(8)`
 
 http://cr.yp.to/daemontools.html
 
