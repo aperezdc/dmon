@@ -1,3 +1,10 @@
+dmon (0.3.2) stable; urgency=low
+
+  * Rename dsyslog to dslog to avoid conflict with dsyslog
+  	(http://nenolod.net/projects/dsyslog/).
+
+ -- Adrian Perez <aperez@igalia.com>  Fri, 03 Sep 2010 10:52:53 +0200
+
 dmon (0.3.1) stable; urgency=high
 
   * Fix: Do not handle SIGSTOP. This is very important because without this
