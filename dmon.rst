@@ -91,7 +91,7 @@ Command line options:
 
 -h, -?        Show a summary of available options.
 
-Usual log commands include `dlog(8)` and `dsyslog(8)`, which are part of the
+Usual log commands include `dlog(8)` and `dslog(8)`, which are part of the
 ``dmon`` suite. Other log commands like `rotlog(8)` or `multilog(8)` may be
 used as long as they consume data from standard input and do not detach
 themsemlves from the controlling process.
@@ -150,7 +150,7 @@ If you have a PID file, terminating the daemon is an easy task::
 SEE ALSO
 ========
 
-`dlog(8)`, `dsyslog(8)`, `rotlog(8)`, `multilog(8)`, `supervise(8)`
+`dlog(8)`, `dslog(8)`, `rotlog(8)`, `multilog(8)`, `supervise(8)`
 
 http://cr.yp.to/daemontools.html
 

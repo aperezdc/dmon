@@ -1,8 +1,8 @@
 .\" Man page generated from reStructeredText.
 .
-.TH DSYSLOG 8 "" "" ""
+.TH DLOG 8 "" "" ""
 .SH NAME
-dsyslog \- Send lines from standard input to the system log
+dlog \- Send lines from standard input to the system log
 .
 .nr rst2man-indent-level 0
 .
@@ -32,10 +32,10 @@ level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
 ..
 .SH SYNOPSIS
 .sp
-\fBdsyslog [options] name\fP
+\fBdslog [options] name\fP
 .SH DESCRIPTION
 .sp
-The \fBdsyslog\fP program sends lines given as standard input to the system
+The \fBdslog\fP program sends lines given as standard input to the system
 logger, one line at a time, with a selectable priority, facility and origin
 program name.
 .SH USAGE
@@ -64,7 +64,7 @@ of it to the system console.
 \-h, \-?        Show a summary of available options.
 .sp
 Albeit it can be used stan\-alone, most of the time you will be running
-\fBdsyslog\fP under a process control tool like \fIdmon(8)\fP or \fIsupervise(8)\fP.
+\fBdslog\fP under a process control tool like \fIdmon(8)\fP or \fIsupervise(8)\fP.
 .SH SEE ALSO
 .sp
 \fIdmon(8)\fP, \fIdlog(8)\fP, \fIrotlog(8)\fP, \fImultilog(8)\fP, \fIsupervise(8)\fP

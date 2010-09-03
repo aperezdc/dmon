@@ -1,6 +1,6 @@
-=========
- dsyslog
-=========
+======
+ dlog
+======
 
 ------------------------------------------------
 Send lines from standard input to the system log
@@ -13,13 +13,13 @@ Send lines from standard input to the system log
 SYNOPSIS
 ========
 
-``dsyslog [options] name``
+``dslog [options] name``
 
 
 DESCRIPTION
 ===========
 
-The ``dsyslog`` program sends lines given as standard input to the system
+The ``dslog`` program sends lines given as standard input to the system
 logger, one line at a time, with a selectable priority, facility and origin
 program name.
 
@@ -43,7 +43,7 @@ Command line options:
 -h, -?        Show a summary of available options.
 
 Albeit it can be used stan-alone, most of the time you will be running
-``dsyslog`` under a process control tool like `dmon(8)` or `supervise(8)`.
+``dslog`` under a process control tool like `dmon(8)` or `supervise(8)`.
 
 
 SEE ALSO

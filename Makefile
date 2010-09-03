@@ -9,28 +9,28 @@ DESTDIR  ?=
 prefix   ?= /usr/local
 
 
-all: dmon dlog dsyslog
+all: dmon dlog dslog
 
 dmon: dmon.o util.o iolib.o
 dlog: dlog.o util.o iolib.o
-dsyslog: dsyslog.o util.o iolib.o
+dslog: dslog.o util.o iolib.o
 
-man: dmon.8 dlog.8 dsyslog.8
+man: dmon.8 dlog.8 dslog.8
 
 %.8: %.rst
 	rst2man $< $@
 
 clean:
-	$(RM) dmon.o dlog.o dsyslog.o util.o iolib.o
-	$(RM) dmon dlog dsyslog
+	$(RM) dmon.o dlog.o dslog.o util.o iolib.o
+	$(RM) dmon dlog dslog
 
 
 install:
 	install -d $(DESTDIR)$(prefix)/share/man/man8
-	install -m 644 dmon.8 dlog.8 dsyslog.8 \
+	install -m 644 dmon.8 dlog.8 dslog.8 \
 		$(DESTDIR)$(prefix)/share/man/man8
 	install -d $(DESTDIR)$(prefix)/bin
-	install -m 755 dmon dlog dsyslog \
+	install -m 755 dmon dlog dslog \
 		$(DESTDIR)$(prefix)/bin
 
 
