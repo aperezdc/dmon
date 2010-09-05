@@ -78,25 +78,19 @@ resumed when the system load falls below \fINUMBER\fP, instead of
 using the default behavior of resuming the process when the
 load falls below half the limit specified with \fB\-L\fP.
 .TP
-.BI \-u \ UID
+.BI \-u \ UIDGID
 .
 Executes the command with the credentials of user \fIUID\fP,
-being it an UID number or the name of a system account.
+and additional group \fIGID\fP specified separated with
+semicolons. Both user and group identifiers might be given
+as strings or numerically.
 .TP
-.BI \-U \ UID
+.BI \-U \ UIDGID
 .
 Executes the \fBlog\fP command with the credentials of user
-\fIUID\fP, being it an UID number or the name of a system account.
-.TP
-.BI \-g \ GID
-.
-Executes the command with the credentials of group \fIGID\fP,
-being it a GID number or the name of a system group.
-.TP
-.BI \-G \ GID
-.
-Executes the \fBlog\fP command with the credentials of group
-\fIGID\fP, being it a GID number or the name of a system group.
+\fIUID\fP, and additional group \fIGID\fP specified separated with
+semicolons. Both user and group identifiers might be given
+as strings or numerically.
 .TP
 .B \-n
 .
@@ -174,11 +168,11 @@ dmon \-p example.pid \e
 .fi
 .sp
 The following example launches the \fIcron(8)\fP daemon with the logging
-process running as user and group \fBlog:log\fP:
+process running as user and group \fBlog:wheel\fP:
 .sp
 .nf
 .ft C
-dmon \-p /var/run/crond.pid \-U log \-G log \-e cron \-f \-\-
+dmon \-p /var/run/crond.pid \-u log:wheel \-e cron \-f \-\-
   \-\- dlog /var/log/cron.log
 .ft P
 .fi
