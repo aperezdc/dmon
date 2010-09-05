@@ -1,3 +1,11 @@
+dmon (0.3.3) stable; urgency=low
+
+  * Options -u/-U now accept an optional list of GIDs, which are set as
+  	additional groups for the processes.
+  * Options -g/-G removed in favor of -u/-U.
+
+ -- Adrian Perez <aperez@igalia.com>  Sun, 05 Sep 2010 18:29:17 +0200
+
 dmon (0.3.2) stable; urgency=low
 
   * Rename dsyslog to dslog to avoid conflict with dsyslog
