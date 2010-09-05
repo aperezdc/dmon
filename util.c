@@ -18,6 +18,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
@@ -145,6 +146,74 @@ name_to_gid (const char *str, gid_t *result)
 
     *result = grp->gr_gid;
     return 0;
+}
+
+
+static int
+_parse_gids (char     *s,
+             uidgid_t *u)
+{
+    char *pos = NULL;
+    gid_t gid;
+
+    assert (s);
+    assert (u);
+
+    if (u->ngid >= DMON_GID_COUNT) {
+        format (fd_err,
+                "more than @L groups given, ignoring additional ones\n",
+                DMON_GID_COUNT);
+        return 0;
+    }
+
+    pos = strchr (s, ':');
+    if (pos != NULL)
+        *pos = '\0';
+
+    if (name_to_gid (s, &gid)) {
+        if (pos != NULL) *pos = ':';
+        return 1;
+    }
+
+    if (pos != NULL)
+        *pos = ':';
+
+    u->gids[u->ngid++] = gid;
+
+    return (pos == NULL) ? 0 : _parse_gids (pos + 1, u);
+}
+
+
+int
+parse_uidgids (char     *s,
+               uidgid_t *u)
+{
+    char *pos = NULL;
+
+    assert (s);
+    assert (u);
+
+    memset (u, 0x00, sizeof (uidgid_t));
+
+    pos = strchr (s, ':');
+    if (pos != NULL)
+        *pos = '\0';
+
+    if (name_to_uid (s, &u->uid)) {
+        if (pos != NULL) *pos = ':';
+        return 1;
+    }
+    if (name_to_gid (s, &u->gid)) {
+        if (pos != NULL) *pos = ':';
+        return 1;
+    }
+
+    if (pos != NULL)
+        *pos = ':';
+    else
+        return 0;
+
+    return (pos == NULL) ? 0 : _parse_gids (pos + 1, u);
 }
 
 

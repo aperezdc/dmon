@@ -9,6 +9,20 @@
 #define __util_h__
 
 #include <sys/types.h>
+#define DMON_GID_COUNT 76
+
+struct uidgid_s {
+    uid_t    uid;
+    gid_t    gid;
+    unsigned ngid;
+    gid_t    gids[DMON_GID_COUNT];
+};
+typedef struct uidgid_s uidgid_t;
+
+#define UIDGID { 0, 0, 0, {0} }
+
+/* uid[:gid[:gid...]] */
+int parse_uidgids (char*, uidgid_t*);
 
 int name_to_uid (const char*, uid_t*);
 int name_to_gid (const char*, gid_t*);
