@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
+#include <grp.h> /* setgroups() */
 
 
 typedef enum {
@@ -157,12 +158,20 @@ task_start (task_t *task)
         }
     }
 
+    /* Groups must be changed first, whilw we have privileges */
     if (task->user.gid > 0) {
         dprint (("set group id @L\n", task->pid));
         if (setgid (task->user.gid))
             die ("could not set groud id: @E");
     }
 
+    if (task->user.ngid > 0) {
+        dprint (("calling setgroups (@L groups)\n", task->user.ngid));
+        if (setgroups (task->user.ngid, task->user.gids))
+            die ("could not set additional groups: @E");
+    }
+
+    /* Now drop privileges */
     if (task->user.uid > 0) {
         dprint (("set user id @L\n", task->user.uid));
         if (setuid (task->user.uid))
