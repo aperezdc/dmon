@@ -1,3 +1,11 @@
+dmon (0.3.4) stable; urgency=low
+
+  * dmon now uses the primary group of the user being switched to when
+  	dropping privileges. This removes the possible failure of not existing
+  	a group named after the user.
+
+ -- Adrian Perez <aperez@igalia.com>  Sun, 05 Sep 2010 19:08:43 +0200
+
 dmon (0.3.3) stable; urgency=low
 
   * Options -u/-U now accept an optional list of GIDs, which are set as
