@@ -39,13 +39,12 @@ typedef struct {
     int      read_fd;
     int      signal;
     time_t   started;
-    uid_t    uid;
-    gid_t    gid;
+    uidgid_t user;
 } task_t;
 
 #define NO_PID    (-1)
 #define NO_SIGNAL (-1)
-#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL, 0, 0, 0 }
+#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL, 0, UIDGID }
 
 static int           log_fds[2]   = { -1, -1 };
 static task_t        cmd_task     = TASK;
@@ -158,15 +157,15 @@ task_start (task_t *task)
         }
     }
 
-    if (task->gid > 0) {
+    if (task->user.gid > 0) {
         dprint (("set group id @L\n", task->pid));
-        if (setgid (task->gid))
+        if (setgid (task->user.gid))
             die ("could not set groud id: @E");
     }
 
-    if (task->uid > 0) {
-        dprint (("set user id @L\n", task->uid));
-        if (setuid (task->uid))
+    if (task->user.uid > 0) {
+        dprint (("set user id @L\n", task->user.uid));
+        if (setuid (task->user.uid))
             die ("could not set user id: @E");
     }
 
@@ -447,11 +446,9 @@ parse_float_arg (const char *str, float *result)
     "\n"                                                             \
     "Process execution environment:\n"                               \
     "\n"                                                             \
-    "  -u UID     User id/name to run process as.\n"                 \
-    "  -U UID     User id/name to run the log process as.\n"         \
-    "  -g GID     Group id/name to run the process as.\n"            \
-    "  -G GID     Group id/name to run the log process as.\n"        \
-    "  -e         Redirect command stderr to stdout.\n"              \
+    "  -u UID[:GID...]  User and groups to run process as.\n"        \
+    "  -U UID[:GID...]  User and groups to run the log process as.\n"\
+    "  -e               Redirect command stderr to stdout.\n"        \
     "\n"                                                             \
     "Process execution constraints:\n"                               \
     "\n"                                                             \
@@ -476,7 +473,7 @@ main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSsnp:1t:u:U:g:G:l:L:")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSsnp:1t:u:U:l:L:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -489,20 +486,12 @@ main (int argc, char **argv)
                     die ("@c: Invalid time value '@c'", argv[0], optarg);
                 break;
             case 'u':
-                if (name_to_uid (optarg, &cmd_task.uid))
-                    die ("@c: Invalid user '@c'", argv[0], optarg);
+                if (parse_uidgids (optarg, &cmd_task.user))
+                    die ("@c: Invalid user/groups '@c'", argv[0], optarg);
                 break;
             case 'U':
-                if (name_to_uid (optarg, &log_task.uid))
-                    die ("@c: Invalid user '@c'", argv[0], optarg);
-                break;
-            case 'g':
-                if (name_to_gid (optarg, &cmd_task.gid))
-                    die ("@c: Invalid group '@c'", argv[0], optarg);
-                break;
-            case 'G':
-                if (name_to_gid (optarg, &log_task.gid))
-                    die ("@c: Invalid group '@c'", argv[0], optarg);
+                if (parse_uidgids (optarg, &log_task.user))
+                    die ("@c: Invalid user/groups '@c'", argv[0], optarg);
                 break;
             case 'l':
                 if (parse_float_arg (optarg, &load_low))
