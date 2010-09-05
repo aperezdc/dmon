@@ -94,28 +94,34 @@ interruptible_sleep (unsigned seconds)
 
 
 int
-name_to_uid (const char *str, uid_t *result)
+name_to_uidgid (const char *str,
+                uid_t      *uresult,
+                gid_t      *gresult)
 {
     struct passwd *pw;
     unsigned long num;
     char *dummy;
 
     assert (str);
-    assert (result);
+    assert (uresult);
+    assert (gresult);
 
     num = strtoul (str, &dummy, 0);
     if (num == ULONG_MAX && errno == ERANGE)
         return 1;
 
     if (!dummy || *dummy == '\0') {
-        *result = (uid_t) num;
-        return 0;
+        if ((pw = getpwuid ((uid_t) num)) == NULL)
+            return 1;
+    }
+    else {
+        if ((pw = getpwnam (str)) == NULL)
+            return 1;
     }
 
-    if ((pw = getpwnam (str)) == NULL)
-        return 1;
+    *uresult = pw->pw_uid;
+    *gresult = pw->pw_gid;
 
-    *result = pw->pw_uid;
     return 0;
 }
 
@@ -199,11 +205,7 @@ parse_uidgids (char     *s,
     if (pos != NULL)
         *pos = '\0';
 
-    if (name_to_uid (s, &u->uid)) {
-        if (pos != NULL) *pos = ':';
-        return 1;
-    }
-    if (name_to_gid (s, &u->gid)) {
+    if (name_to_uidgid (s, &u->uid, &u->gid)) {
         if (pos != NULL) *pos = ':';
         return 1;
     }
