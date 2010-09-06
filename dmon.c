@@ -23,6 +23,11 @@
 #include <grp.h> /* setgroups() */
 
 
+#ifndef MULTICALL
+# define dmon_main main
+#endif /* !MULTICALL */
+
+
 typedef enum {
     A_NONE = 0,
     A_START,
@@ -474,7 +479,7 @@ parse_float_arg (const char *str, float *result)
 
 
 int
-main (int argc, char **argv)
+dmon_main (int argc, char **argv)
 {
 	const char *pidfile = NULL;
 	int pidfile_fd = -1;

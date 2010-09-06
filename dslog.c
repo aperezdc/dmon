@@ -14,6 +14,11 @@
 #include <errno.h>
 
 
+#ifndef MULTICALL
+# define dslog_main main
+#endif /* !MULTICALL */
+
+
 #ifndef DEFAULT_FACILITY
 #define DEFAULT_FACILITY "daemon"
 #endif /* !DEFAULT_FACILITY */
@@ -117,7 +122,7 @@ static int running = 1;
 
 
 int
-main (int argc, char **argv)
+dslog_main (int argc, char **argv)
 {
     int c;
     int flags = 0;

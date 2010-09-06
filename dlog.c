@@ -14,6 +14,9 @@
 #include <fcntl.h>
 #include <time.h>
 
+#ifndef MULTICALL
+# define dlog_main main
+#endif /* !MULTICALL */
 
 #define _dlog_help_message                                      \
     "Usage: @c [options] [logfile]\n"                           \
@@ -39,7 +42,7 @@ static int buffered  = 0;
 
 
 int
-main (int argc, char **argv)
+dlog_main (int argc, char **argv)
 {
     buffer overflow = BUFFER;
     buffer linebuf = BUFFER;

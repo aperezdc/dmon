@@ -3,17 +3,32 @@
 # Adrian Perez, 2010-07-28 00:44
 #
 
-CPPFLAGS += -D_DEBUG
-CFLAGS   ?= -O0 -g -Wall -W
-DESTDIR  ?=
-prefix   ?= /usr/local
+
+CPPFLAGS  += -D_DEBUG
+CFLAGS    ?= -O0 -g -Wall -W
+DESTDIR   ?=
+prefix    ?= /usr/local
+MULTICALL ?= 0
+
+
+MULTICALL := $(strip $(MULTICALL))
+ifneq ($(MULTICALL),0)
+  CPPFLAGS += -DMULTICALL
+endif
 
 
 all: dmon dlog dslog
 
 dmon: dmon.o util.o iolib.o
-dlog: dlog.o util.o iolib.o
+
+ifneq ($(MULTICALL),0)
+dmon: dmon.o dlog.o dslog.o util.o iolib.o multicall.o
+dlog dslog: dmon
+	ln -s $< $@
+else
 dslog: dslog.o util.o iolib.o
+dlog: dlog.o util.o iolib.o
+endif
 
 man: dmon.8 dlog.8 dslog.8
 
@@ -21,7 +36,7 @@ man: dmon.8 dlog.8 dslog.8
 	rst2man $< $@
 
 clean:
-	$(RM) dmon.o dlog.o dslog.o util.o iolib.o
+	$(RM) dmon.o dlog.o dslog.o util.o iolib.o multicall.o
 	$(RM) dmon dlog dslog
 
 
@@ -30,9 +45,14 @@ install:
 	install -m 644 dmon.8 dlog.8 dslog.8 \
 		$(DESTDIR)$(prefix)/share/man/man8
 	install -d $(DESTDIR)$(prefix)/bin
+ifneq ($(MULTICALL),0)
+	install -m 755 dmon $(DESTDIR)$(prefix)/bin
+	ln -fs dmon $(DESTDIR)$(prefix)/bin/dslog
+	ln -fs dmon $(DESTDIR)$(prefix)/bin/dlog
+else
 	install -m 755 dmon dlog dslog \
 		$(DESTDIR)$(prefix)/bin
-
+endif
 
 .PHONY: man install
 

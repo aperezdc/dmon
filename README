@@ -7,3 +7,19 @@ No README yet, in the meanwhile you may want to read this post on DMon:
 
 There are manual pages, so please take a look at them.
 
+
+Bulding a multicall binary
+--------------------------
+
+As an option it is supported to build all tools into a single binary which
+can be symlinked with different names to switch between them (àla BusyBox).
+This is useful to save space i.e. in embedded devices.
+
+You can build all DMon tools this way by passing ``MULTICALL=1`` to Make::
+
+  make MULTICALL=1
+
+Remember to pass the option when doing ``make install`` as well::
+
+  make MULTICALL=1 install
+
