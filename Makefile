@@ -35,6 +35,14 @@ man: dmon.8 dlog.8 dslog.8
 %.8: %.rst
 	rst2man $< $@
 
+ifneq ($(MULTICALL),0)
+strip: dmon
+else
+strip: dmon dslog dlog
+endif
+	strip -x --strip-unneeded $^
+
+
 clean:
 	$(RM) dmon.o dlog.o dslog.o util.o iolib.o multicall.o
 	$(RM) dmon dlog dslog
@@ -54,7 +62,7 @@ else
 		$(DESTDIR)$(prefix)/bin
 endif
 
-.PHONY: man install
+.PHONY: man install strip
 
 # vim:ft=make
 #
