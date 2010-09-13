@@ -18,7 +18,12 @@ int fd_err = 2;
 #define BUFFERUNIT 256
 
 /* Die with a constant error message. */
-#define die(s) do { write(2, s, sizeof(s) - 1); exit(20); } while (0)
+#define die(s)                                  \
+    do {                                        \
+        int __tmp = write(2, s, sizeof(s) - 1); \
+        (void) __tmp;                           \
+        exit(20);                               \
+    } while (0)
 
 /* Adjust the size of a buffer without destroying its contents. */
 static void bsetsize(buffer *b, int len) {
