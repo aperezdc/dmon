@@ -548,7 +548,9 @@ dmon_main (int argc, char **argv)
     cmd_task.argv[cmd_task.argc] = NULL;
 
     if (log_task.argc > 0) {
-        pipe (log_fds);
+        if (pipe (log_fds) != 0) {
+            die ("@c: Cannot create pipe: @E", argv[0]);
+        }
         dprint (("pipe_read = @i, pipe_write = @i\n", log_fds[0], log_fds[1]));
         fd_cloexec (log_fds[0]);
         fd_cloexec (log_fds[1]);
