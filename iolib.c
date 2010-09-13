@@ -197,12 +197,12 @@ static char format_digit(int n) {
 }
 
 /* Format an unsigned long into the buffer. */
-static void format_ulong(buffer *b, unsigned long n, int base) {
+static void format_ulong(buffer *b, unsigned long n, unsigned base) {
 	if (n >= base) format_ulong(b, n / base, base);
 	bappendc(b, format_digit(n % base));
 }
 
-static void format_ullong(buffer *b, unsigned long long n, int base) {
+static void format_ullong(buffer *b, unsigned long long n, unsigned base) {
 	if (n >= base) format_ullong(b, n / base, base);
 	bappendc(b, format_digit(n % base));
 }
