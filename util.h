@@ -21,6 +21,9 @@ typedef struct uidgid_s uidgid_t;
 
 #define UIDGID { 0, 0, 0, {0} }
 
+/* Forward declaration */
+struct sigaction;
+
 /* uid[:gid[:gid...]] */
 int parse_uidgids (char*, uidgid_t*);
 
@@ -28,11 +31,16 @@ int name_to_uidgid (const char*, uid_t*, gid_t*);
 int name_to_gid (const char*, gid_t*);
 
 void fd_cloexec (int);
+void become_daemon (void);
 void safe_sleep (unsigned);
+void safe_sigaction (const char*, int, struct sigaction*);
 int  interruptible_sleep (unsigned);
 void die (const char*, ...);
 
 void __dprintf (const char*, ...);
+
+int parse_time_arg  (const char*, unsigned long*);
+int parse_float_arg (const char*, float*);
 
 #ifdef DEBUG_TRACE
 # define dprint(_x)  __dprintf _x

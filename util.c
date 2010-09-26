@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
@@ -76,6 +78,16 @@ safe_sleep (unsigned seconds)
     do {
         retval = nanosleep (&ts, &ts);
     } while (retval == -1 && errno == EINTR);
+}
+
+
+void
+safe_sigaction (const char *name, int signum, struct sigaction *sa)
+{
+    if (sigaction (signum, sa, NULL) < 0) {
+        die ("could not set handler for signal @c (@i): @E",
+             name, signum);
+    }
 }
 
 
@@ -216,6 +228,67 @@ parse_uidgids (char     *s,
         return 0;
 
     return (pos == NULL) ? 0 : _parse_gids (pos + 1, u);
+}
+
+
+void
+become_daemon (void)
+{
+    pid_t pid;
+    int nullfd = open ("/dev/null", O_RDWR, 0);
+
+    if (nullfd < 0)
+        die ("cannot daemonize, unable to open '/dev/null': @E");
+
+    fd_cloexec (nullfd);
+
+    if (dup2 (nullfd, fd_in) < 0)
+        die ("cannot daemonize, unable to redirect stdin: @E");
+    if (dup2 (nullfd, fd_out) < 0)
+        die ("cannot daemonize, unable to redirect stdout: @E");
+    if (dup2 (nullfd, fd_err) < 0)
+        die ("cannot daemonize, unable to redirect stderr: @E");
+
+    pid = fork ();
+
+    if (pid < 0) die ("cannot daemonize: @E");
+    if (pid > 0) _exit (EXIT_SUCCESS);
+
+    if (setsid () == -1)
+        _exit (111);
+}
+
+
+int
+parse_time_arg (const char *str, unsigned long *result)
+{
+    char *endpos = NULL;
+
+    assert (str != NULL);
+    assert (result != NULL);
+
+    *result = strtoul (str, &endpos, 0);
+    if (endpos == NULL || *endpos == '\0')
+        return 0;
+
+    switch (*endpos) {
+        case 'w': *result *= 60 * 60 * 24 * 7; break;
+        case 'd': *result *= 60 * 60 * 24; break;
+        case 'h': *result *= 60 * 60; break;
+        case 'm': *result *= 60; break;
+        default: return 1;
+    }
+
+    return 0;
+}
+
+
+int
+parse_float_arg (const char *str, float *result)
+{
+    assert (str != NULL);
+    assert (result != NULL);
+    return !(sscanf (str, "%f", result) == 1);
 }
 
 

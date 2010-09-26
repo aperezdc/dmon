@@ -19,10 +19,10 @@ endif
 
 all: dmon dlog dslog
 
-dmon: dmon.o util.o iolib.o
+dmon: dmon.o util.o iolib.o task.o
 
 ifneq ($(MULTICALL),0)
-dmon: dmon.o dlog.o dslog.o util.o iolib.o multicall.o
+dmon: dlog.o dslog.o multicall.o
 dlog dslog: dmon
 	ln -s $< $@
 else
@@ -44,7 +44,7 @@ endif
 
 
 clean:
-	$(RM) dmon.o dlog.o dslog.o util.o iolib.o multicall.o
+	$(RM) dmon.o dlog.o dslog.o util.o iolib.o multicall.o task.o
 	$(RM) dmon dlog dslog
 
 

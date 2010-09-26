@@ -7,6 +7,7 @@
 
 #define _BSD_SOURCE /* getloadavg() */
 
+#include "task.h"
 #include "util.h"
 #include "iolib.h"
 #include <sys/types.h>
@@ -15,12 +16,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <signal.h>
-#include <stdio.h>
 #include <fcntl.h>
-#include <errno.h>
-#include <time.h>
-#include <grp.h> /* setgroups() */
 
 
 #ifndef MULTICALL
@@ -28,37 +24,12 @@
 #endif /* !MULTICALL */
 
 
-typedef enum {
-    A_NONE = 0,
-    A_START,
-    A_STOP,
-    A_SIGNAL,
-} action_t;
-
-
-typedef struct {
-    pid_t    pid;
-    action_t action;
-    int      argc;
-    char   **argv;
-    int      write_fd;
-    int      read_fd;
-    int      signal;
-    time_t   started;
-    uidgid_t user;
-} task_t;
-
-#define NO_PID    (-1)
-#define NO_SIGNAL (-1)
-#define TASK      { NO_PID, A_START, 0, NULL, -1, -1, NO_SIGNAL, 0, UIDGID }
-
 static int           log_fds[2]   = { -1, -1 };
 static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
 static float         load_high    = 0.0f;
 static int           success_exit = 0;
-static int           redir_errfd  = 0;
 static int           log_signals  = 0;
 static int           cmd_signals  = 0;
 static unsigned long cmd_timeout  = 0;
@@ -109,156 +80,6 @@ signal_to_name (int signum)
 #endif /* DEBUG_TRACE */
 
 
-static void
-task_start (task_t *task)
-{
-    time_t now = time (NULL);
-    unsigned sleep_time = (difftime (now, task->started) > 1) ? 0 : 1;
-
-    assert (task != NULL);
-
-    dprint (("Last start @Is ago, will wait for @Is\n",
-             (unsigned) difftime (now, task->started), sleep_time));
-    memcpy (&task->started, &now, sizeof (time_t));
-
-    if ((task->pid = fork ()) < 0)
-        die ("fork failed: @E");
-
-    task->action = A_NONE;
-
-    /* We got a valid PID, return */
-    if (task->pid > 0) {
-        dprint (("child pid = @L\n", (unsigned) task->pid));
-        return;
-    }
-
-    /*
-     * Sleep before exec'ing the child: this is needed to avoid performing
-     * the classical "continued fork-exec without child reaping" DoS attack.
-     * We do this here, as soon as the child has been forked.
-     */
-    safe_sleep (sleep_time);
-
-    /* Execute child */
-    if (task->write_fd >= 0) {
-        dprint (("redirecting write_fd = @i -> @i\n", task->write_fd, fd_out));
-        if (dup2 (task->write_fd, fd_out) < 0) {
-            dprint (("redirection failed: @E\n"));
-            _exit (111);
-        }
-    }
-    if (task->read_fd >= 0) {
-        dprint (("redirecting read_fd = @i -> @i\n", task->read_fd, fd_in));
-        if (dup2 (task->read_fd, fd_in) < 0) {
-            dprint (("redirection failed: @E\n"));
-            _exit (111);
-        }
-    }
-
-    if (redir_errfd) {
-        dprint (("redirecting stderr -> stdout\n"));
-        if (dup2 (fd_out, fd_err) < 0) {
-            dprint (("could not redirect stderr: @E\n"));
-            exit (111);
-        }
-    }
-
-    /* Groups must be changed first, whilw we have privileges */
-    if (task->user.gid > 0) {
-        dprint (("set group id @L\n", task->pid));
-        if (setgid (task->user.gid))
-            die ("could not set groud id: @E");
-    }
-
-    if (task->user.ngid > 0) {
-        dprint (("calling setgroups (@L groups)\n", task->user.ngid));
-        if (setgroups (task->user.ngid, task->user.gids))
-            die ("could not set additional groups: @E");
-    }
-
-    /* Now drop privileges */
-    if (task->user.uid > 0) {
-        dprint (("set user id @L\n", task->user.uid));
-        if (setuid (task->user.uid))
-            die ("could not set user id: @E");
-    }
-
-    execvp (task->argv[0], task->argv);
-    _exit (111);
-}
-
-
-static void
-task_signal_dispatch (task_t *task)
-{
-    assert (task != NULL);
-
-    if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
-        return;
-
-    dprint (("dispatch signal @i to process @L\n",
-             task->signal, (unsigned) task->pid));
-
-    if (kill (task->pid, task->signal) < 0) {
-        die ("cannot send signal @i to process @L: @E",
-             task->signal, (unsigned) task->pid);
-    }
-    task->signal = NO_SIGNAL;
-}
-
-
-static void
-task_signal (task_t *task, int signum)
-{
-    assert (task != NULL);
-
-    /* Dispatch pending signal first if needed */
-    task_signal_dispatch (task);
-
-    /* Then send our own */
-    task->signal = signum;
-    task_signal_dispatch (task);
-}
-
-
-static void
-task_action_dispatch (task_t *task)
-{
-    assert (task != NULL);
-
-    switch (task->action) {
-        case A_NONE: /* Nothing to do */
-            return;
-        case A_START:
-            task_start (task);
-            break;
-        case A_STOP:
-            task->action = A_NONE;
-            if (task->pid != NO_PID) {
-                task_signal (task, SIGTERM);
-                task_signal (task, SIGCONT);
-            }
-            break;
-        case A_SIGNAL:
-            task->action = A_NONE;
-            task_signal_dispatch (task);
-            break;
-    }
-}
-
-
-static void
-task_action (task_t *task, action_t action)
-{
-    assert (task != NULL);
-
-    /* Dispatch pending action. */
-    task_action_dispatch (task);
-
-    /* Send our own action. */
-    task->action = action;
-    task_action_dispatch (task);
-}
 
 
 static void
@@ -354,14 +175,6 @@ handle_signal (int signum)
 }
 
 
-static void
-safe_sigaction (const char *name, int signum, struct sigaction *sa)
-{
-    if (sigaction (signum, sa, NULL) < 0) {
-        die ("could not set handler for signal @c (@i): @E",
-             name, signum);
-    }
-}
 
 static void
 setup_signals (void)
@@ -384,66 +197,6 @@ setup_signals (void)
     safe_sigaction ("INT" , SIGINT , &sa);
 }
 
-
-static void
-become_daemon (void)
-{
-    pid_t pid;
-    int nullfd = open ("/dev/null", O_RDWR, 0);
-
-    if (nullfd < 0)
-        die ("cannot daemonize, unable to open '/dev/null': @E");
-
-    fd_cloexec (nullfd);
-
-    if (dup2 (nullfd, fd_in) < 0)
-        die ("cannot daemonize, unable to redirect stdin: @E");
-    if (dup2 (nullfd, fd_out) < 0)
-        die ("cannot daemonize, unable to redirect stdout: @E");
-    if (dup2 (nullfd, fd_err) < 0)
-        die ("cannot daemonize, unable to redirect stderr: @E");
-
-    pid = fork ();
-
-    if (pid < 0) die ("cannot daemonize: @E");
-    if (pid > 0) _exit (EXIT_SUCCESS);
-
-    if (setsid () == -1)
-        _exit (111);
-}
-
-
-static int
-parse_time_arg (const char *str, unsigned long *result)
-{
-    char *endpos = NULL;
-
-    assert (str != NULL);
-    assert (result != NULL);
-
-    *result = strtoul (str, &endpos, 0);
-    if (endpos == NULL || *endpos == '\0')
-        return 0;
-
-    switch (*endpos) {
-        case 'w': *result *= 60 * 60 * 24 * 7; break;
-        case 'd': *result *= 60 * 60 * 24; break;
-        case 'h': *result *= 60 * 60; break;
-        case 'm': *result *= 60; break;
-        default: return 1;
-    }
-
-    return 0;
-}
-
-
-static int
-parse_float_arg (const char *str, float *result)
-{
-    assert (str != NULL);
-    assert (result != NULL);
-    return !(sscanf (str, "%f", result) == 1);
-}
 
 
 #define _dmon_help_message                                           \
@@ -491,7 +244,7 @@ dmon_main (int argc, char **argv)
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
-            case 'e': redir_errfd = 1; break;
+            case 'e': cmd_task.redir_errfd = 1; break;
             case 's': cmd_signals = 1; break;
             case 'S': log_signals = 1; break;
             case 'n': daemonize = 0; break;
