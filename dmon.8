@@ -51,9 +51,17 @@ Write the PID of the master \fBdmon\fP process to a file in the
 specified \fIPATH\fP. You can signal the process to interact with
 it. (See \fI\%SIGNALS\fP below.)
 .TP
-.BI \-t \ SECONDS
+.BI \-i \ TIME
 .
-If the process takes longer thab \fISECONDS\fP to complete,
+When execution of the process ends with a successful (zero)
+exit status, wait for \fITIME\fP seconds before respawning the
+process instead of doing it immediately. This can be used to
+make \fBdmon\fP behave as el\-cheapo \fIcron(8)\fP replacement. This
+option cannot be used along with \fB\-1\fP.
+.TP
+.BI \-t \ TIME
+.
+If the process takes longer than \fITIME\fP seconds to complete,
 terminate it by sending the \fITERM\fP/\fICONT\fP signal combo. Then
 the process will be respawned again. This is useful to ensure
 that potentially locking processes which should take less than
@@ -105,7 +113,8 @@ Run command only once: if the command exits with a success
 status (i.e. exit code is zero), then \fBdmon\fP will exit and
 stop the logging process. If the program dies due to a signal
 or with a non\-zero exit status, it is respawned. This option
-tends to be used in conjunction with \fB\-n\fP.
+tends to be used in conjunction with \fB\-n\fP, and cannot be
+used with \fB\-i\fP.
 .TP
 .B \-e
 .
@@ -122,14 +131,33 @@ Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 .
 Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 \fIHUP\fP to the log command when \fBdmon\fP receives them.
+.TP
+.B \-h
+.
+Show a summary of available options.
 .UNINDENT
-.sp
-\-h, \-?        Show a summary of available options.
 .sp
 Usual log commands include \fIdlog(8)\fP and \fIdslog(8)\fP, which are part of the
 \fBdmon\fP suite. Other log commands like \fIrotlog(8)\fP or \fImultilog(8)\fP may be
 used as long as they consume data from standard input and do not detach
 themsemlves from the controlling process.
+.sp
+As a convenience, time values passed to \fB\-i\fP and \fB\-t\fP may be specified
+with the following suffixes:
+.INDENT 0.0
+.IP \(bu 2
+.
+\fBm\fP: Minutes, e.g. \fB30m\fP means "30 minutes".
+.IP \(bu 2
+.
+\fBh\fP: Hours, e.g. \fB4h\fP means "4 hours".
+.IP \(bu 2
+.
+\fBd\fP: Days, e.g. \fB3d\fP means "3 days".
+.IP \(bu 2
+.
+\fBw\fP: Weeks, e.g. \fB1w\fP means "1 week".
+.UNINDENT
 .SH SIGNALS
 .sp
 Signals may be used to interact with the monitored processes and \fBdmon\fP
@@ -196,7 +224,7 @@ kill $(cat example.pid)
 .fi
 .SH SEE ALSO
 .sp
-\fIdlog(8)\fP, \fIdslog(8)\fP, \fIrotlog(8)\fP, \fImultilog(8)\fP, \fIsupervise(8)\fP
+\fIdlog(8)\fP, \fIdslog(8)\fP, \fIrotlog(8)\fP, \fImultilog(8)\fP, \fIsupervise(8)\fP, \fIcron(8)\fP
 .sp
 \fI\%http://cr.yp.to/daemontools.html\fP
 .SH AUTHOR

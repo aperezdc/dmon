@@ -35,7 +35,13 @@ Command line options:
               specified *PATH*. You can signal the process to interact with
               it. (See SIGNALS_ below.)
 
--t SECONDS    If the process takes longer thab *SECONDS* to complete,
+-i TIME       When execution of the process ends with a successful (zero)
+              exit status, wait for *TIME* seconds before respawning the
+              process instead of doing it immediately. This can be used to
+              make ``dmon`` behave as el-cheapo `cron(8)` replacement. This
+              option cannot be used along with ``-1``.
+
+-t TIME       If the process takes longer than *TIME* seconds to complete,
               terminate it by sending the *TERM*/*CONT* signal combo. Then
               the process will be respawned again. This is useful to ensure
               that potentially locking processes which should take less than
@@ -75,7 +81,8 @@ Command line options:
               status (i.e. exit code is zero), then ``dmon`` will exit and
               stop the logging process. If the program dies due to a signal
               or with a non-zero exit status, it is respawned. This option
-              tends to be used in conjunction with ``-n``.
+              tends to be used in conjunction with ``-n``, and cannot be
+              used with ``-i``.
 
 -e            Redirect both the standard error and standard output streams
               to the log command. If not specified, only the standard output
@@ -87,12 +94,20 @@ Command line options:
 -S            Forward signals *CONT*, *ALRM*, *QUIT*, *USR1*, *USR2* and
               *HUP* to the log command when ``dmon`` receives them.
 
--h, -?        Show a summary of available options.
+-h            Show a summary of available options.
 
 Usual log commands include `dlog(8)` and `dslog(8)`, which are part of the
 ``dmon`` suite. Other log commands like `rotlog(8)` or `multilog(8)` may be
 used as long as they consume data from standard input and do not detach
 themsemlves from the controlling process.
+
+As a convenience, time values passed to ``-i`` and ``-t`` may be specified
+with the following suffixes:
+
+- ``m``: Minutes, e.g. ``30m`` means "30 minutes".
+- ``h``: Hours, e.g. ``4h`` means "4 hours".
+- ``d``: Days, e.g. ``3d`` means "3 days".
+- ``w``: Weeks, e.g. ``1w`` means "1 week".
 
 
 SIGNALS
@@ -148,7 +163,7 @@ If you have a PID file, terminating the daemon is an easy task::
 SEE ALSO
 ========
 
-`dlog(8)`, `dslog(8)`, `rotlog(8)`, `multilog(8)`, `supervise(8)`
+`dlog(8)`, `dslog(8)`, `rotlog(8)`, `multilog(8)`, `supervise(8)`, `cron(8)`
 
 http://cr.yp.to/daemontools.html
 
