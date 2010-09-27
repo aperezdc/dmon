@@ -221,7 +221,6 @@ setup_signals (void)
     "  -n         Do not daemonize, stay in foreground.\n"           \
     "  -s         Forward signals to command process.\n"             \
     "  -S         Forward signals to log process.\n"                 \
-    "  -1         Exit if command exits with a zero return code.\n"  \
     "\n"                                                             \
     "Process execution environment:\n"                               \
     "\n"                                                             \
@@ -231,6 +230,7 @@ setup_signals (void)
     "\n"                                                             \
     "Process execution constraints:\n"                               \
     "\n"                                                             \
+    "  -1         Exit if command exits with a zero return code.\n"  \
     "  -t TIME    If command takes longer than TIME, restart it.\n"  \
     "  -i TIME    Wait TIME between successful command executions.\n"\
     "  -L VALUE   Stop process when system load reaches VALUE.\n"    \
