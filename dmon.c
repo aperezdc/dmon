@@ -240,7 +240,7 @@ setup_signals (void)
     "\n"                                                             \
     "Getting help:\n"                                                \
     "\n"                                                             \
-    "  -h, -?     Show this help text.\n"                            \
+    "  -h         Show this help text.\n"                            \
     "\n"
 
 
@@ -253,7 +253,7 @@ dmon_main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSsnp:1t:i:u:U:l:L:")) != -1) {
+	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
