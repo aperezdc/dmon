@@ -5,7 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#define _BSD_SOURCE /* getloadavg() */
+#define _BSD_SOURCE             /* getloadavg() */
+#define _POSIX_C_SOURCE 199309L /* nanosleep()  */
 
 #include "task.h"
 #include "util.h"
@@ -17,6 +18,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <time.h>
 
 
 #ifndef MULTICALL
@@ -33,6 +36,7 @@ static int           success_exit = 0;
 static int           log_signals  = 0;
 static int           cmd_signals  = 0;
 static unsigned long cmd_timeout  = 0;
+static unsigned long cmd_interval = 0;
 static int           check_child  = 0;
 static int           running      = 1;
 static int           paused       = 0;
@@ -82,7 +86,7 @@ signal_to_name (int signum)
 
 
 
-static void
+static int
 reap_and_check (void)
 {
     int status;
@@ -108,6 +112,7 @@ reap_and_check (void)
         else {
             cmd_task.action = A_START;
         }
+        return status;
     }
     else if (log_enabled && pid == log_task.pid) {
         dprint (("reaped log process @L\n", (unsigned) pid));
@@ -117,6 +122,13 @@ reap_and_check (void)
     else {
         dprint (("reaped unknown process @L", (unsigned) pid));
     }
+
+    /*
+     * For cases where a return status is not meaningful (PIDs other than
+     * that of the command being run) just return some invalid return code
+     * value.
+     */
+    return -1;
 }
 
 
@@ -220,6 +232,7 @@ setup_signals (void)
     "Process execution constraints:\n"                               \
     "\n"                                                             \
     "  -t TIME    If command takes longer than TIME, restart it.\n"  \
+    "  -i TIME    Wait TIME between successful command executions.\n"\
     "  -L VALUE   Stop process when system load reaches VALUE.\n"    \
     "  -l VALUE   Resume process execution when system load drops\n" \
     "             below VALUE. If not given defaults to half the\n"  \
@@ -240,7 +253,7 @@ dmon_main (int argc, char **argv)
 	char c;
 	int i;
 
-	while ((c = getopt (argc, argv, "+?heSsnp:1t:u:U:l:L:")) != -1) {
+	while ((c = getopt (argc, argv, "+?heSsnp:1t:i:u:U:l:L:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -250,6 +263,10 @@ dmon_main (int argc, char **argv)
             case 'n': daemonize = 0; break;
             case 't':
                 if (parse_time_arg (optarg, &cmd_timeout))
+                    die ("@c: Invalid time value '@c'", argv[0], optarg);
+                break;
+            case 'i':
+                if (parse_time_arg (optarg, &cmd_interval))
                     die ("@c: Invalid time value '@c'", argv[0], optarg);
                 break;
             case 'u':
@@ -268,16 +285,16 @@ dmon_main (int argc, char **argv)
                 if (parse_float_arg (optarg, &load_high))
                     die ("@c: Invalid number '@c'", argv[0], optarg);
                 break;
-			case 'h':
-			case '?':
-				format (fd_out, _dmon_help_message, argv[0]);
-				exit (EXIT_SUCCESS);
-			default:
-				format (fd_err, "@c: unrecognized option '@c'\n", argv[0], optarg);
-				format (fd_err, _dmon_help_message, argv[0]);
-				exit (EXIT_FAILURE);
-		}
-	}
+            case 'h':
+                format (fd_out, _dmon_help_message, argv[0]);
+                exit (EXIT_SUCCESS);
+            case '?':
+                exit (EXIT_FAILURE);
+        }
+    }
+
+    if (cmd_interval && success_exit)
+        die ("@c: Options '-i' and '-1' cannot be used together.", argv[0]);
 
     if (load_enabled && almost_zerof (load_low))
         load_low = load_high / 2.0f;
@@ -352,10 +369,33 @@ dmon_main (int argc, char **argv)
     while (running) {
         dprint ((">>> loop iteration\n"));
         if (check_child) {
-            reap_and_check ();
+            int retcode = reap_and_check ();
 
-            /* reap_and_check() may request stopping on successful exit */
-            if (!running) break;
+            /*
+             * Wait the specified timeout but DO NOT use safe_sleep(): here
+             * we want an interruptible sleep-wait so reaction to signals is
+             * quick, which we definitely want for SIGINT/SIGTERM.
+             */
+            if (cmd_interval && !success_exit && retcode == 0) {
+                int retval;
+                struct timespec ts;
+                ts.tv_sec = cmd_interval;
+                ts.tv_nsec = 0;
+
+                do {
+                    retval = nanosleep (&ts, &ts);
+                    dprint (("nanosleep -> @i\n", retval));
+                } while (retval == -1 && errno == EINTR && running);
+            }
+
+            /*
+             * Either handling signals which interrupt the previous loop,
+             * or reap_and_check() may request stopping on successful exit
+             */
+            if (!running) {
+                cmd_task.action = A_NONE;
+                break;
+            }
         }
 
         task_action_dispatch (&cmd_task);
