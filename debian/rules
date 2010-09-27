@@ -3,6 +3,7 @@
 #export DH_VERBOSE = 1
 
 export prefix = /usr
+export MULTICALL = 1
 
 %:
 	dh $@

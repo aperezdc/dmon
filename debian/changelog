@@ -1,3 +1,12 @@
+dmon (0.3.5) stable; urgency=low
+
+  * New -i option to specify waiting a time interval between successful runs.
+  * Command line flag -? is no longer recognized.
+  * Tools are now built as a multicall binary, with proper symlinks.
+  * Errors produced when creating command-to-log pipe are now handled.
+
+ -- Adrian Perez <aperez@igalia.com>  Mon, 27 Sep 2010 02:26:22 +0200
+
 dmon (0.3.4) stable; urgency=low
 
   * dmon now uses the primary group of the user being switched to when
