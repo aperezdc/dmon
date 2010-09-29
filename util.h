@@ -34,6 +34,7 @@ void fd_cloexec (int);
 void become_daemon (void);
 void safe_sleep (unsigned);
 void safe_sigaction (const char*, int, struct sigaction*);
+void safe_setrlimit (int what, long value);
 int  interruptible_sleep (unsigned);
 void die (const char*, ...);
 

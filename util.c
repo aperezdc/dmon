@@ -13,6 +13,8 @@
 
 #include "util.h"
 #include "iolib.h"
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <assert.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -88,6 +90,24 @@ safe_sigaction (const char *name, int signum, struct sigaction *sa)
         die ("could not set handler for signal @c (@i): @E",
              name, signum);
     }
+}
+
+
+void
+safe_setrlimit (int what, long value)
+{
+    struct rlimit r;
+
+    if (getrlimit (what, &r) < 0)
+        die ("getrlimit() failed: @E");
+
+    if (value < 0 || (unsigned long) value > r.rlim_max)
+        r.rlim_cur = r.rlim_max;
+    else
+        r.rlim_cur = value;
+
+    if (setrlimit (what, &r) < 0)
+        die ("setrlimit() failed: @E");
 }
 
 
