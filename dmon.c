@@ -84,8 +84,6 @@ signal_to_name (int signum)
 #endif /* DEBUG_TRACE */
 
 
-
-
 static int
 reap_and_check (void)
 {
@@ -238,8 +236,14 @@ setup_signals (void)
     "             below VALUE. If not given defaults to half the\n"  \
     "             value of the value specified with '-L'.\n"         \
     "\n"                                                             \
+    "Process resource usage limits:\n"                               \
+    "\n"                                                             \
+    "  -r LIMIT   Sets a resource limit, given as 'name=value'.\n"   \
+    "             This option can be specified multiple times.\n"    \
+    "\n"                                                             \
     "Getting help:\n"                                                \
     "\n"                                                             \
+    "  -r help    Get list of settable resource usage limits.\n"     \
     "  -h         Show this help text.\n"                            \
     "\n"
 
@@ -251,9 +255,10 @@ dmon_main (int argc, char **argv)
 	int pidfile_fd = -1;
 	int daemonize = 1;
 	char c;
-	int i;
+	long val;
+	int i, rlim;
 
-	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:")) != -1) {
+	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:r:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -261,6 +266,13 @@ dmon_main (int argc, char **argv)
             case 's': cmd_signals = 1; break;
             case 'S': log_signals = 1; break;
             case 'n': daemonize = 0; break;
+            case 'r':
+                i = parse_limit_arg (optarg, &rlim, &val);
+                if (i < 0) return EXIT_SUCCESS;
+                if (i) die ("@c: Invalid limit spec '@c'", argv[0], optarg);
+                dprint (("limit: @c = @l\n", limit_name (rlim), val));
+                safe_setrlimit (rlim, val);
+                break;
             case 't':
                 if (parse_time_arg (optarg, &cmd_timeout))
                     die ("@c: Invalid time value '@c'", argv[0], optarg);
