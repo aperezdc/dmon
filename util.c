@@ -312,5 +312,171 @@ parse_float_arg (const char *str, float *result)
 }
 
 
+
+static int
+_parse_limit_bytes (const char *sval, long *rval)
+{
+    char *endpos;
+    long val;
+
+    assert (sval != NULL);
+    assert (rval != NULL);
+
+    val = strtoul (sval, &endpos, 0);
+    switch (*endpos) {
+        case  'g': case 'G': val *= 1024 * 1024 * 1024; break; /* gigabytes */
+        case  'm': case 'M': val *= 1024 * 1024;        break; /* megabytes */
+        case  'k': case 'K': val *= 1024;               break; /* kilobytes */
+        case '\0': break;
+        default  : return 1;
+    }
+    *rval = val;
+    return 0;
+}
+
+
+static int
+_parse_limit_time (const char *sval, long *rval)
+{
+    unsigned long val;
+    int retcode;
+
+    assert (sval != NULL);
+    assert (rval != NULL);
+
+    /* reuse parse_time_arg() */
+    retcode = parse_time_arg (sval, &val);
+    *rval = val;
+    return retcode;
+}
+
+
+static int
+_parse_limit_number (const char *sval, long *rval)
+{
+    assert (sval != NULL);
+    assert (rval != NULL);
+    return !(sscanf (sval, "%li", rval) == 1);
+}
+
+
+static const struct {
+    const char *name;
+    int         what;
+    int       (*parse)(const char*, long*);
+    const char *desc;
+} rlimit_specs[] = {
+#ifdef RLIMIT_AS
+    { "vmem",  RLIMIT_AS, _parse_limit_bytes,
+      "Maximum size of process' virtual memory (bytes)" },
+#endif /* RLIMIT_AS */
+#ifdef RLIMIT_CORE
+    { "core",  RLIMIT_CORE, _parse_limit_bytes,
+      "Maximum size of core file (bytes)" },
+#endif /* RLIMIT_CORE */
+#ifdef RLIMIT_CPU
+    { "cpu",   RLIMIT_CPU, _parse_limit_time,
+      "Maximum CPU time used (seconds)" },
+#endif /* RLIMIT_CPU */
+#ifdef RLIMIT_DATA
+    { "data",  RLIMIT_DATA, _parse_limit_bytes,
+      "Maximum size of data segment (bytes)" },
+#endif /* RLIMIT_DATA */
+#ifdef RLIMIT_FSIZE
+    { "fsize", RLIMIT_FSIZE, _parse_limit_bytes,
+      "Maximum size of created files (bytes)" },
+#endif /* RLIMIT_FSIZE */
+#ifdef RLIMIT_LOCKS
+    { "locks", RLIMIT_LOCKS, _parse_limit_number,
+      "Maximum number of locked files" },
+#endif /* RLIMIT_LOCKS */
+#ifdef RLIMIT_MEMLOCK
+    { "mlock", RLIMIT_MEMLOCK, _parse_limit_bytes,
+      "Maximum number of bytes locked in RAM (bytes)" },
+#endif /* RLIMIT_MEMLOCK */
+#ifdef RLIMIT_MSGQUEUE
+    { "msgq", RLIMIT_MSGQUEUE, _parse_limit_number,
+      "Maximum number of bytes used in message queues (bytes)" },
+#endif /* RLIMIT_MSGQUEUE */
+#ifdef RLIMIT_NICE
+    { "nice", RLIMIT_NICE, _parse_limit_number,
+      "Ceiling for the process nice value" },
+#endif /* RLIMIT_NICE */
+#ifdef RLIMIT_NOFILE
+    { "files", RLIMIT_NOFILE, _parse_limit_number,
+      "Maximum number of open files" },
+#endif /* RLIMIT_NOFILE */
+#ifdef RLIMIT_NPROC
+    { "nproc", RLIMIT_NPROC, _parse_limit_number,
+      "Maximum number of processes" },
+#endif /* RLIMIT_NPROC */
+#ifdef RLIMIT_RSS
+#warning Building support for RLIMIT_RSS, this may not work on Linux 2.6+
+    { "rss", RLIMIT_RSS, _parse_limit_number,
+      "Maximum number of pages resident in RAM" },
+#endif /* RLIMIT_RSS */
+#ifdef RLIMIT_RTPRIO
+    { "rtprio", RLIMIT_RTPRIO, _parse_limit_number,
+      "Ceiling for the real-time priority" },
+#endif /* RLIMIT_RTPRIO */
+#ifdef RLIMIT_RTTIME
+    { "rttime", RLIMIT_RTTIME, _parse_limit_time,
+      "Maximum real-time CPU time used (seconds)" },
+#endif /* RLIMIT_RTTIME */
+#ifdef RLIMIT_SIGPENDING
+    { "sigpending", RLIMIT_SIGPENDING, _parse_limit_number,
+      "Maximum number of queued signals" },
+#endif /* RLIMIT_SIGPENDING */
+#ifdef RLIMIT_STACK
+    { "stack", RLIMIT_STACK, _parse_limit_bytes,
+      "Maximum stack segment size (bytes)" },
+#endif /* RLIMIT_STACK */
+};
+
+
+int
+parse_limit_arg (const char *str, int *what, long *value)
+{
+    unsigned i;
+
+    assert (str != NULL);
+    assert (what != NULL);
+    assert (value != NULL);
+
+    if (!strcmp (str, "help")) {
+        for (i = 0; i < length_of (rlimit_specs); i++) {
+            format (fd_out, "@c -- @c\n",
+                    rlimit_specs[i].name,
+                    rlimit_specs[i].desc);
+        }
+        return -1;
+    }
+
+    for (i = 0; i < length_of (rlimit_specs); i++) {
+        unsigned nlen = strlen (rlimit_specs[i].name);
+        if (!strncmp (str, rlimit_specs[i].name, nlen) && str[nlen] == '=') {
+            *what = rlimit_specs[i].what;
+            return ((*rlimit_specs[i].parse) (str + nlen + 1, value));
+        }
+    }
+
+    return 1;
+}
+
+
+
+const char*
+limit_name (int what)
+{
+    unsigned i;
+
+    for (i = 0; i < length_of (rlimit_specs); i++) {
+        if (what == rlimit_specs[i].what)
+            return rlimit_specs[i].name;
+    }
+    return NULL;
+}
+
+
 /* vim: expandtab shiftwidth=4 tabstop=4
  */

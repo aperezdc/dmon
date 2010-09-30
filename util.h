@@ -39,11 +39,13 @@ void safe_sigaction (const char*, int, struct sigaction*);
 void safe_setrlimit (int what, long value);
 int  interruptible_sleep (unsigned);
 void die (const char*, ...);
+const char* limit_name (int);
 
 void __dprintf (const char*, ...);
 
 int parse_time_arg  (const char*, unsigned long*);
 int parse_float_arg (const char*, float*);
+int parse_limit_arg (const char*, int*, long*);
 
 #ifdef DEBUG_TRACE
 # define dprint(_x)  __dprintf _x
