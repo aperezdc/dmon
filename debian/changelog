@@ -1,3 +1,9 @@
+dmon (0.3.6) stable; urgency=low
+
+  * Support resource limiting with "-r name=value".
+
+ -- Adrian Perez <aperez@igalia.com>  Thu, 30 Sep 2010 03:24:49 +0200
+
 dmon (0.3.5) stable; urgency=low
 
   * New -i option to specify waiting a time interval between successful runs.
