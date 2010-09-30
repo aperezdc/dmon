@@ -5,7 +5,7 @@
 
 
 CPPFLAGS  += -D_DEBUG
-CFLAGS    ?= -O0 -g -Wall -W
+CFLAGS    ?= -Os -g -Wall -W
 DESTDIR   ?=
 prefix    ?= /usr/local
 MULTICALL ?= 0
