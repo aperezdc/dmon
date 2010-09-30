@@ -132,6 +132,14 @@ Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 \fIHUP\fP to the log command when \fBdmon\fP receives them.
 .TP
+.BI \-r \ LIMIT
+.
+Set \fILIMIT\fP for process execution. Limits are specified as
+\fBname=value\fP strings, and multiple limits may be set by
+using \fB\-r\fP multiple times. The available set of limits
+depends on the current operating system, to get a list
+\fB\-r help\fP can be used.
+.TP
 .B \-h
 .
 Show a summary of available options.
@@ -142,8 +150,8 @@ Usual log commands include \fIdlog(8)\fP and \fIdslog(8)\fP, which are part of t
 used as long as they consume data from standard input and do not detach
 themsemlves from the controlling process.
 .sp
-As a convenience, time values passed to \fB\-i\fP and \fB\-t\fP may be specified
-with the following suffixes:
+As a convenience, time values passed to \fB\-i\fP, \fB\-t\fP and values of limits
+specified with \fB\-r\fP may be given with the following suffixes:
 .INDENT 0.0
 .IP \(bu 2
 .
@@ -157,6 +165,20 @@ with the following suffixes:
 .IP \(bu 2
 .
 \fBw\fP: Weeks, e.g. \fB1w\fP means "1 week".
+.UNINDENT
+.sp
+For size values (bytes) the strings passed to \fB\-r\fP as limits may have the
+following suffixes:
+.INDENT 0.0
+.IP \(bu 2
+.
+\fBk\fP: Kilobytes.
+.IP \(bu 2
+.
+\fBm\fP: Megabytes.
+.IP \(bu 2
+.
+\fBg\fP: Gigabytes.
 .UNINDENT
 .SH SIGNALS
 .sp

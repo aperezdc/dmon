@@ -94,6 +94,12 @@ Command line options:
 -S            Forward signals *CONT*, *ALRM*, *QUIT*, *USR1*, *USR2* and
               *HUP* to the log command when ``dmon`` receives them.
 
+-r LIMIT      Set *LIMIT* for process execution. Limits are specified as
+              ``name=value`` strings, and multiple limits may be set by
+              using ``-r`` multiple times. The available set of limits
+              depends on the current operating system, to get a list
+              ``-r help`` can be used.
+
 -h            Show a summary of available options.
 
 Usual log commands include `dlog(8)` and `dslog(8)`, which are part of the
@@ -101,13 +107,20 @@ Usual log commands include `dlog(8)` and `dslog(8)`, which are part of the
 used as long as they consume data from standard input and do not detach
 themsemlves from the controlling process.
 
-As a convenience, time values passed to ``-i`` and ``-t`` may be specified
-with the following suffixes:
+As a convenience, time values passed to ``-i``, ``-t`` and values of limits
+specified with ``-r`` may be given with the following suffixes:
 
 - ``m``: Minutes, e.g. ``30m`` means "30 minutes".
 - ``h``: Hours, e.g. ``4h`` means "4 hours".
 - ``d``: Days, e.g. ``3d`` means "3 days".
 - ``w``: Weeks, e.g. ``1w`` means "1 week".
+
+For size values (bytes) the strings passed to ``-r`` as limits may have the
+following suffixes:
+
+- ``k``: Kilobytes.
+- ``m``: Megabytes.
+- ``g``: Gigabytes.
 
 
 SIGNALS
