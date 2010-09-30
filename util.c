@@ -99,7 +99,7 @@ safe_setrlimit (int what, long value)
     struct rlimit r;
 
     if (getrlimit (what, &r) < 0)
-        die ("getrlimit() failed: @E");
+        die ("getrlimit (@c) failed: @E", limit_name (what));
 
     if (value < 0 || (unsigned long) value > r.rlim_max)
         r.rlim_cur = r.rlim_max;
@@ -107,7 +107,7 @@ safe_setrlimit (int what, long value)
         r.rlim_cur = value;
 
     if (setrlimit (what, &r) < 0)
-        die ("setrlimit() failed: @E");
+        die ("setrlimit (@c=@l) failed: @E", limit_name (what), value);
 }
 
 
@@ -474,7 +474,7 @@ limit_name (int what)
         if (what == rlimit_specs[i].what)
             return rlimit_specs[i].name;
     }
-    return NULL;
+    return "<unknown>";
 }
 
 
