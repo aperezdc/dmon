@@ -1,5 +1,6 @@
-DMon - Process Monitoring With Style
-====================================
+======================================
+ DMon - Process Monitoring With Style
+======================================
 
 No README yet, in the meanwhile you may want to read this post on DMon:
 
@@ -9,7 +10,7 @@ There are manual pages, so please take a look at them.
 
 
 Bulding a multicall binary
---------------------------
+==========================
 
 As an option it is supported to build all tools into a single binary which
 can be symlinked with different names to switch between them (àla BusyBox).
@@ -22,4 +23,14 @@ You can build all DMon tools this way by passing ``MULTICALL=1`` to Make::
 Remember to pass the option when doing ``make install`` as well::
 
   make MULTICALL=1 install
+
+
+Optionally adding "rotlog" built-in
+-----------------------------------
+When building a multicall binary, you can get a copy of the "rotlog" program
+(similar to dlog, with log rotation support, see http://gitorious.org/rotlog)
+by defining the ROTLOG variable to the path where the rotlog sources are
+located. For example:
+
+  make MULTICALL=1 ROTLOG=../rotlog-0.2.1/
 

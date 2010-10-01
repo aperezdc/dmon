@@ -26,11 +26,18 @@ extern int dmon_main  (int, char**);
 extern int dlog_main  (int, char**);
 extern int dslog_main (int, char**);
 
+#ifdef MULTICALL_ROTLOG
+extern int rotlog_main(int, char**);
+#endif /* MULTICALL_ROTLOG */
+
 
 APPLET_LIST_BEGIN
     APPLET (dmon)
     APPLET (dlog)
     APPLET (dslog)
+#ifdef MULTICALL_ROTLOG
+    APPLET (rotlog)
+#endif /* MULTICALL_ROTLOG */
 APPLET_LIST_END
 
 
