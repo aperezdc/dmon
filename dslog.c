@@ -128,8 +128,12 @@ dslog_main (int argc, char **argv)
     int flags = 0;
     int facility = name_to_facility (DEFAULT_FACILITY);
     int priority = name_to_priority (DEFAULT_PRIORITY);
+    char *env_opts = NULL;
     buffer linebuf = BUFFER;
     buffer overflow = BUFFER;
+
+    if ((env_opts = getenv ("DSLOG_OPTIONS")) != NULL)
+        replace_args_string (env_opts, &argc, &argv);
 
     while ((c = getopt (argc, argv, "?hcf:p:")) != -1) {
         switch (c) {
