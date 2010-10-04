@@ -19,7 +19,7 @@ ROTLOG    := $(strip $(ROTLOG))
 
 ifneq ($(MULTICALL),0)
   CPPFLAGS += -DMULTICALL
-  ifneq ($(ROTLOG),)
+  ifneq ($(ROTLOG),0)
     CPPFLAGS += -DMULTICALL_ROTLOG
   endif
 else
