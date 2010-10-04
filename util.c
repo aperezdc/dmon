@@ -698,5 +698,29 @@ replace_args_string (const char *str,
 }
 
 
+void
+replace_args_shift (unsigned amount,
+                    int     *pargc,
+                    char  ***pargv)
+{
+    int    argc = *pargc;
+    char **argv = *pargv;
+    int    i;
+
+    assert (pargc);
+    assert (pargv);
+    assert (amount > 0);
+    assert (*pargc > (int) amount);
+
+    while (amount--) {
+        argc--;
+        for (i = 1; i < argc; i++) {
+            argv[i] = argv[i+1];
+        }
+    }
+    *pargc = argc;
+}
+
+
 /* vim: expandtab shiftwidth=4 tabstop=4
  */

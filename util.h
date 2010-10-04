@@ -64,6 +64,10 @@ int replace_args_string (const char *str,
                          int        *argc,
                          char     ***argv);
 
+void replace_args_shift (unsigned    amount,
+                         int        *pargc,
+                         char     ***pargv);
+
 
 void*   xxalloc      (void *p, size_t sz);
 #define xrealloc     xxalloc

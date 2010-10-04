@@ -213,6 +213,10 @@ setup_signals (void)
     "Usage: @c [options] cmd [cmd-options] [-- log [log-options]]\n" \
     "Launch a simple daemon, providing logging and respawning.\n"    \
     "\n"                                                             \
+    "  -C FILE    Read a FILE containing options and prepend them\n" \
+    "             to the ones given in the command line. This must\n"\
+    "             be the first command line option.\n"               \
+    "\n"                                                             \
     "Process monitorization:\n"                                      \
     "\n"                                                             \
     "  -p PATH    Write PID to the a file in the given PATH.\n"      \
@@ -262,6 +266,16 @@ dmon_main (int argc, char **argv)
 	char c;
 	long val;
 	int i, rlim;
+
+    /* Check for "-C configfile" given in the command line. */
+    if (argc > 2 && argv[1][0] == '-'
+                 && argv[1][1] == 'C'
+                 && argv[1][2] == '\0')
+    {
+        const char *configfile = argv[2];
+        replace_args_shift (2, &argc, &argv);
+        replace_args_file (configfile, &argc, &argv);
+    }
 
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
         replace_args_string (opts_env, &argc, &argv);
