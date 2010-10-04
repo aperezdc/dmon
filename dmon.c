@@ -222,6 +222,9 @@ setup_signals (void)
     "\n"                                                             \
     "Process execution environment:\n"                               \
     "\n"                                                             \
+    "  -E VAR[=[VALUE]] Define an evironment variable, or if no\n"   \
+    "                   value is given, delete it. This option can\n"\
+    "                   be specified multiple times.\n"              \
     "  -u UID[:GID...]  User and groups to run process as.\n"        \
     "  -U UID[:GID...]  User and groups to run the log process as.\n"\
     "  -e               Redirect command stderr to stdout.\n"        \
@@ -251,6 +254,7 @@ setup_signals (void)
 int
 dmon_main (int argc, char **argv)
 {
+	char *equalsign = NULL;
 	const char *pidfile = NULL;
 	char *opts_env = NULL;
 	int pidfile_fd = -1;
@@ -262,7 +266,7 @@ dmon_main (int argc, char **argv)
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
         replace_args_string (opts_env, &argc, &argv);
 
-	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:r:")) != -1) {
+	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:r:E:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -276,6 +280,15 @@ dmon_main (int argc, char **argv)
                 if (i) die ("@c: Invalid limit spec '@c'", argv[0], optarg);
                 dprint (("limit: @c = @l\n", limit_name (rlim), val));
                 safe_setrlimit (rlim, val);
+                break;
+            case 'E':
+                if ((equalsign = strchr (optarg, '=')) == NULL) {
+                    unsetenv (optarg);
+                }
+                else {
+                    *equalsign = '\0';
+                    setenv (optarg, equalsign + 1, 1);
+                }
                 break;
             case 't':
                 if (parse_time_arg (optarg, &cmd_timeout))
