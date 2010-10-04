@@ -580,6 +580,17 @@ replace_args_cb (int   (*getc)(void*),
             quotes = ch;
         }
         else {
+            if (!isprint (ch)) {
+#if   defined(EINVAL)
+                errno = EINVAL;
+#elif defined(EILSEQ)
+                errno = EILSEQ;
+#else
+#warning Both EINVAL and EILSEQ are undefined, error message will be ambiguous
+                errno = 0;
+#endif
+                return 1;
+            }
             if (slen >= smax) {
                 smax += REPLACE_ARGS_SCHUNK;
                 s = xresize (s, char, smax);
