@@ -86,6 +86,16 @@ resumed when the system load falls below \fINUMBER\fP, instead of
 using the default behavior of resuming the process when the
 load falls below half the limit specified with \fB\-L\fP.
 .TP
+.BI \-E \ ENVVAR
+.
+Manipulates environment variables. Specifying just a variable
+name (e.g. \fB\-E foo\fP) as \fIENVVAR\fP will clear it and remove
+the variable from the environment. Adding a value will define
+the variable (e.g. \fB\-E foo=bar\fP). This option may be
+specified multiple times. Environment variables will affect
+\fIboth\fP the \fBdmon\fP and the child process; this is intended
+behaviour.
+.TP
 .BI \-u \ UIDGID
 .
 Executes the command with the credentials of user \fIUID\fP,

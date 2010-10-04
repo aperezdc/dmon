@@ -62,6 +62,14 @@ Command line options:
               using the default behavior of resuming the process when the
               load falls below half the limit specified with ``-L``.
 
+-E ENVVAR     Manipulates environment variables. Specifying just a variable
+              name (e.g. ``-E foo``) as *ENVVAR* will clear it and remove
+              the variable from the environment. Adding a value will define
+              the variable (e.g. ``-E foo=bar``). This option may be
+              specified multiple times. Environment variables will affect
+              *both* the ``dmon`` and the child process; this is intended
+              behaviour.
+
 -u UIDGID     Executes the command with the credentials of user *UID*,
               and additional group *GID* specified separated with
               semicolons. Both user and group identifiers might be given
