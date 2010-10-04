@@ -252,11 +252,15 @@ int
 dmon_main (int argc, char **argv)
 {
 	const char *pidfile = NULL;
+	char *opts_env = NULL;
 	int pidfile_fd = -1;
 	int daemonize = 1;
 	char c;
 	long val;
 	int i, rlim;
+
+    if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
+        replace_args_string (opts_env, &argc, &argv);
 
 	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:r:")) != -1) {
 		switch (c) {
