@@ -23,6 +23,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
@@ -475,6 +476,225 @@ limit_name (int what)
             return rlimit_specs[i].name;
     }
     return "<unknown>";
+}
+
+
+void*
+xxalloc (void *p, size_t sz)
+{
+    if (sz) {
+        if (p) {
+            p = realloc (p, sz);
+        }
+        else {
+            p = malloc (sz);
+        }
+        if (p == NULL) {
+            die ("virtual memory exhausted");
+        }
+    }
+    else {
+        if (p) {
+            free (p);
+        }
+        p = NULL;
+    }
+    return p;
+}
+
+
+#ifndef REPLACE_ARGS_VCHUNK
+#define REPLACE_ARGS_VCHUNK 16
+#endif /* !REPLACE_ARGS_VCHUNK */
+
+#ifndef REPLACE_ARGS_SCHUNK
+#define REPLACE_ARGS_SCHUNK 32
+#endif /* !REPLACE_ARGS_SCHUNK */
+
+int
+replace_args_cb (int   (*getc)(void*),
+                 int    *pargc,
+                 char ***pargv,
+                 void   *udata)
+{
+    int ch;
+    char *s = NULL;
+    int maxarg = REPLACE_ARGS_VCHUNK;
+    int numarg = 0;
+    int quotes = 0;
+    int smax = 0;
+    int slen = 0;
+    char **argv = xalloc (char*, maxarg);
+
+    assert (getc);
+    assert (pargc);
+    assert (pargv);
+
+    /* Copy argv[0] pointer */
+    argv[numarg++] = (*pargv)[0];
+
+    while ((ch = (*getc) (udata)) != EOF) {
+        if (!quotes && isspace (ch)) {
+            if (!slen) {
+                /*
+                 * Got spaces not inside a quote, and the current argument
+                 * is empty: skip spaces at the left side of an argument.
+                 */
+                continue;
+            }
+
+            /*
+             * Not inside quotes, got space: add '\0', split and reset
+             */
+            if (numarg >= maxarg) {
+                maxarg += REPLACE_ARGS_VCHUNK;
+                argv = xresize (argv, char*, maxarg);
+            }
+
+            /* Add terminating "\0" */
+            if (slen >= smax) {
+                smax += REPLACE_ARGS_SCHUNK;
+                s = xresize (s, char, smax);
+            }
+
+            /* Save string in array. */
+            s[slen] = '\0';
+            argv[numarg++] = s;
+
+            /* Reset stuff */
+            smax = slen = 0;
+            s = NULL;
+            continue;
+        }
+
+        /*
+         * Got a character which is not an space, or *is* an space inside
+         * quotes. When character is the same as used for start quoting,
+         * end quoting, or start quoting if it's a quote; otherwise, just
+         * store the character.
+         */
+        if (quotes && quotes == ch) {
+            quotes = 0;
+        }
+        else if (ch == '"' || ch == '\'') {
+            quotes = ch;
+        }
+        else {
+            if (slen >= smax) {
+                smax += REPLACE_ARGS_SCHUNK;
+                s = xresize (s, char, smax);
+            }
+            s[slen++] = ch;
+        }
+    }
+
+    /* If there is still an in-progres string, store it. */
+    if (slen) {
+        /* Add terminating "\0" */
+        if (slen >= smax) {
+            smax += REPLACE_ARGS_SCHUNK;
+            s = xresize (s, char, smax);
+        }
+
+        /* Save string in array. */
+        s[slen] = '\0';
+        argv[numarg++] = s;
+    }
+
+    /* Copy remaining pointers at the tail */
+    if ((maxarg - numarg) <= *pargc) {
+        maxarg += *pargc;
+        argv = xresize (argv, char*, maxarg);
+    }
+    for (ch = 1; ch < *pargc; ch++)
+        argv[numarg++] = (*pargv)[ch];
+
+    /* Add terminating NULL */
+    argv[numarg] = NULL;
+
+    *pargc = numarg;
+    *pargv = argv;
+
+    return 0;
+}
+
+
+static int
+fd_getc (void *udata)
+{
+    int fd = *((int*) udata);
+    int rc;
+    char ch;
+
+    do {
+        rc = read (fd, &ch, 1);
+    } while (rc < 0 && (errno == EAGAIN || errno == EINTR));
+
+    return (rc == 0) ? EOF : ch;
+}
+
+
+int
+replace_args_fd (int     fd,
+                 int    *pargc,
+                 char ***pargv)
+{
+    assert (fd >= 0);
+    assert (pargc);
+    assert (pargv);
+
+    return replace_args_cb (fd_getc, pargc, pargv, &fd);
+}
+
+
+int
+replace_args_file (const char *filename,
+                   int        *pargc,
+                   char     ***pargv)
+{
+    int fd, ret;
+
+    assert (filename);
+    assert (pargc);
+    assert (pargv);
+
+    if ((fd = open (filename, O_RDONLY, 0)) < 0)
+        return 1;
+
+    ret = replace_args_fd (fd, pargc, pargv);
+
+    close (fd);
+    return ret;
+}
+
+
+
+static int
+string_getc (void *udata)
+{
+    const char **pstr = udata;
+    const char *str = *pstr;
+    int ret;
+
+    if (*str == '\0')
+        return EOF;
+
+    ret = *str++;
+    *pstr = str;
+    return ret;
+}
+
+
+int
+replace_args_string (const char *str,
+                     int        *pargc,
+                     char     ***pargv)
+{
+    assert (str);
+    assert (pargc);
+    assert (pargv);
+
+    return replace_args_cb (string_getc, pargc, pargv, &str);
 }
 
 

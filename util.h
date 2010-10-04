@@ -47,6 +47,34 @@ int parse_time_arg  (const char*, unsigned long*);
 int parse_float_arg (const char*, float*);
 int parse_limit_arg (const char*, int*, long*);
 
+int replace_args_cb     (int       (*getc)(void*),
+                         int        *argc,
+                         char     ***argv,
+                         void       *udata);
+
+int replace_args_fd     (int         fd,
+                         int        *pargc,
+                         char     ***pargv);
+
+int replace_args_file   (const char *filename,
+                         int        *argc,
+                         char     ***argv);
+
+int replace_args_string (const char *str,
+                         int        *argc,
+                         char     ***argv);
+
+
+void*   xxalloc      (void *p, size_t sz);
+#define xrealloc     xxalloc
+#define xmalloc(_s)  xxalloc(NULL, (_s))
+#define xfree(_p)    (_p) = xxalloc((_p), 0)
+
+#define xalloc(_t, _n) \
+    ((_t *) xxalloc (NULL, (_n) * sizeof (_t)))
+#define xresize(_p, _t, _n) \
+    ((_t *) xxalloc ((_p), (_n) * sizeof (_t)))
+
 #ifdef DEBUG_TRACE
 # define dprint(_x)  __dprintf _x
 #else
