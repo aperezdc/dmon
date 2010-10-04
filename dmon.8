@@ -45,6 +45,14 @@ monitored and re\-launched when it dies.
 Command line options:
 .INDENT 0.0
 .TP
+.BI \-C \ FILE
+.
+Read contents of \fIFILE\fP as if they were command line options.
+Those will be parsed after the options picked from the
+\fBDMON_OPTIONS\fP environment variable and before the options
+given in the command line. If given, this option \fBmust\fP be
+the first one passed to to \fBdmon\fP.
+.TP
 .BI \-p \ PATH
 .
 Write the PID of the master \fBdmon\fP process to a file in the

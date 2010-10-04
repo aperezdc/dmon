@@ -31,6 +31,12 @@ USAGE
 
 Command line options:
 
+-C FILE       Read contents of *FILE* as if they were command line options.
+              Those will be parsed after the options picked from the
+              ``DMON_OPTIONS`` environment variable and before the options
+              given in the command line. If given, this option **must** be
+              the first one passed to to ``dmon``.
+
 -p PATH       Write the PID of the master ``dmon`` process to a file in the
               specified *PATH*. You can signal the process to interact with
               it. (See SIGNALS_ below.)
