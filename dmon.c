@@ -274,7 +274,8 @@ dmon_main (int argc, char **argv)
     {
         const char *configfile = argv[2];
         replace_args_shift (2, &argc, &argv);
-        replace_args_file (configfile, &argc, &argv);
+        if (replace_args_file (configfile, &argc, &argv))
+            die ("@c: Could not read file '@c', @E", argv[0], configfile);
     }
 
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
