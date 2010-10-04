@@ -167,7 +167,7 @@ remove the ``-n``. I may be convenient to specify a PID file path::
 The following example launches the `cron(8)` daemon with the logging
 process running as user and group ``log:wheel``::
 
-  dmon -p /var/run/crond.pid -u log:wheel -e cron -f --
+  dmon -p /var/run/crond.pid -u log:wheel -e cron -f
     -- dlog /var/log/cron.log
 
 This example will run a (probably lengthy) backup process, pausing it when
