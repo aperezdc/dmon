@@ -34,3 +34,12 @@ located. For example:
 
   make MULTICALL=1 ROTLOG=../rotlog-0.2.1/
 
+
+Building libnofork.so
+---------------------
+A tiny LD_PRELOAD-able "libnofork.so" library can be built by passing
+LIBNOFORK=1 to make. This library overrides the fork(2) and daemon(3)
+functions from the system libraries, in such a way that the process under
+effect will not be able of forking. This is interesting for running DMon
+with programs that have no option to instruct them not to fork.
+
