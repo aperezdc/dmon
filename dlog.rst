@@ -44,6 +44,15 @@ Albeit it can be used stan-alone, most of the time you will be running
 ``dlog`` under a process control tool like `dmon(8)` or `supervise(8)`.
 
 
+ENVIRONMENT
+===========
+
+Additional options will be picked from the ``DLOG_OPTIONS`` environment
+variable, if defined. Any command line option can be specified this way.
+Arguments read from the environment variable will be prepended to the ones
+given in the command line, so they may still be overriden.
+
+
 SEE ALSO
 ========
 

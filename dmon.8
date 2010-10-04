@@ -244,6 +244,12 @@ If you have a PID file, terminating the daemon is an easy task:
 kill $(cat example.pid)
 .ft P
 .fi
+.SH ENVIRONMENT
+.sp
+Additional options will be picked from the \fBDMON_OPTIONS\fP environment
+variable, if defined. Any command line option can be specified this way.
+Arguments read from the environment variable will be prepended to the ones
+given in the command line, so they may still be overriden.
 .SH SEE ALSO
 .sp
 \fIdlog(8)\fP, \fIdslog(8)\fP, \fIrotlog(8)\fP, \fImultilog(8)\fP, \fIsupervise(8)\fP, \fIcron(8)\fP

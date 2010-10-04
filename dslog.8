@@ -65,6 +65,12 @@ of it to the system console.
 .sp
 Albeit it can be used stan\-alone, most of the time you will be running
 \fBdslog\fP under a process control tool like \fIdmon(8)\fP or \fIsupervise(8)\fP.
+.SH ENVIRONMENT
+.sp
+Additional options will be picked from the \fBDSLOG_OPTIONS\fP environment
+variable, if defined. Any command line option can be specified this way.
+Arguments read from the environment variable will be prepended to the ones
+given in the command line, so they may still be overriden.
 .SH SEE ALSO
 .sp
 \fIdmon(8)\fP, \fIdlog(8)\fP, \fIrotlog(8)\fP, \fImultilog(8)\fP, \fIsupervise(8)\fP

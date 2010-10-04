@@ -173,6 +173,15 @@ If you have a PID file, terminating the daemon is an easy task::
   kill $(cat example.pid)
 
 
+ENVIRONMENT
+===========
+
+Additional options will be picked from the ``DMON_OPTIONS`` environment
+variable, if defined. Any command line option can be specified this way.
+Arguments read from the environment variable will be prepended to the ones
+given in the command line, so they may still be overriden.
+
+
 SEE ALSO
 ========
 
