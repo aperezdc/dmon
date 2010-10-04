@@ -46,8 +46,12 @@ dlog_main (int argc, char **argv)
 {
     buffer overflow = BUFFER;
     buffer linebuf = BUFFER;
+    char *env_opts = NULL;
     int log_fd = -1;
     int c;
+
+    if ((env_opts = getenv ("DLOG_OPTIONS")) != NULL)
+        replace_args_string (env_opts, &argc, &argv);
 
     while ((c = getopt (argc, argv, "?hbc")) != -1) {
         switch (c) {
