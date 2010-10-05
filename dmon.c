@@ -28,6 +28,7 @@
 
 
 static int           log_fds[2]   = { -1, -1 };
+static int           status_fd    = -1;
 static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
@@ -63,8 +64,53 @@ static const struct {
 
 #define almost_zerof(_v)  ((_v) < 0.000000001f)
 
-#define log_enabled  (log_fds[0] != -1)
-#define load_enabled (!almost_zerof (load_high))
+#define log_enabled   (log_fds[0] != -1)
+#define load_enabled  (!almost_zerof (load_high))
+
+
+static inline void
+_write_status (const char *fmt, ...)
+{
+    va_list arg;
+
+    assert (status_fd >= 0);
+
+    va_start (arg, fmt);
+    vformat (status_fd, fmt, arg);
+    va_end (arg);
+}
+
+#define write_status(_args) \
+    if (status_fd != -1)    \
+        _write_status _args
+
+
+#define task_action_dispatch_and_write_status(_what, _task)         \
+    do {                                                            \
+        int __pidafter__ = 0;                                       \
+        if (status_fd != -1) {                                      \
+            switch ((_task)->action) {                              \
+                case A_NONE:                                        \
+                    break;                                          \
+                case A_START:                                       \
+                    _write_status ("@c start ", (_what));           \
+                    __pidafter__ = 1;                               \
+                    break;                                          \
+                case A_STOP:                                        \
+                    _write_status ("@c stop @L\n", (_what),         \
+                                   (unsigned long) ((_task)->pid)); \
+                    break;                                          \
+                case A_SIGNAL:                                      \
+                    _write_status ("@c signal @L @i\n",             \
+                                   (unsigned long) ((_task)->pid),  \
+                                   (_task)->signal);                \
+                    break;                                          \
+            }                                                       \
+        }                                                           \
+        task_action_dispatch (_task);                               \
+        if (__pidafter__ && status_fd != -1)                        \
+            _write_status ("@L\n", (unsigned long) ((_task)->pid)); \
+    } while (0)
 
 
 #ifdef DEBUG_TRACE
@@ -97,6 +143,8 @@ reap_and_check (void)
     if (pid == cmd_task.pid) {
         dprint (("reaped cmd process @L\n", (unsigned) pid));
 
+        write_status (("cmd exit @L @i\n", (unsigned long) pid, status));
+
         cmd_task.pid = NO_PID;
 
         /*
@@ -114,6 +162,9 @@ reap_and_check (void)
     }
     else if (log_enabled && pid == log_task.pid) {
         dprint (("reaped log process @L\n", (unsigned) pid));
+
+        write_status (("log exit @L @i\n", (unsigned long) pid, status));
+
         log_task.action = A_START;
         log_task.pid = NO_PID;
     }
@@ -156,6 +207,7 @@ handle_signal (int signum)
      * respawning.
      */
     if (cmd_timeout && signum == SIGALRM) {
+        write_status (("cmd timeout @L\n", (unsigned long) cmd_task.pid));
         task_action (&cmd_task, A_STOP);
         cmd_task.action = A_START;
         alarm (cmd_timeout);
@@ -219,6 +271,8 @@ setup_signals (void)
     "\n"                                                             \
     "Process monitorization:\n"                                      \
     "\n"                                                             \
+    "  -I PATH    Write information on process status to file at\n"  \
+    "             the given PATH. Sockets and FIFOs may be used.\n"  \
     "  -p PATH    Write PID to the a file in the given PATH.\n"      \
     "  -n         Do not daemonize, stay in foreground.\n"           \
     "  -s         Forward signals to command process.\n"             \
@@ -281,7 +335,7 @@ dmon_main (int argc, char **argv)
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
         replace_args_string (opts_env, &argc, &argv);
 
-	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:r:E:")) != -1) {
+	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:r:E:I:")) != -1) {
 		switch (c) {
             case 'p': pidfile = optarg; break;
             case '1': success_exit = 1; break;
@@ -289,6 +343,11 @@ dmon_main (int argc, char **argv)
             case 's': cmd_signals = 1; break;
             case 'S': log_signals = 1; break;
             case 'n': daemonize = 0; break;
+            case 'I':
+                status_fd = open (optarg, O_WRONLY | O_CREAT | O_APPEND, 0);
+                if (status_fd < 0)
+                    die ("@c: Cannot open '@c' for writing, @E", argv[0], optarg);
+                break;
             case 'r':
                 i = parse_limit_arg (optarg, &rlim, &val);
                 if (i < 0) return EXIT_SUCCESS;
@@ -442,9 +501,9 @@ dmon_main (int argc, char **argv)
             }
         }
 
-        task_action_dispatch (&cmd_task);
+        task_action_dispatch_and_write_status ("cmd", &cmd_task);
         if (log_enabled)
-            task_action_dispatch (&log_task);
+            task_action_dispatch_and_write_status ("log", &log_task);
 
         if (load_enabled) {
             double load_cur;
@@ -460,6 +519,7 @@ dmon_main (int argc, char **argv)
                 if (load_cur <= load_low) {
                     dprint (("resuming... "));
                     task_signal (&cmd_task, SIGCONT);
+                    write_status (("cmd resume @L\n", (unsigned long) cmd_task.pid));
                     paused = 0;
                 }
             }
@@ -468,6 +528,7 @@ dmon_main (int argc, char **argv)
                 if (load_cur > load_high) {
                     dprint (("pausing... "));
                     task_signal (&cmd_task, SIGSTOP);
+                    write_status (("cmd pause @L\n", (unsigned long) cmd_task.pid));
                     paused = 1;
                 }
             }
@@ -481,9 +542,17 @@ dmon_main (int argc, char **argv)
 
     dprint (("exiting gracefully...\n"));
 
-    task_action (&cmd_task, A_STOP);
-    if (log_enabled)
+    if (cmd_task.pid != NO_PID) {
+        write_status (("cmd stop @L\n", (unsigned long) cmd_task.pid));
+        task_action (&cmd_task, A_STOP);
+    }
+    if (log_enabled && log_task.pid != NO_PID) {
+        write_status (("log stop @L\n", (unsigned long) log_task.pid));
         task_action (&log_task, A_STOP);
+    }
+
+    if (status_fd != -1)
+        close (status_fd);
 
 	exit (EXIT_SUCCESS);
 }
