@@ -186,7 +186,7 @@ handle_signal (int signum)
 {
     unsigned i = 0;
 
-    dprint (("handle signal @c\n", signal_to_name (signum)));
+    dprint (("handle signal @i (@c)\n", signum, signal_to_name (signum)));
 
     /* Receiving INT/TERM signal will stop gracefully */
     if (signum == SIGINT || signum == SIGTERM) {
