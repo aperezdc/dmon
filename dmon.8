@@ -45,13 +45,19 @@ monitored and re\-launched when it dies.
 Command line options:
 .INDENT 0.0
 .TP
-.BI \-C \ FILE
+.BI \-C \ PATH
 .
-Read contents of \fIFILE\fP as if they were command line options.
+Read contents from \fIPATH\fP as if they were command line options.
 Those will be parsed after the options picked from the
 \fBDMON_OPTIONS\fP environment variable and before the options
 given in the command line. If given, this option \fBmust\fP be
 the first one passed to to \fBdmon\fP.
+.TP
+.BI \-I \ PATH
+.
+Write status changes of monitored processes to \fIPATH\fP, one
+status message per line. See the \fI\%status file format\fP section
+for details on the format.
 .TP
 .BI \-p \ PATH
 .
@@ -262,6 +268,94 @@ If you have a PID file, terminating the daemon is an easy task:
 kill $(cat example.pid)
 .ft P
 .fi
+.SH STATUS FILE FORMAT
+.sp
+When using the \fB\-I\fP \fIPATH\fP option, status updates are written to \fIPATH\fP,
+one line per update. The following line formats may be used:
+.sp
+A process was started by \fBdmon\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+cmd start <pid>
+log start <pid>
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+A process is about to be stopped by \fBdmon\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+cmd stop <pid>
+log stop <pid>
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+A process has exited by its own means, or was terminated by the other means
+different than \fBdmon\fP itself (e.g. by the kernel or the user):
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+cmd exit <pid> <status>
+log exit <pid> <status>
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+The \fB<status>\fP field is numeric, and must be interpreted the same as the
+\fIstatus\fP argument to the \fIwaitpid(2)\fP system call. Most of the time this is
+the expected integer code passed to \fIexit(2)\fP, but this may not be true if
+the process exits forcibly.
+.sp
+A signal is about to be sent to a process:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+cmd signal <pid> <signal>
+log signal <pid> <signal>
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+The main monitored process timed out (when \fB\-t\fP is in effect):
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+cmd timeout <pid>
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Process was paused or resumed due to system load constraints (when the
+\fB\-l\fP and \fB\-L\fP options are in effect):
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+cmd pause <pid>
+cmd resume <pid>
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
 .SH ENVIRONMENT
 .sp
 Additional options will be picked from the \fBDMON_OPTIONS\fP environment

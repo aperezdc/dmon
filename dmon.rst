@@ -31,11 +31,15 @@ USAGE
 
 Command line options:
 
--C FILE       Read contents of *FILE* as if they were command line options.
+-C PATH       Read contents from *PATH* as if they were command line options.
               Those will be parsed after the options picked from the
               ``DMON_OPTIONS`` environment variable and before the options
               given in the command line. If given, this option **must** be
               the first one passed to to ``dmon``.
+
+-I PATH       Write status changes of monitored processes to *PATH*, one
+              status message per line. See the `status file format`_ section
+              for details on the format.
 
 -p PATH       Write the PID of the master ``dmon`` process to a file in the
               specified *PATH*. You can signal the process to interact with
@@ -185,6 +189,67 @@ the system load goes above 3.5 and resuming it when the load drops below
 If you have a PID file, terminating the daemon is an easy task::
 
   kill $(cat example.pid)
+
+
+STATUS FILE FORMAT
+==================
+
+When using the ``-I`` *PATH* option, status updates are written to *PATH*,
+one line per update. The following line formats may be used:
+
+A process was started by ``dmon``:
+
+  ::
+
+    cmd start <pid>
+    log start <pid>
+
+
+A process is about to be stopped by ``dmon``:
+
+  ::
+
+    cmd stop <pid>
+    log stop <pid>
+
+
+A process has exited by its own means, or was terminated by the other means
+different than ``dmon`` itself (e.g. by the kernel or the user):
+
+  ::
+
+    cmd exit <pid> <status>
+    log exit <pid> <status>
+
+The ``<status>`` field is numeric, and must be interpreted the same as the
+*status* argument to the `waitpid(2)` system call. Most of the time this is
+the expected integer code passed to `exit(2)`, but this may not be true if
+the process exits forcibly.
+
+
+A signal is about to be sent to a process:
+
+  ::
+
+    cmd signal <pid> <signal>
+    log signal <pid> <signal>
+
+
+The main monitored process timed out (when ``-t`` is in effect):
+
+  ::
+
+    cmd timeout <pid>
+
+
+Process was paused or resumed due to system load constraints (when the
+``-l`` and ``-L`` options are in effect):
+
+  ::
+
+    cmd pause <pid>
+    cmd resume <pid>
+
 
 
 ENVIRONMENT
