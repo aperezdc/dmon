@@ -1,0 +1,3 @@
+[submodule "wheel"]
+	path = wheel
+	url = git://git.furi-ku.org/code/wheel
