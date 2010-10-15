@@ -337,7 +337,26 @@ _time_option (const w_opt_context_t *ctx)
 }
 
 
+static w_opt_status_t
+_config_option (const w_opt_context_t *ctx)
+{
+    w_assert (ctx);
+    w_assert (ctx->argv);
+    w_assert (ctx->argv[0]);
+
+    format (fd_err,
+            "@c: Option --config/-C must be the first one specified\n",
+            ctx->argv[0]);
+
+    return W_OPT_EXIT_FAIL;
+}
+
+
 static const w_opt_t dmon_options[] = {
+    { 1, 'C' | W_OPT_CLI_ONLY, "config", _config_option, NULL,
+        "Read options from the specified configuration file. If given, this option "
+        "must be the first one in the command line." },
+
     { 1, 'I', "write-info", W_OPT_STRING, &status_path,
         "Write information on process status to the given file. "
         "Sockets and FIFOs may be used." },
@@ -408,14 +427,25 @@ dmon_main (int argc, char **argv)
 	unsigned i, consumed;
 
     /* Check for "-C configfile" given in the command line. */
-    if (argc > 2 && argv[1][0] == '-'
-                 && argv[1][1] == 'C'
-                 && argv[1][2] == '\0')
+    if (argc > 2 && ((argv[1][0] == '-' &&
+                      argv[1][1] == 'C' &&
+                      argv[1][2] == '\0') ||
+                     !strcmp ("--config", argv[1])))
+
     {
-        const char *configfile = argv[2];
+        FILE *cfg_file = fopen (argv[2], "rb");
+        char *err_msg = NULL;
+
+        if (!cfg_file)
+            die ("@c: Could not open file '@c', @E", argv[0], argv[2]);
+
+        if (!w_opt_parse_file (dmon_options, cfg_file, &err_msg) || err_msg) {
+            fclose (cfg_file);
+            die ("@c: Error parsing '@c' at line @c", argv[0], argv[2], err_msg);
+        }
+
+        fclose (cfg_file);
         replace_args_shift (2, &argc, &argv);
-        if (replace_args_file (configfile, &argc, &argv))
-            die ("@c: Could not read file '@c', @E", argv[0], configfile);
     }
 
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
