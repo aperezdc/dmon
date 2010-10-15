@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include "wheel.h"
 #include "util.h"
 #include "iolib.h"
 #include <stdlib.h>
@@ -118,63 +119,88 @@ name_to_priority (const char *name)
 }
 
 
-static int running = 1;
+static wbool running = W_YES;
+
+
+static w_opt_status_t
+_facility_option (const w_opt_context_t *ctx)
+{
+    int *facility;
+
+    w_assert (ctx);
+    w_assert (ctx->argument);
+    w_assert (ctx->argument[0]);
+    w_assert (ctx->option);
+    w_assert (ctx->option->extra);
+
+    facility = (int*) ctx->option->extra;
+
+    return ((*facility = name_to_facility (ctx->argument[0])) == -1)
+         ? W_OPT_BAD_ARG
+         : W_OPT_OK;
+}
+
+
+static w_opt_status_t
+_priority_option (const w_opt_context_t *ctx)
+{
+    int *priority;
+
+    w_assert (ctx);
+    w_assert (ctx->argument);
+    w_assert (ctx->argument[0]);
+    w_assert (ctx->option);
+    w_assert (ctx->option->extra);
+
+    priority = (int*) ctx->option->extra;
+
+    return ((*priority = name_to_priority (ctx->argument[0])) == -1)
+         ? W_OPT_BAD_ARG
+         : W_OPT_OK;
+}
 
 
 int
 dslog_main (int argc, char **argv)
 {
-    int c;
     int flags = 0;
     int facility = name_to_facility (DEFAULT_FACILITY);
     int priority = name_to_priority (DEFAULT_PRIORITY);
+    wbool console = W_NO;
     char *env_opts = NULL;
     buffer linebuf = BUFFER;
     buffer overflow = BUFFER;
+    unsigned consumed;
+
+    w_opt_t dslog_options[] = {
+        { 1, 'f', "facility", _facility_option, &facility,
+            "Log facility (default: daemon)." },
+        { 1, 'p', "priority", _priority_option, &priority,
+            "Log priority (default: warning)." },
+        { 0, 'c', "console", W_OPT_BOOL, &console,
+            "Log to console if sending messages to logger fails." },
+        W_OPT_END
+    };
+
 
     if ((env_opts = getenv ("DSLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
 
-    while ((c = getopt (argc, argv, "?hcf:p:")) != -1) {
-        switch (c) {
-            case 'f':
-                if ((facility = name_to_facility (optarg)) == -1) {
-                    format (fd_err, "@c: unrecognized facility name '@c'\n",
-                            argv[0], optarg);
-                    exit (EXIT_FAILURE);
-                }
-                break;
-            case 'p':
-                if ((priority = name_to_priority (optarg)) == -1) {
-                    format (fd_err, "@c: unrecognized priority name '@c'\n",
-                            argv[0], optarg);
-                    exit (EXIT_FAILURE);
-                }
-                break;
-            case 'c':
-                flags |= LOG_CONS;
-                break;
-            case 'h':
-            case '?':
-                format (fd_out, _dlog_help_message, argv[0]);
-                exit (EXIT_SUCCESS);
-            default:
-                format (fd_err, "@c: unrecognized option '@c'\n", argv[0], optarg);
-                format (fd_err, _dlog_help_message, argv[0]);
-                exit (EXIT_FAILURE);
-        }
-    }
+    consumed = w_opt_parse (dslog_options, NULL, NULL, argc, argv);
+
+    if (console)
+        flags |= LOG_CONS;
 
     /* We will be no longer using standard output. */
     close (fd_out);
 
-    if (optind >= argc) {
+    if (consumed >= (unsigned) argc) {
         format (fd_err, "@c: process name not specified.\n", argv[0]);
         format (fd_err, _dlog_help_message, argv[0]);
         exit (EXIT_FAILURE);
     }
 
-    openlog (argv[optind], flags, facility);
+    openlog (argv[consumed], flags, facility);
 
     while (running) {
         int ret = readlineb (fd_in, &linebuf, 0, &overflow);
