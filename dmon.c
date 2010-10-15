@@ -8,6 +8,7 @@
 #define _BSD_SOURCE             /* getloadavg() */
 #define _POSIX_C_SOURCE 199309L /* nanosleep()  */
 
+#include "wheel.h"
 #include "task.h"
 #include "util.h"
 #include "iolib.h"
@@ -33,14 +34,17 @@ static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
 static float         load_high    = 0.0f;
-static int           success_exit = 0;
-static int           log_signals  = 0;
-static int           cmd_signals  = 0;
+static wbool         success_exit = W_NO;
+static wbool         log_signals  = W_NO;
+static wbool         cmd_signals  = W_NO;
 static unsigned long cmd_timeout  = 0;
 static unsigned long cmd_interval = 0;
 static int           check_child  = 0;
 static int           running      = 1;
 static int           paused       = 0;
+static wbool         nodaemon     = W_NO;
+static char         *status_path  = NULL;
+static char         *pidfile_path = NULL;
 
 
 static const struct {
@@ -260,66 +264,148 @@ setup_signals (void)
 }
 
 
+static w_opt_status_t
+_environ_option (const w_opt_context_t *ctx)
+{
+    char *equalsign;
+    char *varname;
 
-#define _dmon_help_message                                           \
-    "Usage: @c [options] cmd [cmd-options] [-- log [log-options]]\n" \
-    "Launch a simple daemon, providing logging and respawning.\n"    \
-    "\n"                                                             \
-    "  -C FILE    Read a FILE containing options and prepend them\n" \
-    "             to the ones given in the command line. This must\n"\
-    "             be the first command line option.\n"               \
-    "\n"                                                             \
-    "Process monitorization:\n"                                      \
-    "\n"                                                             \
-    "  -I PATH    Write information on process status to file at\n"  \
-    "             the given PATH. Sockets and FIFOs may be used.\n"  \
-    "  -p PATH    Write PID to the a file in the given PATH.\n"      \
-    "  -n         Do not daemonize, stay in foreground.\n"           \
-    "  -s         Forward signals to command process.\n"             \
-    "  -S         Forward signals to log process.\n"                 \
-    "\n"                                                             \
-    "Process execution environment:\n"                               \
-    "\n"                                                             \
-    "  -E VAR[=[VALUE]] Define an evironment variable, or if no\n"   \
-    "                   value is given, delete it. This option can\n"\
-    "                   be specified multiple times.\n"              \
-    "  -u UID[:GID...]  User and groups to run process as.\n"        \
-    "  -U UID[:GID...]  User and groups to run the log process as.\n"\
-    "  -e               Redirect command stderr to stdout.\n"        \
-    "\n"                                                             \
-    "Process execution constraints:\n"                               \
-    "\n"                                                             \
-    "  -1         Exit if command exits with a zero return code.\n"  \
-    "  -t TIME    If command takes longer than TIME, restart it.\n"  \
-    "  -i TIME    Wait TIME between successful command executions.\n"\
-    "  -L VALUE   Stop process when system load reaches VALUE.\n"    \
-    "  -l VALUE   Resume process execution when system load drops\n" \
-    "             below VALUE. If not given defaults to half the\n"  \
-    "             value of the value specified with '-L'.\n"         \
-    "\n"                                                             \
-    "Process resource usage limits:\n"                               \
-    "\n"                                                             \
-    "  -r LIMIT   Sets a resource limit, given as 'name=value'.\n"   \
-    "             This option can be specified multiple times.\n"    \
-    "\n"                                                             \
-    "Getting help:\n"                                                \
-    "\n"                                                             \
-    "  -r help    Get list of settable resource usage limits.\n"     \
-    "  -h         Show this help text.\n"                            \
-    "\n"
+    w_assert (ctx);
+    w_assert (ctx->argument);
+    w_assert (ctx->argument[0]);
+
+    if ((equalsign = strchr (ctx->argument[0], '=')) == NULL) {
+        unsetenv (ctx->argument[0]);
+    }
+    else {
+        varname = w_strndup (ctx->argument[0],
+                             equalsign - ctx->argument[0]);
+        setenv (varname, equalsign + 1, 1);
+    }
+    return W_OPT_OK;
+}
+
+
+static w_opt_status_t
+_rlimit_option (const w_opt_context_t *ctx)
+{
+    long value;
+    int status;
+    int limit;
+
+    w_assert (ctx);
+    w_assert (ctx->argument);
+    w_assert (ctx->argument[0]);
+
+    status = parse_limit_arg (ctx->argument[0], &limit, &value);
+    if (status < 0)
+        return W_OPT_EXIT_OK;
+    if (status)
+        return W_OPT_BAD_ARG;
+
+    safe_setrlimit (limit, value);
+    return W_OPT_OK;
+}
+
+
+static w_opt_status_t
+_store_uidgids_option (const w_opt_context_t *ctx)
+{
+    w_assert (ctx);
+    w_assert (ctx->userdata);
+    w_assert (ctx->argument);
+    w_assert (ctx->argument[0]);
+
+    return (parse_uidgids (ctx->argument[0], ctx->option->extra))
+            ? W_OPT_BAD_ARG
+            : W_OPT_OK;
+}
+
+
+static w_opt_status_t
+_time_option (const w_opt_context_t *ctx)
+{
+    w_assert (ctx);
+    w_assert (ctx->argument);
+    w_assert (ctx->argument[0]);
+    w_assert (ctx->option);
+    w_assert (ctx->option->extra);
+
+    return (parse_time_arg (ctx->argument[0], ctx->option->extra))
+           ? W_OPT_BAD_ARG
+           : W_OPT_OK;
+}
+
+
+static const w_opt_t dmon_options[] = {
+    { 1, 'I', "write-info", W_OPT_STRING, &status_path,
+        "Write information on process status to the given file. "
+        "Sockets and FIFOs may be used." },
+
+    { 1, 'p', "pid-file", W_OPT_STRING, &pidfile_path,
+        "Write PID to a file in the given path." },
+
+    { 0, 'n', "no-daemon", W_OPT_BOOL, &nodaemon,
+        "Do not daemonize, stay in foreground." },
+
+    { 0, 'e', "stderr-redir", W_OPT_BOOL, &cmd_task.redir_errfd,
+        "Redirect command's standard error stream to its standard "
+        "output stream." },
+
+    { 0, 's', "cmd-sigs", W_OPT_BOOL, &cmd_signals,
+        "Forward signals to command process." },
+
+    { 0, 'S', "log-sigs", W_OPT_BOOL, &log_signals,
+        "Forward signals to log process." },
+
+    { 1, 'E', "environ", _environ_option, NULL,
+        "Define an environment variable, or if no value is given, "
+        "delete it. This option can be specified multiple times." },
+
+    { 1, 'r', "limit", _rlimit_option, NULL,
+        "Sets a resource limit, given as 'name=value'. This option "
+        "can be specified multiple times. Use '-r help' for a list." },
+
+    { 1, 'u', "cmd-user", _store_uidgids_option, &cmd_task.user,
+        "User and (optionally) groups to run the command as. Format "
+        "is 'user[:group1[:group2[:...groupN]]]'." },
+
+    { 1, 'U', "log-user", _store_uidgids_option, &log_task.user,
+        "User and (optionally) groups to run the log process as. "
+        "Format is 'user[:group1[:group2[:...groupN]]]'." },
+
+    { 0, '1', "once", W_OPT_BOOL, &success_exit,
+        "Exit if command exits with a zero return code. The process "
+        "will be still respawned when it exits with a non-zero code." },
+
+    { 1, 't', "timeout", _time_option, &cmd_timeout,
+        "If command execution takes longer than the time specified "
+        "the process will be killed and started again." },
+
+    { 1, 'i', "interval", _time_option, &cmd_interval,
+        "Time to wait between successful command executions. When "
+        "exit code is non-zero, the interval is ignored and the "
+        "command is executed again as soon as possible." },
+
+    { 1, 'L', "load-high", W_OPT_FLOAT, &load_high,
+        "Stop process when system load surpasses the given value." },
+
+    { 1, 'l', "load-low", W_OPT_FLOAT, &load_low,
+        "Resume process execution when system load drops below the "
+        "given value. If not given, defaults to half the value passed "
+        "to '-l'." },
+
+    W_OPT_END
+};
 
 
 int
 dmon_main (int argc, char **argv)
 {
-	char *equalsign = NULL;
 	const char *pidfile = NULL;
 	char *opts_env = NULL;
 	int pidfile_fd = -1;
-	int daemonize = 1;
-	char c;
-	long val;
-	int i, rlim;
+	unsigned i, consumed;
 
     /* Check for "-C configfile" given in the command line. */
     if (argc > 2 && argv[1][0] == '-'
@@ -335,65 +421,13 @@ dmon_main (int argc, char **argv)
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
         replace_args_string (opts_env, &argc, &argv);
 
-	while ((c = getopt (argc, argv, "+heSsnp:1t:i:u:U:l:L:r:E:I:")) != -1) {
-		switch (c) {
-            case 'p': pidfile = optarg; break;
-            case '1': success_exit = 1; break;
-            case 'e': cmd_task.redir_errfd = 1; break;
-            case 's': cmd_signals = 1; break;
-            case 'S': log_signals = 1; break;
-            case 'n': daemonize = 0; break;
-            case 'I':
-                status_fd = open (optarg, O_WRONLY | O_CREAT | O_APPEND, 0);
-                if (status_fd < 0)
-                    die ("@c: Cannot open '@c' for writing, @E", argv[0], optarg);
-                break;
-            case 'r':
-                i = parse_limit_arg (optarg, &rlim, &val);
-                if (i < 0) return EXIT_SUCCESS;
-                if (i) die ("@c: Invalid limit spec '@c'", argv[0], optarg);
-                dprint (("limit: @c = @l\n", limit_name (rlim), val));
-                safe_setrlimit (rlim, val);
-                break;
-            case 'E':
-                if ((equalsign = strchr (optarg, '=')) == NULL) {
-                    unsetenv (optarg);
-                }
-                else {
-                    *equalsign = '\0';
-                    setenv (optarg, equalsign + 1, 1);
-                }
-                break;
-            case 't':
-                if (parse_time_arg (optarg, &cmd_timeout))
-                    die ("@c: Invalid time value '@c'", argv[0], optarg);
-                break;
-            case 'i':
-                if (parse_time_arg (optarg, &cmd_interval))
-                    die ("@c: Invalid time value '@c'", argv[0], optarg);
-                break;
-            case 'u':
-                if (parse_uidgids (optarg, &cmd_task.user))
-                    die ("@c: Invalid user/groups '@c'", argv[0], optarg);
-                break;
-            case 'U':
-                if (parse_uidgids (optarg, &log_task.user))
-                    die ("@c: Invalid user/groups '@c'", argv[0], optarg);
-                break;
-            case 'l':
-                if (parse_float_arg (optarg, &load_low))
-                    die ("@c: Invalid number '@c'", argv[0], optarg);
-                break;
-            case 'L':
-                if (parse_float_arg (optarg, &load_high))
-                    die ("@c: Invalid number '@c'", argv[0], optarg);
-                break;
-            case 'h':
-                format (fd_out, _dmon_help_message, argv[0]);
-                exit (EXIT_SUCCESS);
-            case '?':
-                exit (EXIT_FAILURE);
-        }
+    i = consumed = w_opt_parse (dmon_options, NULL, NULL, argc, argv);
+    dprint (("w_opt_parse consumed @I arguments\n", consumed));
+
+    if (status_path) {
+        status_fd = open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
+        if (status_fd < 0)
+            die ("@c: Cannot open '@c' for writing, @E", argv[0], optarg);
     }
 
     if (cmd_interval && success_exit)
@@ -402,18 +436,17 @@ dmon_main (int argc, char **argv)
     if (load_enabled && almost_zerof (load_low))
         load_low = load_high / 2.0f;
 
-	cmd_task.argv = argv + optind;
-    i = optind;
+	cmd_task.argv = argv + consumed;
 
 	/* Skip over until "--" is found */
-	while (i < argc && strcmp (argv[i], "--") != 0) {
+	while (i < (unsigned) argc && strcmp (argv[i], "--") != 0) {
 		cmd_task.argc++;
 		i++;
 	}
 
 	/* There is a log command */
-	if (i < argc && strcmp (argv[i], "--") == 0) {
-		log_task.argc = argc - cmd_task.argc - optind - 1;
+	if (i < (unsigned) argc && strcmp (argv[i], "--") == 0) {
+		log_task.argc = argc - cmd_task.argc - consumed - 1;
 		log_task.argv = argv + argc - log_task.argc;
         log_task.argv[log_task.argc] = NULL;
 	}
@@ -454,7 +487,7 @@ dmon_main (int argc, char **argv)
         }
     }
 
-    if (daemonize)
+    if (!nodaemon)
         become_daemon ();
 
     /* We have a valid file descriptor: write PID */

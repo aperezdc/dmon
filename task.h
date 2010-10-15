@@ -29,7 +29,7 @@ typedef struct {
     int      signal;
     time_t   started;
     uidgid_t user;
-    unsigned redir_errfd:1;
+    unsigned redir_errfd;
 } task_t;
 
 #define NO_PID    (-1)
