@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include "wheel.h"
 #include "util.h"
 #include "iolib.h"
 #include <stdlib.h>
@@ -18,15 +19,6 @@
 # define dlog_main main
 #endif /* !MULTICALL */
 
-#define _dlog_help_message                                      \
-    "Usage: @c [options] [logfile]\n"                           \
-    "Save lines from standard input to a log file or stdout.\n" \
-    "\n"                                                        \
-    "  -b        Buffered operation, do not use fsync().\n"     \
-    "  -c        Do not prepend a timestamp to each line.\n"    \
-    "  -h, -?    Show this help message.\n"                     \
-    "\n"
-
 #ifndef TSTAMP_FMT
 #define TSTAMP_FMT "%Y-%m-%d/%H:%M:%S"
 #endif /* !TSTAMP_FMT */
@@ -36,9 +28,20 @@
 #endif /* !TSTAMP_LEN */
 
 
-static int timestamp = 1;
-static int running   = 1;
-static int buffered  = 0;
+static wbool running   = W_YES;
+static wbool timestamp = W_NO;
+static wbool buffered  = W_NO;
+
+
+static const w_opt_t dlog_options[] = {
+    { 0, 'b', "buffered", W_OPT_BOOL, &buffered,
+        "Buffered operation, do not use fsync() after each line." },
+
+    { 0, 't', "timestamp", W_OPT_BOOL, &timestamp,
+        "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line." },
+
+    W_OPT_END
+};
 
 
 int
@@ -47,42 +50,22 @@ dlog_main (int argc, char **argv)
     buffer overflow = BUFFER;
     buffer linebuf = BUFFER;
     char *env_opts = NULL;
+    unsigned consumed;
     int log_fd = -1;
-    int c;
 
     if ((env_opts = getenv ("DLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
 
-    while ((c = getopt (argc, argv, "?hbc")) != -1) {
-        switch (c) {
-            case 'b':
-                buffered = 1;
-                break;
-            case 'c':
-                timestamp = 0;
-                break;
-            case '?':
-            case 'h':
-                format (fd_out, _dlog_help_message, argv[0]);
-                exit (EXIT_SUCCESS);
-            default:
-                format (fd_err, "@c: unrecognized option '@c'\n",
-                        argv[0], optarg);
-                format (fd_err, _dlog_help_message, argv[0]);
-                exit (EXIT_FAILURE);
-        }
-    }
+    consumed = w_opt_parse (dlog_options, NULL, NULL, argc, argv);
 
-    /* We will be no longer using standard output. */
-
-    if (optind >= argc) {
+    if (consumed >= (unsigned) argc) {
         log_fd = fd_out;
     }
     else {
         close (fd_out);
-        log_fd = open (argv[optind], O_CREAT | O_APPEND | O_WRONLY, 0666);
+        log_fd = open (argv[consumed], O_CREAT | O_APPEND | O_WRONLY, 0666);
         if (log_fd < 0) {
-            format (fd_err, "@c: cannot open '@c': @E\n", argv[0], argv[optind]);
+            format (fd_err, "@c: cannot open '@c': @E\n", argv[0], argv[consumed]);
             exit (EXIT_FAILURE);
         }
     }
