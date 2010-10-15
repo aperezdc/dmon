@@ -44,7 +44,6 @@ const char* limit_name (int);
 void __dprintf (const char*, ...);
 
 int parse_time_arg  (const char*, unsigned long*);
-int parse_float_arg (const char*, float*);
 int parse_limit_arg (const char*, int*, long*);
 
 int replace_args_cb     (int       (*getc)(void*),

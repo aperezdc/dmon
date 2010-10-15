@@ -304,16 +304,6 @@ parse_time_arg (const char *str, unsigned long *result)
 }
 
 
-int
-parse_float_arg (const char *str, float *result)
-{
-    assert (str != NULL);
-    assert (result != NULL);
-    return !(sscanf (str, "%f", result) == 1);
-}
-
-
-
 static int
 _parse_limit_bytes (const char *sval, long *rval)
 {
