@@ -21,8 +21,6 @@ typedef struct uidgid_s uidgid_t;
 
 #define UIDGID { 0, 0, 0, {0} }
 
-#define length_of(_v)  (sizeof (_v) / sizeof ((_v)[0]))
-
 /* Forward declaration */
 struct sigaction;
 

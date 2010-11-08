@@ -13,6 +13,7 @@
 
 #include "util.h"
 #include "iolib.h"
+#include "wheel.h"
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <assert.h>
@@ -435,7 +436,7 @@ parse_limit_arg (const char *str, int *what, long *value)
     assert (value != NULL);
 
     if (!strcmp (str, "help")) {
-        for (i = 0; i < length_of (rlimit_specs); i++) {
+        for (i = 0; i < w_lengthof (rlimit_specs); i++) {
             format (fd_out, "@c -- @c\n",
                     rlimit_specs[i].name,
                     rlimit_specs[i].desc);
@@ -443,7 +444,7 @@ parse_limit_arg (const char *str, int *what, long *value)
         return -1;
     }
 
-    for (i = 0; i < length_of (rlimit_specs); i++) {
+    for (i = 0; i < w_lengthof (rlimit_specs); i++) {
         unsigned nlen = strlen (rlimit_specs[i].name);
         if (!strncmp (str, rlimit_specs[i].name, nlen) && str[nlen] == '=') {
             *what = rlimit_specs[i].what;
@@ -461,7 +462,7 @@ limit_name (int what)
 {
     unsigned i;
 
-    for (i = 0; i < length_of (rlimit_specs); i++) {
+    for (i = 0; i < w_lengthof (rlimit_specs); i++) {
         if (what == rlimit_specs[i].what)
             return rlimit_specs[i].name;
     }
