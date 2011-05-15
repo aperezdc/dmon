@@ -278,8 +278,8 @@ _environ_option (const w_opt_context_t *ctx)
         unsetenv (ctx->argument[0]);
     }
     else {
-        varname = w_strndup (ctx->argument[0],
-                             equalsign - ctx->argument[0]);
+        varname = w_str_dupl (ctx->argument[0],
+                              equalsign - ctx->argument[0]);
         setenv (varname, equalsign + 1, 1);
     }
     return W_OPT_OK;
@@ -424,6 +424,7 @@ dmon_main (int argc, char **argv)
 	const char *pidfile = NULL;
 	char *opts_env = NULL;
 	int pidfile_fd = -1;
+	wbool success;
 	unsigned i, consumed;
 
     /* Check for "-C configfile" given in the command line. */
@@ -434,17 +435,20 @@ dmon_main (int argc, char **argv)
 
     {
         FILE *cfg_file = fopen (argv[2], "rb");
+        w_io_t *cfg_io;
         char *err_msg = NULL;
 
         if (!cfg_file)
             die ("@c: Could not open file '@c', @E", argv[0], argv[2]);
 
-        if (!w_opt_parse_file (dmon_options, cfg_file, &err_msg) || err_msg) {
-            fclose (cfg_file);
+        cfg_io = w_io_stdio_open (cfg_file);
+        success = w_opt_parse_io (dmon_options, cfg_io, &err_msg);
+        w_obj_unref (cfg_io);
+
+        if (!success || err_msg) {
             die ("@c: Error parsing '@c' at line @c", argv[0], argv[2], err_msg);
         }
 
-        fclose (cfg_file);
         replace_args_shift (2, &argc, &argv);
     }
 

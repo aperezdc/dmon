@@ -30,16 +30,6 @@
 #endif /* !DEFAULT_PRIORITY */
 
 
-#define _dlog_help_message \
-    "Usage: @c [options] name\n" \
-    "\n" \
-    "  -f FACILITY   Log facility (default: " DEFAULT_FACILITY ")\n" \
-    "  -p PRIORITY   Log priority (default: " DEFAULT_PRIORITY ")\n" \
-    "  -c            Log to console if sending messages to the logger fails.\n" \
-    "  -h, -?        Show this help text.\n" \
-    "\n"
-
-
 static int
 name_to_facility (const char *name)
 {
@@ -196,7 +186,6 @@ dslog_main (int argc, char **argv)
 
     if (consumed >= (unsigned) argc) {
         format (fd_err, "@c: process name not specified.\n", argv[0]);
-        format (fd_err, _dlog_help_message, argv[0]);
         exit (EXIT_FAILURE);
     }
 
