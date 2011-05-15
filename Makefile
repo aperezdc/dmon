@@ -33,6 +33,7 @@ endif
 
 all: dmon dlog dslog
 
+libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
 
 dmon: dmon.o util.o iolib.o task.o $(libwheel)
