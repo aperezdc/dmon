@@ -6,6 +6,7 @@
  */
 
 #include "task.h"
+#include "wheel.h"
 #include "iolib.h"
 #include <assert.h>
 #include <sys/types.h>
@@ -30,7 +31,7 @@ task_start (task_t *task)
     memcpy (&task->started, &now, sizeof (time_t));
 
     if ((task->pid = fork ()) < 0)
-        die ("fork failed: @E");
+        w_die ("fork failed: $E\n");
 
     task->action = A_NONE;
 
@@ -75,20 +76,20 @@ task_start (task_t *task)
     if (task->user.gid > 0) {
         dprint (("set group id @L\n", task->pid));
         if (setgid (task->user.gid))
-            die ("could not set groud id: @E");
+            w_die ("could not set groud id: $E\n");
     }
 
     if (task->user.ngid > 0) {
         dprint (("calling setgroups (@L groups)\n", task->user.ngid));
         if (setgroups (task->user.ngid, task->user.gids))
-            die ("could not set additional groups: @E");
+            w_die ("could not set additional groups: $E\n");
     }
 
     /* Now drop privileges */
     if (task->user.uid > 0) {
         dprint (("set user id @L\n", task->user.uid));
         if (setuid (task->user.uid))
-            die ("could not set user id: @E");
+            w_die ("could not set user id: $E\n");
     }
 
     execvp (task->argv[0], task->argv);
@@ -108,8 +109,8 @@ task_signal_dispatch (task_t *task)
              task->signal, (unsigned) task->pid));
 
     if (kill (task->pid, task->signal) < 0) {
-        die ("cannot send signal @i to process @L: @E",
-             task->signal, (unsigned) task->pid);
+        w_die ("cannot send signal $i to process $L: $E\n",
+             task->signal, (unsigned long) task->pid);
     }
     task->signal = NO_SIGNAL;
 }

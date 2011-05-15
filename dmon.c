@@ -439,15 +439,14 @@ dmon_main (int argc, char **argv)
         char *err_msg = NULL;
 
         if (!cfg_file)
-            die ("@c: Could not open file '@c', @E", argv[0], argv[2]);
+            w_die ("$s: Could not open file '$s', $E\n", argv[0], argv[2]);
 
         cfg_io = w_io_stdio_open (cfg_file);
         success = w_opt_parse_io (dmon_options, cfg_io, &err_msg);
         w_obj_unref (cfg_io);
 
-        if (!success || err_msg) {
-            die ("@c: Error parsing '@c' at line @c", argv[0], argv[2], err_msg);
-        }
+        if (!success || err_msg)
+            w_die ("$s: Error parsing '$s' at line $s\n", argv[0], argv[2], err_msg);
 
         replace_args_shift (2, &argc, &argv);
     }
@@ -461,11 +460,11 @@ dmon_main (int argc, char **argv)
     if (status_path) {
         status_fd = open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
         if (status_fd < 0)
-            die ("@c: Cannot open '@c' for writing, @E", argv[0], optarg);
+            w_die ("$s: Cannot open '$s' for writing, $E\n", argv[0], optarg);
     }
 
     if (cmd_interval && success_exit)
-        die ("@c: Options '-i' and '-1' cannot be used together.", argv[0]);
+        w_die ("$s: Options '-i' and '-1' cannot be used together.\n", argv[0]);
 
     if (load_enabled && almost_zerof (load_low))
         load_low = load_high / 2.0f;
@@ -489,7 +488,7 @@ dmon_main (int argc, char **argv)
 
     if (log_task.argc > 0) {
         if (pipe (log_fds) != 0) {
-            die ("@c: Cannot create pipe: @E", argv[0]);
+            w_die ("$s: Cannot create pipe: $E\n", argv[0]);
         }
         dprint (("pipe_read = @i, pipe_write = @i\n", log_fds[0], log_fds[1]));
         fd_cloexec (log_fds[0]);
@@ -512,12 +511,12 @@ dmon_main (int argc, char **argv)
 #endif /* DEBUG_TRACE */
 
     if (cmd_task.argc == 0)
-        die ("@c: No command to run given.", argv[0]);
+        w_die ("$s: No command to run given.\n", argv[0]);
 
     if (pidfile) {
         pidfile_fd = open (pidfile, O_TRUNC | O_CREAT | O_WRONLY, 0666);
         if (pidfile_fd < 0) {
-            die ("@c: cannot open '@c' for writing: @E", argv[0], pidfile);
+            w_die ("$s: cannot open '$s' for writing: $E\n", argv[0], pidfile);
         }
     }
 
@@ -579,7 +578,7 @@ dmon_main (int argc, char **argv)
             interruptible_sleep (1);
 
             if (getloadavg (&load_cur, 1) == -1)
-                die ("@c: Could not get load average!");
+                w_die ("$s: Could not get load average!\n");
 
             if (paused) {
                 /* If the current load dropped below load_low -> resume */

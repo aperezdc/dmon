@@ -75,7 +75,7 @@ dlog_main (int argc, char **argv)
         int ret = readlineb (fd_in, &linebuf, 0, &overflow);
 
         if (ret == -1)
-            die ("@c: error reading input: @E", argv[0]);
+            w_die ("$s: error reading input: $E\n", argv[0]);
 
         if (blength (&linebuf)) {
             if (timestamp) {
@@ -84,7 +84,7 @@ dlog_main (int argc, char **argv)
                 struct tm *time_gm = gmtime (&now);
 
                 if (strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm) == 0)
-                    die ("@c: cannot format timestamp: @E", argv[0]);
+                    w_die ("$s: cannot format timestamp: $E\n", argv[0]);
 
                 format (log_fd, "@c @b\n", timebuf, &linebuf);
             }

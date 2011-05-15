@@ -56,7 +56,7 @@ main (int argc, char **argv)
     mainfunc = choose_applet (argv0);
 
     if (mainfunc == NULL)
-        die ("@c: No such applet in multicall binary", argv0);
+        w_die ("$s: No such applet in multicall binary.\n", argv0);
 
     return (*mainfunc)(argc, argv);
 }
