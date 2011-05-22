@@ -176,7 +176,7 @@ dslog_main (int argc, char **argv)
     if ((env_opts = getenv ("DSLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
 
-    consumed = w_opt_parse (dslog_options, NULL, NULL, argc, argv);
+    consumed = w_opt_parse (dslog_options, NULL, NULL, "name", argc, argv);
 
     if (console)
         flags |= LOG_CONS;

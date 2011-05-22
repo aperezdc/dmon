@@ -56,7 +56,7 @@ dlog_main (int argc, char **argv)
     if ((env_opts = getenv ("DLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
 
-    consumed = w_opt_parse (dlog_options, NULL, NULL, argc, argv);
+    consumed = w_opt_parse (dlog_options, NULL, NULL, "[logfile-path]", argc, argv);
 
     if (consumed >= (unsigned) argc) {
         log_fd = fd_out;

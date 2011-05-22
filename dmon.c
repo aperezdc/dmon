@@ -454,7 +454,11 @@ dmon_main (int argc, char **argv)
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
         replace_args_string (opts_env, &argc, &argv);
 
-    i = consumed = w_opt_parse (dmon_options, NULL, NULL, argc, argv);
+    i = consumed = w_opt_parse (dmon_options, NULL, NULL,
+                                "cmd [cmd-options] [ -- "
+                                "log-cmd [log-cmd-options]]",
+                                argc, argv);
+
     dprint (("w_opt_parse consumed @I arguments\n", consumed));
 
     if (status_path) {
