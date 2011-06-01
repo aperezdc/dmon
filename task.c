@@ -7,7 +7,6 @@
 
 #include "task.h"
 #include "wheel.h"
-#include "iolib.h"
 #include <assert.h>
 #include <sys/types.h>
 #include <string.h>
@@ -26,7 +25,7 @@ task_start (task_t *task)
 
     assert (task != NULL);
 
-    dprint (("Last start @Is ago, will wait for @Is\n",
+    w_debug (("Last start $Is ago, will wait for $Is\n",
              (unsigned) difftime (now, task->started), sleep_time));
     memcpy (&task->started, &now, sizeof (time_t));
 
@@ -37,7 +36,7 @@ task_start (task_t *task)
 
     /* We got a valid PID, return */
     if (task->pid > 0) {
-        dprint (("child pid = @L\n", (unsigned) task->pid));
+        w_debug (("child pid = $I\n", (unsigned) task->pid));
         return;
     }
 
@@ -50,44 +49,44 @@ task_start (task_t *task)
 
     /* Execute child */
     if (task->write_fd >= 0) {
-        dprint (("redirecting write_fd = @i -> @i\n", task->write_fd, fd_out));
-        if (dup2 (task->write_fd, fd_out) < 0) {
-            dprint (("redirection failed: @E\n"));
+        w_debug (("redirecting write_fd = $i -> $i\n", task->write_fd, STDOUT_FILENO));
+        if (dup2 (task->write_fd, STDOUT_FILENO) < 0) {
+            w_debug (("redirection failed: $E\n"));
             _exit (111);
         }
     }
     if (task->read_fd >= 0) {
-        dprint (("redirecting read_fd = @i -> @i\n", task->read_fd, fd_in));
-        if (dup2 (task->read_fd, fd_in) < 0) {
-            dprint (("redirection failed: @E\n"));
+        w_debug (("redirecting read_fd = $i -> $i\n", task->read_fd, STDIN_FILENO));
+        if (dup2 (task->read_fd, STDIN_FILENO) < 0) {
+            w_debug (("redirection failed: $E\n"));
             _exit (111);
         }
     }
 
     if (task->redir_errfd) {
-        dprint (("redirecting stderr -> stdout\n"));
-        if (dup2 (fd_out, fd_err) < 0) {
-            dprint (("could not redirect stderr: @E\n"));
+        w_debug (("redirecting stderr -> stdout\n"));
+        if (dup2 (STDOUT_FILENO, STDERR_FILENO) < 0) {
+            w_debug (("could not redirect stderr: $E\n"));
             exit (111);
         }
     }
 
     /* Groups must be changed first, whilw we have privileges */
     if (task->user.gid > 0) {
-        dprint (("set group id @L\n", task->pid));
+        w_debug (("set group id $I\n", (unsigned) task->pid));
         if (setgid (task->user.gid))
             w_die ("could not set groud id: $E\n");
     }
 
     if (task->user.ngid > 0) {
-        dprint (("calling setgroups (@L groups)\n", task->user.ngid));
+        w_debug (("calling setgroups ($I groups)\n", task->user.ngid));
         if (setgroups (task->user.ngid, task->user.gids))
             w_die ("could not set additional groups: $E\n");
     }
 
     /* Now drop privileges */
     if (task->user.uid > 0) {
-        dprint (("set user id @L\n", task->user.uid));
+        w_debug (("set user id $I\n", (unsigned) task->user.uid));
         if (setuid (task->user.uid))
             w_die ("could not set user id: $E\n");
     }
@@ -105,7 +104,7 @@ task_signal_dispatch (task_t *task)
     if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
         return;
 
-    dprint (("dispatch signal @i to process @L\n",
+    w_debug (("dispatch signal $i to process $I\n",
              task->signal, (unsigned) task->pid));
 
     if (kill (task->pid, task->signal) < 0) {

@@ -39,8 +39,6 @@ int  interruptible_sleep (unsigned);
 void die (const char*, ...);
 const char* limit_name (int);
 
-void __dprintf (const char*, ...);
-
 int parse_time_arg  (const char*, unsigned long*);
 int parse_limit_arg (const char*, int*, long*);
 
@@ -75,12 +73,6 @@ void*   xxalloc      (void *p, size_t sz);
     ((_t *) xxalloc (NULL, (_n) * sizeof (_t)))
 #define xresize(_p, _t, _n) \
     ((_t *) xxalloc ((_p), (_n) * sizeof (_t)))
-
-#ifdef DEBUG_TRACE
-# define dprint(_x)  __dprintf _x
-#else
-# define dprint(_x)  ((void)0)
-#endif /* DEBUG_TRACE */
 
 #endif /* !__util_h__ */
 

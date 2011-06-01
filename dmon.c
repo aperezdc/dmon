@@ -11,7 +11,6 @@
 #include "wheel.h"
 #include "task.h"
 #include "util.h"
-#include "iolib.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <assert.h>
@@ -29,7 +28,7 @@
 
 
 static int           log_fds[2]   = { -1, -1 };
-static int           status_fd    = -1;
+static w_io_t       *status_io    = NULL;
 static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
@@ -77,47 +76,47 @@ _write_status (const char *fmt, ...)
 {
     va_list arg;
 
-    assert (status_fd >= 0);
+    assert (status_io);
 
     va_start (arg, fmt);
-    vformat (status_fd, fmt, arg);
+    w_io_formatv (status_io, fmt, arg);
     va_end (arg);
 }
 
 #define write_status(_args) \
-    if (status_fd != -1)    \
+    if (status_io != NULL)    \
         _write_status _args
 
 
 #define task_action_dispatch_and_write_status(_what, _task)         \
     do {                                                            \
         int __pidafter__ = 0;                                       \
-        if (status_fd != -1) {                                      \
+        if (status_io != NULL) {                                    \
             switch ((_task)->action) {                              \
                 case A_NONE:                                        \
                     break;                                          \
                 case A_START:                                       \
-                    _write_status ("@c start ", (_what));           \
+                    _write_status ("$s start ", (_what));           \
                     __pidafter__ = 1;                               \
                     break;                                          \
                 case A_STOP:                                        \
-                    _write_status ("@c stop @L\n", (_what),         \
+                    _write_status ("$s stop $L\n", (_what),         \
                                    (unsigned long) ((_task)->pid)); \
                     break;                                          \
                 case A_SIGNAL:                                      \
-                    _write_status ("@c signal @L @i\n",             \
+                    _write_status ("$s signal $L $i\n",             \
                                    (unsigned long) ((_task)->pid),  \
                                    (_task)->signal);                \
                     break;                                          \
             }                                                       \
         }                                                           \
         task_action_dispatch (_task);                               \
-        if (__pidafter__ && status_fd != -1)                        \
-            _write_status ("@L\n", (unsigned long) ((_task)->pid)); \
+        if (__pidafter__ && status_io != NULL)                      \
+            _write_status ("$L\n", (unsigned long) ((_task)->pid)); \
     } while (0)
 
 
-#ifdef DEBUG_TRACE
+#ifdef _DEBUG_PRINT
 const char*
 signal_to_name (int signum)
 {
@@ -131,7 +130,7 @@ signal_to_name (int signum)
     }
     return unknown;
 }
-#endif /* DEBUG_TRACE */
+#endif /* _DEBUG_PRINT */
 
 
 static int
@@ -140,14 +139,14 @@ reap_and_check (void)
     int status;
     pid_t pid;
 
-    dprint (("waiting for a children to reap...\n"));
+    w_debug (("waiting for a children to reap...\n"));
 
     pid = waitpid (-1, &status, WNOHANG);
 
     if (pid == cmd_task.pid) {
-        dprint (("reaped cmd process @L\n", (unsigned) pid));
+        w_debug (("reaped cmd process $I\n", (unsigned) pid));
 
-        write_status (("cmd exit @L @i\n", (unsigned long) pid, status));
+        write_status (("cmd exit $L $i\n", (unsigned long) pid, status));
 
         cmd_task.pid = NO_PID;
 
@@ -156,7 +155,7 @@ reap_and_check (void)
          * then we do not want to respawn, but to gracefully shutdown.
          */
         if (success_exit && WIFEXITED (status) && WEXITSTATUS (status) == 0) {
-            dprint (("cmd process ended successfully, will exit\n"));
+            w_debug (("cmd process ended successfully, will exit\n"));
             running = 0;
         }
         else {
@@ -165,15 +164,15 @@ reap_and_check (void)
         return status;
     }
     else if (log_enabled && pid == log_task.pid) {
-        dprint (("reaped log process @L\n", (unsigned) pid));
+        w_debug (("reaped log process $I\n", (unsigned) pid));
 
-        write_status (("log exit @L @i\n", (unsigned long) pid, status));
+        write_status (("log exit $L $i\n", (unsigned long) pid, status));
 
         log_task.action = A_START;
         log_task.pid = NO_PID;
     }
     else {
-        dprint (("reaped unknown process @L", (unsigned) pid));
+        w_debug (("reaped unknown process $I", (unsigned) pid));
     }
 
     /*
@@ -190,7 +189,7 @@ handle_signal (int signum)
 {
     unsigned i = 0;
 
-    dprint (("handle signal @i (@c)\n", signum, signal_to_name (signum)));
+    w_debug (("handle signal $i ($s)\n", signum, signal_to_name (signum)));
 
     /* Receiving INT/TERM signal will stop gracefully */
     if (signum == SIGINT || signum == SIGTERM) {
@@ -211,7 +210,7 @@ handle_signal (int signum)
      * respawning.
      */
     if (cmd_timeout && signum == SIGALRM) {
-        write_status (("cmd timeout @L\n", (unsigned long) cmd_task.pid));
+        write_status (("cmd timeout $L\n", (unsigned long) cmd_task.pid));
         task_action (&cmd_task, A_STOP);
         cmd_task.action = A_START;
         alarm (cmd_timeout);
@@ -226,12 +225,12 @@ handle_signal (int signum)
     if (signum != NO_SIGNAL) {
         /* Try to forward signals */
         if (cmd_signals) {
-            dprint (("delayed signal @i for cmd process\n", signum));
+            w_debug (("delayed signal $i for cmd process\n", signum));
             cmd_task.action = A_SIGNAL;
             cmd_task.signal = signum;
         }
         if (log_signals && log_enabled) {
-            dprint (("delayed signal @i for log process\n", signum));
+            w_debug (("delayed signal $i for log process\n", signum));
             log_task.action = A_SIGNAL;
             log_task.signal = signum;
         }
@@ -344,9 +343,9 @@ _config_option (const w_opt_context_t *ctx)
     w_assert (ctx->argv);
     w_assert (ctx->argv[0]);
 
-    format (fd_err,
-            "@c: Option --config/-C must be the first one specified\n",
-            ctx->argv[0]);
+    w_io_format (w_stderr,
+                 "$s: Option --config/-C must be the first one specified\n",
+                 ctx->argv[0]);
 
     return W_OPT_EXIT_FAIL;
 }
@@ -422,8 +421,8 @@ int
 dmon_main (int argc, char **argv)
 {
 	const char *pidfile = NULL;
+	w_io_t *pidfile_io = NULL;
 	char *opts_env = NULL;
-	int pidfile_fd = -1;
 	wbool success;
 	unsigned i, consumed;
 
@@ -459,11 +458,11 @@ dmon_main (int argc, char **argv)
                                 "log-cmd [log-cmd-options]]",
                                 argc, argv);
 
-    dprint (("w_opt_parse consumed @I arguments\n", consumed));
+    w_debug (("w_opt_parse consumed $I arguments\n", consumed));
 
     if (status_path) {
-        status_fd = open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
-        if (status_fd < 0)
+        status_io = w_io_unix_open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
+        if (!status_io)
             w_die ("$s: Cannot open '$s' for writing, $E\n", argv[0], optarg);
     }
 
@@ -494,7 +493,7 @@ dmon_main (int argc, char **argv)
         if (pipe (log_fds) != 0) {
             w_die ("$s: Cannot create pipe: $E\n", argv[0]);
         }
-        dprint (("pipe_read = @i, pipe_write = @i\n", log_fds[0], log_fds[1]));
+        w_debug (("pipe_read = $i, pipe_write = $i\n", log_fds[0], log_fds[1]));
         fd_cloexec (log_fds[0]);
         fd_cloexec (log_fds[1]);
     }
@@ -502,14 +501,14 @@ dmon_main (int argc, char **argv)
 #ifdef DEBUG_TRACE
     {
         char **xxargv = cmd_task.argv;
-        format (fd_err, "cmd:");
-        while (*xxargv) format (fd_err, " @c", *xxargv++);
-        format (fd_err, "\n");
+        w_io_format (w_stderr, "cmd:");
+        while (*xxargv) w_io_format (w_stderr, " $s", *xxargv++);
+        w_io_format (w_stderr, "\n");
         if (log_enabled) {
             char **xxargv = log_task.argv;
-            format (fd_err, "log:");
-            while (*xxargv) format (fd_err, " @c", *xxargv++);
-            format (fd_err, "\n");
+            w_io_format (w_stderr, "log:");
+            while (*xxargv) w_io_format (w_stderr, " $c", *xxargv++);
+            w_io_format (w_stderr, "\n");
         }
     }
 #endif /* DEBUG_TRACE */
@@ -518,8 +517,8 @@ dmon_main (int argc, char **argv)
         w_die ("$s: No command to run given.\n", argv[0]);
 
     if (pidfile) {
-        pidfile_fd = open (pidfile, O_TRUNC | O_CREAT | O_WRONLY, 0666);
-        if (pidfile_fd < 0) {
+        pidfile_io = w_io_unix_open (pidfile, O_TRUNC | O_CREAT | O_WRONLY, 0666);
+        if (!pidfile_io) {
             w_die ("$s: cannot open '$s' for writing: $E\n", argv[0], pidfile);
         }
     }
@@ -528,9 +527,9 @@ dmon_main (int argc, char **argv)
         become_daemon ();
 
     /* We have a valid file descriptor: write PID */
-    if (pidfile_fd >= 0) {
-        format (pidfile_fd, "@L\n", (unsigned) getpid ());
-        close (pidfile_fd);
+    if (pidfile_io) {
+        w_io_format (pidfile_io, "$L\n", (unsigned long) getpid ());
+        w_obj_unref (pidfile_io);
     }
 
     setup_signals ();
@@ -540,7 +539,7 @@ dmon_main (int argc, char **argv)
     log_task.read_fd  = log_fds[0];
 
     while (running) {
-        dprint ((">>> loop iteration\n"));
+        w_debug ((">>> loop iteration\n"));
         if (check_child) {
             int retcode = reap_and_check ();
 
@@ -557,7 +556,7 @@ dmon_main (int argc, char **argv)
 
                 do {
                     retval = nanosleep (&ts, &ts);
-                    dprint (("nanosleep -> @i\n", retval));
+                    w_debug (("nanosleep -> $i\n", retval));
                 } while (retval == -1 && errno == EINTR && running);
             }
 
@@ -578,7 +577,7 @@ dmon_main (int argc, char **argv)
         if (load_enabled) {
             double load_cur;
 
-            dprint (("checking load after sleeping 1s\n"));
+            w_debug (("checking load after sleeping 1s\n"));
             interruptible_sleep (1);
 
             if (getloadavg (&load_cur, 1) == -1)
@@ -587,42 +586,44 @@ dmon_main (int argc, char **argv)
             if (paused) {
                 /* If the current load dropped below load_low -> resume */
                 if (load_cur <= load_low) {
-                    dprint (("resuming... "));
+                    w_debug (("resuming... "));
                     task_signal (&cmd_task, SIGCONT);
-                    write_status (("cmd resume @L\n", (unsigned long) cmd_task.pid));
+                    write_status (("cmd resume $L\n", (unsigned long) cmd_task.pid));
                     paused = 0;
                 }
             }
             else {
                 /* If the load went above load_high -> pause */
                 if (load_cur > load_high) {
-                    dprint (("pausing... "));
+                    w_debug (("pausing... "));
                     task_signal (&cmd_task, SIGSTOP);
-                    write_status (("cmd pause @L\n", (unsigned long) cmd_task.pid));
+                    write_status (("cmd pause $L\n", (unsigned long) cmd_task.pid));
                     paused = 1;
                 }
             }
         }
         else {
             /* Wait for signals to arrive. */
-            dprint (("waiting for signals to come...\n"));
+            w_debug (("waiting for signals to come...\n"));
             pause ();
         }
     }
 
-    dprint (("exiting gracefully...\n"));
+    w_debug (("exiting gracefully...\n"));
 
     if (cmd_task.pid != NO_PID) {
-        write_status (("cmd stop @L\n", (unsigned long) cmd_task.pid));
+        write_status (("cmd stop $L\n", (unsigned long) cmd_task.pid));
         task_action (&cmd_task, A_STOP);
     }
     if (log_enabled && log_task.pid != NO_PID) {
-        write_status (("log stop @L\n", (unsigned long) log_task.pid));
+        write_status (("log stop $L\n", (unsigned long) log_task.pid));
         task_action (&log_task, A_STOP);
     }
 
-    if (status_fd != -1)
-        close (status_fd);
+    if (status_io) {
+        w_obj_unref (status_io);
+        status_io = NULL;
+    }
 
 	exit (EXIT_SUCCESS);
 }

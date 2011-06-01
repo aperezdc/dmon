@@ -7,7 +7,6 @@
 
 #include "wheel.h"
 #include "util.h"
-#include "iolib.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -47,11 +46,11 @@ static const w_opt_t dlog_options[] = {
 int
 dlog_main (int argc, char **argv)
 {
-    buffer overflow = BUFFER;
-    buffer linebuf = BUFFER;
+    w_buf_t overflow = W_BUF;
+    w_buf_t linebuf = W_BUF;
     char *env_opts = NULL;
     unsigned consumed;
-    int log_fd = -1;
+    w_io_t *log_io;
 
     if ((env_opts = getenv ("DLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
@@ -59,25 +58,23 @@ dlog_main (int argc, char **argv)
     consumed = w_opt_parse (dlog_options, NULL, NULL, "[logfile-path]", argc, argv);
 
     if (consumed >= (unsigned) argc) {
-        log_fd = fd_out;
+        log_io = w_stdout;
     }
     else {
-        close (fd_out);
-        log_fd = open (argv[consumed], O_CREAT | O_APPEND | O_WRONLY, 0666);
-        if (log_fd < 0) {
-            format (fd_err, "@c: cannot open '@c': @E\n", argv[0], argv[consumed]);
-            exit (EXIT_FAILURE);
-        }
+        w_io_close (w_stdout);
+        log_io = w_io_unix_open (argv[consumed], O_CREAT | O_APPEND | O_WRONLY, 0666);
+        if (!log_io)
+            w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
     }
 
 
     while (running) {
-        int ret = readlineb (fd_in, &linebuf, 0, &overflow);
+        ssize_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
 
-        if (ret == -1)
+        if (ret == W_IO_ERR)
             w_die ("$s: error reading input: $E\n", argv[0]);
 
-        if (blength (&linebuf)) {
+        if (w_buf_length (&linebuf)) {
             if (timestamp) {
                 time_t now = time(NULL);
                 char timebuf[TSTAMP_LEN+1];
@@ -86,24 +83,24 @@ dlog_main (int argc, char **argv)
                 if (strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm) == 0)
                     w_die ("$s: cannot format timestamp: $E\n", argv[0]);
 
-                format (log_fd, "@c @b\n", timebuf, &linebuf);
+                w_io_format (log_io, "$s $B\n", timebuf, &linebuf);
             }
             else {
-                format (log_fd, "@b\n", &linebuf);
+                w_io_format (log_io, "$B\n", &linebuf);
             }
 
             if (!buffered) {
-                fsync (log_fd);
+                w_io_flush (log_io);
             }
         }
 
-        bfree (&linebuf);
+        w_buf_reset (&linebuf);
 
-        if (ret == 0) /* EOF reached */
+        if (ret == W_IO_EOF) /* EOF reached */
             break;
     }
 
-    close (log_fd);
+    w_io_close (log_io);
 
     exit (EXIT_SUCCESS);
 }

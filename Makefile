@@ -36,7 +36,7 @@ all: dmon dlog dslog
 libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
 
-dmon: dmon.o util.o iolib.o task.o $(libwheel)
+dmon: dmon.o util.o task.o $(libwheel)
 
 
 ifneq ($(LIBNOFORK),0)
@@ -59,8 +59,8 @@ dlog dslog: dmon
   endif
 	ln -s $< $@
 else
-dslog: dslog.o util.o iolib.o $(libwheel)
-dlog: dlog.o util.o iolib.o $(libwheel)
+dslog: dslog.o util.o $(libwheel)
+dlog: dlog.o util.o $(libwheel)
 endif
 
 man: dmon.8 dlog.8 dslog.8
@@ -77,7 +77,7 @@ endif
 
 
 clean:
-	$(RM) dmon.o dlog.o dslog.o util.o iolib.o multicall.o task.o
+	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o
 	$(RM) dmon dlog dslog
 ifneq ($(LIBNOFORK),0)
 	$(RM) libnofork.so nofork.o

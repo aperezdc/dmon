@@ -12,7 +12,6 @@
 #define _BSD_SOURCE 1
 
 #include "util.h"
-#include "iolib.h"
 #include "wheel.h"
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -33,37 +32,10 @@
 
 
 void
-__dprintf (const char *fmt, ...)
-{
-    va_list args;
-
-    va_start (args, fmt);
-    vformat (fd_err, fmt, args);
-    va_end (args);
-    fsync (fd_err);
-}
-
-
-void
-die (const char *fmt, ...)
-{
-    va_list args;
-
-    va_start (args, fmt);
-    vformat (fd_err, fmt, args);
-    format (fd_err, "\n");
-    va_end (args);
-    fsync (fd_err);
-
-    exit (111);
-}
-
-
-void
 fd_cloexec (int fd)
 {
     if (fcntl (fd, F_SETFD, FD_CLOEXEC) < 0)
-        die ("unable to set FD_CLOEXEC");
+        w_die ("unable to set FD_CLOEXEC\n");
 }
 
 
@@ -89,7 +61,7 @@ void
 safe_sigaction (const char *name, int signum, struct sigaction *sa)
 {
     if (sigaction (signum, sa, NULL) < 0) {
-        die ("could not set handler for signal @c (@i): @E",
+        w_die ("could not set handler for signal $s ($i): $E\n",
              name, signum);
     }
 }
@@ -101,7 +73,7 @@ safe_setrlimit (int what, long value)
     struct rlimit r;
 
     if (getrlimit (what, &r) < 0)
-        die ("getrlimit (@c) failed: @E", limit_name (what));
+        w_die ("getrlimit ($s) failed: $E\n", limit_name (what));
 
     if (value < 0 || (unsigned long) value > r.rlim_max)
         r.rlim_cur = r.rlim_max;
@@ -109,7 +81,7 @@ safe_setrlimit (int what, long value)
         r.rlim_cur = value;
 
     if (setrlimit (what, &r) < 0)
-        die ("setrlimit (@c=@l) failed: @E", limit_name (what), value);
+        w_die ("setrlimit ($s=$l) failed: $E\n", limit_name (what), value);
 }
 
 
@@ -200,9 +172,9 @@ _parse_gids (char     *s,
     assert (u);
 
     if (u->ngid >= DMON_GID_COUNT) {
-        format (fd_err,
-                "more than @L groups given, ignoring additional ones\n",
-                DMON_GID_COUNT);
+        w_io_format (w_stderr,
+                     "more than $L groups given, ignoring additional ones\n",
+                     DMON_GID_COUNT);
         return 0;
     }
 
@@ -260,20 +232,20 @@ become_daemon (void)
     int nullfd = open ("/dev/null", O_RDWR, 0);
 
     if (nullfd < 0)
-        die ("cannot daemonize, unable to open '/dev/null': @E");
+        w_die ("cannot daemonize, unable to open '/dev/null': $E\n");
 
     fd_cloexec (nullfd);
 
-    if (dup2 (nullfd, fd_in) < 0)
-        die ("cannot daemonize, unable to redirect stdin: @E");
-    if (dup2 (nullfd, fd_out) < 0)
-        die ("cannot daemonize, unable to redirect stdout: @E");
-    if (dup2 (nullfd, fd_err) < 0)
-        die ("cannot daemonize, unable to redirect stderr: @E");
+    if (dup2 (nullfd, STDIN_FILENO) < 0)
+        w_die ("cannot daemonize, unable to redirect stdin: $E\n");
+    if (dup2 (nullfd, STDOUT_FILENO) < 0)
+        w_die ("cannot daemonize, unable to redirect stdout: $E\n");
+    if (dup2 (nullfd, STDERR_FILENO) < 0)
+        w_die ("cannot daemonize, unable to redirect stderr: $E\n");
 
     pid = fork ();
 
-    if (pid < 0) die ("cannot daemonize: @E");
+    if (pid < 0) w_die ("cannot daemonize: $E\n");
     if (pid > 0) _exit (EXIT_SUCCESS);
 
     if (setsid () == -1)
@@ -437,9 +409,9 @@ parse_limit_arg (const char *str, int *what, long *value)
 
     if (!strcmp (str, "help")) {
         for (i = 0; i < w_lengthof (rlimit_specs); i++) {
-            format (fd_out, "@c -- @c\n",
-                    rlimit_specs[i].name,
-                    rlimit_specs[i].desc);
+            w_io_format (w_stdout, "$s -- $s\n",
+                         rlimit_specs[i].name,
+                         rlimit_specs[i].desc);
         }
         return -1;
     }
@@ -481,7 +453,7 @@ xxalloc (void *p, size_t sz)
             p = malloc (sz);
         }
         if (p == NULL) {
-            die ("virtual memory exhausted");
+            w_die ("virtual memory exhausted\n");
         }
     }
     else {

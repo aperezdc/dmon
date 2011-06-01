@@ -7,7 +7,6 @@
 
 #include "wheel.h"
 #include "util.h"
-#include "iolib.h"
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -158,8 +157,8 @@ dslog_main (int argc, char **argv)
     int priority = name_to_priority (DEFAULT_PRIORITY);
     wbool console = W_NO;
     char *env_opts = NULL;
-    buffer linebuf = BUFFER;
-    buffer overflow = BUFFER;
+    w_buf_t linebuf = W_BUF;
+    w_buf_t overflow = W_BUF;
     unsigned consumed;
 
     w_opt_t dslog_options[] = {
@@ -182,30 +181,27 @@ dslog_main (int argc, char **argv)
         flags |= LOG_CONS;
 
     /* We will be no longer using standard output. */
-    close (fd_out);
+    w_io_close (w_stdout);
 
-    if (consumed >= (unsigned) argc) {
-        format (fd_err, "@c: process name not specified.\n", argv[0]);
-        exit (EXIT_FAILURE);
-    }
+    if (consumed >= (unsigned) argc)
+        w_die ("$s: process name not specified.\n", argv[0]);
 
     openlog (argv[consumed], flags, facility);
 
     while (running) {
-        int ret = readlineb (fd_in, &linebuf, 0, &overflow);
+        ssize_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
 
-        if (ret == -1) {
-            format (fd_err, "@c: error reading input: @c\n",
-                    argv[0], strerror (errno));
+        if (ret == W_IO_ERR) {
+            w_io_format (w_stderr, "$s: error reading input: $E\n", argv[0]);
             exit (111);
         }
 
-        if (blength (&linebuf))
-            syslog (priority, "%s", bstr (&linebuf));
+        if (w_buf_length (&linebuf))
+            syslog (priority, "%s", w_buf_str (&linebuf));
 
-        bfree (&linebuf);
+        w_buf_reset (&linebuf);
 
-        if (ret == 0) /* EOF reached */
+        if (ret == W_IO_EOF) /* EOF reached */
             break;
     }
 
