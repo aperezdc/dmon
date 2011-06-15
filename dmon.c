@@ -420,7 +420,6 @@ static const w_opt_t dmon_options[] = {
 int
 dmon_main (int argc, char **argv)
 {
-	const char *pidfile = NULL;
 	w_io_t *pidfile_io = NULL;
 	char *opts_env = NULL;
 	wbool success;
@@ -516,10 +515,13 @@ dmon_main (int argc, char **argv)
     if (cmd_task.argc == 0)
         w_die ("$s: No command to run given.\n", argv[0]);
 
-    if (pidfile) {
-        pidfile_io = w_io_unix_open (pidfile, O_TRUNC | O_CREAT | O_WRONLY, 0666);
+    if (pidfile_path) {
+        pidfile_io = w_io_unix_open (pidfile_path,
+                                     O_TRUNC | O_CREAT | O_WRONLY,
+                                     0666);
         if (!pidfile_io) {
-            w_die ("$s: cannot open '$s' for writing: $E\n", argv[0], pidfile);
+            w_die ("$s: cannot open '$s' for writing: $E\n",
+                   argv[0], pidfile_path);
         }
     }
 
