@@ -498,7 +498,7 @@ dmon_main (int argc, char **argv)
         fd_cloexec (log_fds[1]);
     }
 
-#ifdef DEBUG_TRACE
+#ifdef _DEBUG_PRINT
     {
         char **xxargv = cmd_task.argv;
         w_io_format (w_stderr, "cmd:");
@@ -511,7 +511,7 @@ dmon_main (int argc, char **argv)
             w_io_format (w_stderr, "\n");
         }
     }
-#endif /* DEBUG_TRACE */
+#endif /* _DEBUG_PRINT */
 
     if (cmd_task.argc == 0)
         w_die ("$s: No command to run given.\n", argv[0]);
