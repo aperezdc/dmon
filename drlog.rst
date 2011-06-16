@@ -59,6 +59,10 @@ Command line options:
             may be used after the number. If no suffix is given, it is
             assumed that ``SIZE`` is in bytes.
 
+-b          Buffered operation. If enabled, calls to `fsync(2)` will be
+            avoided. This improves performance, but may cause messages to
+            be lost.
+
 -t          Prepend a timestamp to each line. The timestamp format
             is ``YYYY-mm-dd/HH:MM:SS``, following that of rotated log files.
             It is easy to parse and sort. And human-readable, too.

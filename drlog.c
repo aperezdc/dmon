@@ -77,6 +77,7 @@ static unsigned long long maxsize    = LOGFILE_DEFSIZE;
 static unsigned long long curtime    = 0;
 static unsigned long long cursize    = 0;
 static wbool              timestamp  = W_NO;
+static wbool              buffered   = W_NO;
 static int                returncode = 0;
 static w_buf_t            line       = W_BUF;
 static w_buf_t            overflow   = W_BUF;
@@ -283,6 +284,9 @@ recreate_ts:
 
     for (;;) {
         if (w_io_write (out_io, out.buf, w_buf_length (&out)) >= 0) {
+            if (!buffered) {
+                w_io_flush (out_io);
+            }
             cursize += w_buf_length (&out);
             break;
         }
@@ -414,6 +418,9 @@ static const w_opt_t drlog_options[] = {
 
     { 1, 's', "max-size", suffixed_size_to_bytes, &maxsize,
         "Maximum size of each log file (suffixes: kmg)." },
+
+    { 1, 'b', "buffered", W_OPT_BOOL, &buffered,
+        "Buffered operation, do not flush to disk after each line." },
 
     { 0, 't', "timestamp", W_OPT_BOOL, &timestamp,
         "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line." },

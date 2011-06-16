@@ -80,6 +80,12 @@ Suffixes \fIk\fP (kilobytes), \fIm\fP (megabytes) and \fIg\fP (gigabytes)
 may be used after the number. If no suffix is given, it is
 assumed that \fBSIZE\fP is in bytes.
 .TP
+.B \-b
+.
+Buffered operation. If enabled, calls to \fIfsync(2)\fP will be
+avoided. This improves performance, but may cause messages to
+be lost.
+.TP
 .B \-t
 .
 Prepend a timestamp to each line. The timestamp format
