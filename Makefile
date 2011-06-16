@@ -5,7 +5,7 @@
 
 
 CPPFLAGS  += -D_DEBUG
-CFLAGS    ?= -Os -g -Wall -W
+CFLAGS    ?= -O0 -g -Wall -W
 DESTDIR   ?=
 prefix    ?= /usr/local
 
@@ -13,7 +13,6 @@ libwheel_PATH := wheel
 
 MULTICALL ?= 0
 LIBNOFORK ?= 0
-ROTLOG    ?= 0
 
 MULTICALL := $(strip $(MULTICALL))
 LIBNOFORK := $(strip $(LIBNOFORK))
@@ -21,17 +20,9 @@ ROTLOG    := $(strip $(ROTLOG))
 
 ifneq ($(MULTICALL),0)
   CPPFLAGS += -DMULTICALL
-  ifneq ($(ROTLOG),0)
-    CPPFLAGS += -DMULTICALL_ROTLOG
-  endif
-else
-  ifneq ($(ROTLOG),0)
-    $(error Bulding rotlog is only supported with MULTICALL=1)
-  endif
 endif
 
-
-all: dmon dlog dslog
+all: dmon dlog dslog drlog
 
 libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
@@ -48,22 +39,16 @@ endif
 
 
 ifneq ($(MULTICALL),0)
-  ifneq ($(ROTLOG),0)
-all: rotlog
-dmon: dlog.o dslog.o multicall.o $(ROTLOG)/rotlog.o
-$(ROTLOG)/rotlog.o: CPPFLAGS += -Dmain=rotlog_main
-dlog dslog rotlog: dmon
-  else
-dmon: dlog.o dslog.o multicall.o
-dlog dslog: dmon
-  endif
+dmon: dlog.o dslog.o drlog.o multicall.o
+dlog drlog dslog: dmon
 	ln -s $< $@
 else
 dslog: dslog.o util.o $(libwheel)
+drlog: drlog.o util.o $(libwheel)
 dlog: dlog.o util.o $(libwheel)
 endif
 
-man: dmon.8 dlog.8 dslog.8
+man: dmon.8 dlog.8 dslog.8 drlog.8
 
 %.8: %.rst
 	rst2man $< $@
@@ -71,25 +56,21 @@ man: dmon.8 dlog.8 dslog.8
 ifneq ($(MULTICALL),0)
 strip: dmon
 else
-strip: dmon dslog dlog
+strip: dmon dslog drlog dlog
 endif
 	strip -x --strip-unneeded $^
 
 
 clean:
-	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o
-	$(RM) dmon dlog dslog
+	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o drlog.o
+	$(RM) dmon dlog dslog drlog
 ifneq ($(LIBNOFORK),0)
 	$(RM) libnofork.so nofork.o
-endif
-ifneq ($(ROTLOG),0)
-	$(RM) $(ROTLOG)/rotlog.o
-	$(RM) rotlog
 endif
 
 install: all
 	install -d $(DESTDIR)$(prefix)/share/man/man8
-	install -m 644 dmon.8 dlog.8 dslog.8 \
+	install -m 644 dmon.8 dlog.8 dslog.8 drlog.8 \
 		$(DESTDIR)$(prefix)/share/man/man8
 	install -d $(DESTDIR)$(prefix)/bin
 ifneq ($(LIBNOFORK),0)
@@ -99,15 +80,11 @@ ifneq ($(LIBNOFORK),0)
 endif
 ifneq ($(MULTICALL),0)
 	install -m 755 dmon $(DESTDIR)$(prefix)/bin
+	ln -fs dmon $(DESTDIR)$(prefix)/bin/drlog
 	ln -fs dmon $(DESTDIR)$(prefix)/bin/dslog
 	ln -fs dmon $(DESTDIR)$(prefix)/bin/dlog
-  ifneq ($(ROTLOG),0)
-	ln -fs dmon $(DESTDIR)$(prefix)/bin/rotlog
-	install -m 644 $(ROTLOG)/rotlog.8 \
-		$(DESTDIR)$(prefix)/share/man/man8
-  endif
 else
-	install -m 755 dmon dlog dslog \
+	install -m 755 dmon dlog dslog drlog \
 		$(DESTDIR)$(prefix)/bin
 endif
 
