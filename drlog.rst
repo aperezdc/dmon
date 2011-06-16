@@ -47,7 +47,7 @@ Command line options:
             more than *NUMBER* log files in the log *directory* it will
             remove the oldest log file.
 
--t TIME     Maximum number of time to use a log file. Once ``drlog`` spends
+-T TIME     Maximum number of time to use a log file. Once ``drlog`` spends
             more than *TIME* using a log file it will start writing to a new
             one. Suffixes *m* (minutes), *h* (hours), *d* (days), *w* (weeks),
             *M* (months) and *y* (years) may be used after the number. If no
