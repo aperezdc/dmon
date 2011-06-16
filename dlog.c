@@ -34,7 +34,7 @@ static wbool buffered  = W_NO;
 
 static const w_opt_t dlog_options[] = {
     { 0, 'b', "buffered", W_OPT_BOOL, &buffered,
-        "Buffered operation, do not use fsync() after each line." },
+        "Buffered operation, do not use flush to disk after each line." },
 
     { 0, 't', "timestamp", W_OPT_BOOL, &timestamp,
         "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line." },
