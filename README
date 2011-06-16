@@ -25,16 +25,6 @@ Remember to pass the option when doing ``make install`` as well::
   make MULTICALL=1 install
 
 
-Optionally adding "rotlog" built-in
------------------------------------
-When building a multicall binary, you can get a copy of the "rotlog" program
-(similar to dlog, with log rotation support, see http://gitorious.org/rotlog)
-by defining the ROTLOG variable to the path where the rotlog sources are
-located. For example:
-
-  make MULTICALL=1 ROTLOG=../rotlog-0.2.1/
-
-
 Building libnofork.so
 ---------------------
 A tiny LD_PRELOAD-able "libnofork.so" library can be built by passing
