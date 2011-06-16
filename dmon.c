@@ -462,7 +462,7 @@ dmon_main (int argc, char **argv)
     if (status_path) {
         status_io = w_io_unix_open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
         if (!status_io)
-            w_die ("$s: Cannot open '$s' for writing, $E\n", argv[0], optarg);
+            w_die ("$s: Cannot open '$s' for writing, $E\n", argv[0], status_path);
     }
 
     if (cmd_interval && success_exit)
