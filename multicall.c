@@ -13,7 +13,6 @@
 #include "wheel.h"
 #include "util.h"
 #include <string.h>
-#include <assert.h>
 
 
 typedef int (*mainfunc_t)(int, char**);

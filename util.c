@@ -15,7 +15,6 @@
 #include "wheel.h"
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <assert.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -108,9 +107,9 @@ name_to_uidgid (const char *str,
     unsigned long num;
     char *dummy;
 
-    assert (str);
-    assert (uresult);
-    assert (gresult);
+    w_assert (str);
+    w_assert (uresult);
+    w_assert (gresult);
 
     num = strtoul (str, &dummy, 0);
     if (num == ULONG_MAX && errno == ERANGE)
@@ -139,8 +138,8 @@ name_to_gid (const char *str, gid_t *result)
     unsigned long num;
     char *dummy;
 
-    assert (str);
-    assert (result);
+    w_assert (str);
+    w_assert (result);
 
     num = strtoul (str, &dummy, 0);
 
@@ -168,8 +167,8 @@ _parse_gids (char     *s,
     char *pos = NULL;
     gid_t gid;
 
-    assert (s);
-    assert (u);
+    w_assert (s);
+    w_assert (u);
 
     if (u->ngid >= DMON_GID_COUNT) {
         w_io_format (w_stderr,
@@ -202,8 +201,8 @@ parse_uidgids (char     *s,
 {
     char *pos = NULL;
 
-    assert (s);
-    assert (u);
+    w_assert (s);
+    w_assert (u);
 
     memset (u, 0x00, sizeof (uidgid_t));
 
@@ -258,8 +257,8 @@ parse_time_arg (const char *str, unsigned long *result)
 {
     char *endpos = NULL;
 
-    assert (str != NULL);
-    assert (result != NULL);
+    w_assert (str != NULL);
+    w_assert (result != NULL);
 
     *result = strtoul (str, &endpos, 0);
     if (endpos == NULL || *endpos == '\0')
@@ -283,8 +282,8 @@ _parse_limit_bytes (const char *sval, long *rval)
     char *endpos;
     long val;
 
-    assert (sval != NULL);
-    assert (rval != NULL);
+    w_assert (sval != NULL);
+    w_assert (rval != NULL);
 
     val = strtoul (sval, &endpos, 0);
     switch (*endpos) {
@@ -305,8 +304,8 @@ _parse_limit_time (const char *sval, long *rval)
     unsigned long val;
     int retcode;
 
-    assert (sval != NULL);
-    assert (rval != NULL);
+    w_assert (sval != NULL);
+    w_assert (rval != NULL);
 
     /* reuse parse_time_arg() */
     retcode = parse_time_arg (sval, &val);
@@ -318,8 +317,8 @@ _parse_limit_time (const char *sval, long *rval)
 static int
 _parse_limit_number (const char *sval, long *rval)
 {
-    assert (sval != NULL);
-    assert (rval != NULL);
+    w_assert (sval != NULL);
+    w_assert (rval != NULL);
     return !(sscanf (sval, "%li", rval) == 1);
 }
 
@@ -403,9 +402,9 @@ parse_limit_arg (const char *str, int *what, long *value)
 {
     unsigned i;
 
-    assert (str != NULL);
-    assert (what != NULL);
-    assert (value != NULL);
+    w_assert (str != NULL);
+    w_assert (what != NULL);
+    w_assert (value != NULL);
 
     if (!strcmp (str, "help")) {
         for (i = 0; i < w_lengthof (rlimit_specs); i++) {
@@ -489,9 +488,9 @@ replace_args_cb (int   (*getc)(void*),
     int slen = 0;
     char **argv = xalloc (char*, maxarg);
 
-    assert (getc);
-    assert (pargc);
-    assert (pargv);
+    w_assert (getc);
+    w_assert (pargc);
+    w_assert (pargv);
 
     /* Copy argv[0] pointer */
     argv[numarg++] = (*pargv)[0];
@@ -613,9 +612,9 @@ replace_args_fd (int     fd,
                  int    *pargc,
                  char ***pargv)
 {
-    assert (fd >= 0);
-    assert (pargc);
-    assert (pargv);
+    w_assert (fd >= 0);
+    w_assert (pargc);
+    w_assert (pargv);
 
     return replace_args_cb (fd_getc, pargc, pargv, &fd);
 }
@@ -628,9 +627,9 @@ replace_args_file (const char *filename,
 {
     int fd, ret;
 
-    assert (filename);
-    assert (pargc);
-    assert (pargv);
+    w_assert (filename);
+    w_assert (pargc);
+    w_assert (pargv);
 
     if ((fd = open (filename, O_RDONLY, 0)) < 0)
         return 1;
@@ -664,9 +663,9 @@ replace_args_string (const char *str,
                      int        *pargc,
                      char     ***pargv)
 {
-    assert (str);
-    assert (pargc);
-    assert (pargv);
+    w_assert (str);
+    w_assert (pargc);
+    w_assert (pargv);
 
     return replace_args_cb (string_getc, pargc, pargv, &str);
 }
@@ -681,10 +680,10 @@ replace_args_shift (unsigned amount,
     char **argv = *pargv;
     int    i;
 
-    assert (pargc);
-    assert (pargv);
-    assert (amount > 0);
-    assert (*pargc > (int) amount);
+    w_assert (pargc);
+    w_assert (pargv);
+    w_assert (amount > 0);
+    w_assert (*pargc > (int) amount);
 
     while (amount--) {
         argc--;

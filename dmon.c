@@ -13,7 +13,6 @@
 #include "util.h"
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -76,7 +75,7 @@ _write_status (const char *fmt, ...)
 {
     va_list arg;
 
-    assert (status_io);
+    w_assert (status_io);
 
     va_start (arg, fmt);
     w_io_formatv (status_io, fmt, arg);

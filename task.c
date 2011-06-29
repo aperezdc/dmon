@@ -7,7 +7,6 @@
 
 #include "task.h"
 #include "wheel.h"
-#include <assert.h>
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
@@ -23,7 +22,7 @@ task_start (task_t *task)
     time_t now = time (NULL);
     unsigned sleep_time = (difftime (now, task->started) > 1) ? 0 : 1;
 
-    assert (task != NULL);
+    w_assert (task != NULL);
 
     w_debug (("Last start $Is ago, will wait for $Is\n",
              (unsigned) difftime (now, task->started), sleep_time));
@@ -99,7 +98,7 @@ task_start (task_t *task)
 void
 task_signal_dispatch (task_t *task)
 {
-    assert (task != NULL);
+    w_assert (task != NULL);
 
     if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
         return;
@@ -118,7 +117,7 @@ task_signal_dispatch (task_t *task)
 void
 task_signal (task_t *task, int signum)
 {
-    assert (task != NULL);
+    w_assert (task != NULL);
 
     /* Dispatch pending signal first if needed */
     task_signal_dispatch (task);
@@ -132,7 +131,7 @@ task_signal (task_t *task, int signum)
 void
 task_action_dispatch (task_t *task)
 {
-    assert (task != NULL);
+    w_assert (task != NULL);
 
     switch (task->action) {
         case A_NONE: /* Nothing to do */
@@ -158,7 +157,7 @@ task_action_dispatch (task_t *task)
 void
 task_action (task_t *task, action_t action)
 {
-    assert (task != NULL);
+    w_assert (task != NULL);
 
     /* Dispatch pending action. */
     task_action_dispatch (task);
