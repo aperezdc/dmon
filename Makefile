@@ -10,7 +10,7 @@ prefix  ?= /usr/local
 
 libwheel_PATH := wheel
 
-MULTICALL ?= 0
+MULTICALL ?= 1
 LIBNOFORK ?= 0
 
 MULTICALL := $(strip $(MULTICALL))

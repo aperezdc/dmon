@@ -10,20 +10,21 @@ may want to read the articles on DMon:
 There are also manual pages, so please take a look at them.
 
 
-Bulding a multicall binary
-==========================
+Bulding standalone binaries
+===========================
 
-As an option it is supported to build all tools into a single binary which
-can be symlinked with different names to switch between them (àla BusyBox).
-This is useful to save space i.e. in embedded devices.
+By default all tools are built into a single binary which can be symlinked
+with different names to switch between them (àla BusyBox). This is useful
+to save space and (to some degree) system memory.
 
-You can build all DMon tools this way by passing ``MULTICALL=1`` to Make::
+You can build all DMon tools as separate binaries passing ``MULTICALL=0``
+to Make::
 
-  make MULTICALL=1
+  make MULTICALL=0
 
 Remember to pass the option when doing ``make install`` as well::
 
-  make MULTICALL=1 install
+  make MULTICALL=0 install
 
 
 Building libnofork.so
