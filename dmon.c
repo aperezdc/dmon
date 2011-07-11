@@ -431,14 +431,12 @@ dmon_main (int argc, char **argv)
                      !strcmp ("--config", argv[1])))
 
     {
-        FILE *cfg_file = fopen (argv[2], "rb");
-        w_io_t *cfg_io;
+        w_io_t *cfg_io = NULL;
         char *err_msg = NULL;
 
-        if (!cfg_file)
+        if ((cfg_io = w_io_unix_open (argv[2], O_RDONLY, 0)) == NULL)
             w_die ("$s: Could not open file '$s', $E\n", argv[0], argv[2]);
 
-        cfg_io = w_io_stdio_open (cfg_file);
         success = w_opt_parse_io (dmon_options, cfg_io, &err_msg);
         w_obj_unref (cfg_io);
 
