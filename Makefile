@@ -23,6 +23,7 @@ endif
 
 all: dmon dlog dslog drlog
 
+libwheel_STDIO   := 0
 libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
 
