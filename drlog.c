@@ -66,8 +66,6 @@
 #define TSTAMP_LEN (5 + 3 + 3 + 3 + 3 + 3)
 #endif /* !TSTAMP_LEN */
 
-#define die( ) do { safe_sleep (5); exit (111); } while (0)
-
 
 static char              *directory  = NULL;
 static w_io_t            *out_io     = NULL;
@@ -200,7 +198,7 @@ recreate_ts:
                 w_io_format (w_stderr, "Unable to write timestamp in [$s]\n",
                              directory);
                 w_obj_unref (out_io);
-                die ();
+                w_die (NULL);
             }
             w_io_format (ts_io, "$I\n", (unsigned long) ts);
         }
