@@ -171,7 +171,10 @@ flush_line (void)
 
 testdir:
         if (stat (directory, &st) < 0 || !S_ISDIR (st.st_mode))
-            w_die ("Output directory is invalid [$s]\n", directory);
+            w_die ((errno == ENOENT)
+                        ? "Output directory does not exist: $s\n"
+                        : "Output path is not a directory: $s\n",
+                   directory);
 
         if (snprintf (path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
             w_die ("Path name too long for current in [$s]\n", directory);
