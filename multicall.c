@@ -5,9 +5,9 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef MULTICALL
-# error Cannot build __FILE__ without -DMULTICALL
-#endif /* !MULTICALL */
+#ifdef NO_MULTICALL
+# error Cannot build __FILE__ with -DNO_MULTICALL
+#endif /* NO_MULTICALL */
 
 
 #include "wheel.h"

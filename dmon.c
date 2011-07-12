@@ -21,9 +21,9 @@
 #include <time.h>
 
 
-#ifndef MULTICALL
+#ifdef NO_MULTICALL
 # define dmon_main main
-#endif /* !MULTICALL */
+#endif /* NO_MULTICALL */
 
 
 static int           log_fds[2]   = { -1, -1 };

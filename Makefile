@@ -17,8 +17,8 @@ MULTICALL := $(strip $(MULTICALL))
 LIBNOFORK := $(strip $(LIBNOFORK))
 ROTLOG    := $(strip $(ROTLOG))
 
-ifneq ($(MULTICALL),0)
-  CPPFLAGS += -DMULTICALL
+ifeq ($(MULTICALL),0)
+  CPPFLAGS += -DNO_MULTICALL
 endif
 
 all: dmon dlog dslog drlog

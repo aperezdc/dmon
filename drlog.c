@@ -22,9 +22,9 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#ifndef MULTICALL
+#ifdef NO_MULTICALL
 # define drlog_main main
-#endif /* !MULTICALL */
+#endif /* NO_MULTICALL */
 
 #ifndef LOGDIR_PERMS
 #define LOGDIR_PERMS 0750
