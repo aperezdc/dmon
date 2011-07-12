@@ -100,7 +100,9 @@ rescan:
     older_year = INT_MAX;
 
     if ((dir = opendir (directory)) == NULL) {
-        w_io_format (w_stderr, "Unable to rotate [$s]\n", directory);
+        w_io_format (w_stderr,
+                     "Unable to open directory '$s' for rotation ($E).\n",
+                     directory);
         return -1;
     }
 
@@ -138,7 +140,7 @@ rescan:
             return -3;
         }
         if (snprintf (path, sizeof (path), "%s/%s", directory, old_name) < 0) {
-            w_io_format (w_stderr, "Path too long to unlink [$s/$s]\n",
+            w_io_format (w_stderr, "Path too long to unlink: $s/$s\n",
                          directory, old_name);
             return -4;
         }
@@ -292,7 +294,7 @@ recreate_ts:
             break;
         }
 
-        w_io_format (w_stderr, "Cannot write to logfile\n");
+        w_io_format (w_stderr, "Cannot write to logfile: $E.\n");
         safe_sleep (5);
     }
     w_buf_free (&out);
@@ -311,7 +313,9 @@ close_log (void)
             break;
         }
 
-        w_io_format (w_stderr, "Unable to close logfile in [$s]\n", directory);
+        w_io_format (w_stderr,
+                     "Unable to close logfile at directory '$s\n",
+                     directory);
         safe_sleep (5);
     }
 }
@@ -392,7 +396,7 @@ int drlog_main (int argc, char **argv)
         ssize_t ret = w_io_read_line (w_stdin, &line, &overflow, 0);
 
         if (ret == W_IO_ERR) {
-            w_io_format (w_stderr, "Unable to read from standard input\n");
+            w_io_format (w_stderr, "Unable to read from standard input: $E.\n");
             returncode = 1;
             quit_handler (0);
         }
