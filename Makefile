@@ -27,14 +27,14 @@ libwheel_STDIO   := 0
 libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
 
-dmon: dmon.o util.o task.o $(libwheel)
+dmon: dmon.o util.o task.o $(libwheel_OBJS)
 
 
 ifneq ($(LIBNOFORK),0)
 all: libnofork.so
 libnofork.so: CFLAGS += -fPIC
-libnofork.so: nofork.o
-	gcc -shared -o $@ $^
+libnofork.so: nofork.o -lc
+	$(LD) $(LDFLAGS) -shared -o $@ $^
 endif
 
 
