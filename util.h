@@ -36,7 +36,6 @@ void safe_sleep (unsigned);
 void safe_sigaction (const char*, int, struct sigaction*);
 void safe_setrlimit (int what, long value);
 int  interruptible_sleep (unsigned);
-void die (const char*, ...);
 const char* limit_name (int);
 
 int parse_time_arg  (const char*, unsigned long*);
