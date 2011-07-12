@@ -11,6 +11,9 @@
 /* Needed for fsync(2) */
 #define _BSD_SOURCE 1
 
+/* Needed for ULLONG_MAX */
+#define _GNU_SOURCE 1
+
 #include "util.h"
 #include "wheel.h"
 #include <sys/time.h>
