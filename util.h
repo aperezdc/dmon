@@ -62,17 +62,6 @@ void replace_args_shift (unsigned    amount,
                          int        *pargc,
                          char     ***pargv);
 
-
-void*   xxalloc      (void *p, size_t sz);
-#define xrealloc     xxalloc
-#define xmalloc(_s)  xxalloc(NULL, (_s))
-#define xfree(_p)    (_p) = xxalloc((_p), 0)
-
-#define xalloc(_t, _n) \
-    ((_t *) xxalloc (NULL, (_n) * sizeof (_t)))
-#define xresize(_p, _t, _n) \
-    ((_t *) xxalloc ((_p), (_n) * sizeof (_t)))
-
 #endif /* !__util_h__ */
 
 /* vim: expandtab shiftwidth=4 tabstop=4

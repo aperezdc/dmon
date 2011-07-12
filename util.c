@@ -441,30 +441,6 @@ limit_name (int what)
 }
 
 
-void*
-xxalloc (void *p, size_t sz)
-{
-    if (sz) {
-        if (p) {
-            p = realloc (p, sz);
-        }
-        else {
-            p = malloc (sz);
-        }
-        if (p == NULL) {
-            w_die ("virtual memory exhausted\n");
-        }
-    }
-    else {
-        if (p) {
-            free (p);
-        }
-        p = NULL;
-    }
-    return p;
-}
-
-
 #ifndef REPLACE_ARGS_VCHUNK
 #define REPLACE_ARGS_VCHUNK 16
 #endif /* !REPLACE_ARGS_VCHUNK */
@@ -486,7 +462,7 @@ replace_args_cb (int   (*getc)(void*),
     int quotes = 0;
     int smax = 0;
     int slen = 0;
-    char **argv = xalloc (char*, maxarg);
+    char **argv = w_alloc (char*, maxarg);
 
     w_assert (getc);
     w_assert (pargc);
@@ -510,13 +486,13 @@ replace_args_cb (int   (*getc)(void*),
              */
             if (numarg >= maxarg) {
                 maxarg += REPLACE_ARGS_VCHUNK;
-                argv = xresize (argv, char*, maxarg);
+                argv = w_resize (argv, char*, maxarg);
             }
 
             /* Add terminating "\0" */
             if (slen >= smax) {
                 smax += REPLACE_ARGS_SCHUNK;
-                s = xresize (s, char, smax);
+                s = w_resize (s, char, smax);
             }
 
             /* Save string in array. */
@@ -555,7 +531,7 @@ replace_args_cb (int   (*getc)(void*),
             }
             if (slen >= smax) {
                 smax += REPLACE_ARGS_SCHUNK;
-                s = xresize (s, char, smax);
+                s = w_resize (s, char, smax);
             }
             s[slen++] = ch;
         }
@@ -566,7 +542,7 @@ replace_args_cb (int   (*getc)(void*),
         /* Add terminating "\0" */
         if (slen >= smax) {
             smax += REPLACE_ARGS_SCHUNK;
-            s = xresize (s, char, smax);
+            s = w_resize (s, char, smax);
         }
 
         /* Save string in array. */
@@ -577,7 +553,7 @@ replace_args_cb (int   (*getc)(void*),
     /* Copy remaining pointers at the tail */
     if ((maxarg - numarg) <= *pargc) {
         maxarg += *pargc;
-        argv = xresize (argv, char*, maxarg);
+        argv = w_resize (argv, char*, maxarg);
     }
     for (ch = 1; ch < *pargc; ch++)
         argv[numarg++] = (*pargv)[ch];
