@@ -27,7 +27,7 @@ libwheel_STDIO   := 0
 libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
 
-dmon: dmon.o util.o task.o $(libwheel_OBJS)
+dmon: dmon.o util.o task.o $(libwheel)
 
 
 ifneq ($(LIBNOFORK),0)
