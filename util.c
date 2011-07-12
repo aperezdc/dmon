@@ -299,17 +299,23 @@ time_period_option (const w_opt_context_t *ctx)
 }
 
 
-
-static wbool
-_parse_limit_bytes (const char *sval, long *rval)
+wbool
+storage_size_to_bytes (const char *str, unsigned long long *result)
 {
+    unsigned long long val = 0;
     char *endpos;
-    long val;
 
-    w_assert (sval != NULL);
-    w_assert (rval != NULL);
+    w_assert (str);
+    w_assert (result);
 
-    val = strtoul (sval, &endpos, 0);
+    val = strtoull (str, &endpos, 0);
+
+    if (val == ULLONG_MAX && errno == ERANGE)
+        return W_YES;
+
+    if (!endpos || *endpos == '\0')
+        goto save_and_exit;
+
     switch (*endpos) {
         case  'g': case 'G': val *= 1024 * 1024 * 1024; break; /* gigabytes */
         case  'm': case 'M': val *= 1024 * 1024;        break; /* megabytes */
@@ -317,8 +323,24 @@ _parse_limit_bytes (const char *sval, long *rval)
         case '\0': break;
         default  : return W_YES;
     }
-    *rval = val;
+
+save_and_exit:
+    *result = val;
     return W_NO;
+}
+
+
+w_opt_status_t
+storage_size_option (const w_opt_context_t *ctx)
+{
+    w_assert (ctx);
+    w_assert (ctx->option);
+    w_assert (ctx->option->extra);
+    w_assert (ctx->option->narg == 1);
+
+    return (storage_size_to_bytes (ctx->argument[0], ctx->option->extra))
+            ? W_OPT_BAD_ARG
+            : W_OPT_OK;
 }
 
 
@@ -343,6 +365,21 @@ _parse_limit_number (const char *sval, long *rval)
     w_assert (sval != NULL);
     w_assert (rval != NULL);
     return !(sscanf (sval, "%li", rval) == 1);
+}
+
+
+static wbool
+_parse_limit_bytes (const char *sval, long *rval)
+{
+    unsigned long long val;
+    wbool failed;
+
+    w_assert (sval != NULL);
+    w_assert (rval != NULL);
+
+    failed = storage_size_to_bytes (sval, &val);
+    *rval = val;
+    return failed || (val > LONG_MAX);
 }
 
 

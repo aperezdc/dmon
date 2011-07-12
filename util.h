@@ -43,8 +43,11 @@ int parse_limit_arg (const char *str, int *what, long *value);
 
 wbool time_period_to_seconds (const char         *str,
                               unsigned long long *result);
+wbool storage_size_to_bytes  (const char         *str,
+                              unsigned long long *result);
 
-w_opt_status_t time_period_option (const w_opt_context_t *ctx);
+w_opt_status_t time_period_option  (const w_opt_context_t *ctx);
+w_opt_status_t storage_size_option (const w_opt_context_t *ctx);
 
 
 int replace_args_cb     (int       (*getc)(void*),

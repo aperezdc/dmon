@@ -337,39 +337,6 @@ quit_handler (int signum)
 }
 
 
-
-static w_opt_status_t
-suffixed_size_to_bytes (const w_opt_context_t *ctx)
-{
-    unsigned long long val = 0;
-    char *endpos;
-
-    w_assert (ctx);
-    w_assert (ctx->option);
-    w_assert (ctx->option->extra);
-    w_assert (ctx->option->narg == 1);
-
-    val = strtoull (ctx->argument[0], &endpos, 0);
-
-    if (val == ULLONG_MAX && errno == ERANGE)
-        return W_OPT_BAD_ARG;
-
-    if (!endpos || *endpos == '\0')
-        goto save_and_exit;
-
-    switch (*endpos) {
-        case 'g': val *= 1024 * 1024 * 1024; break; /* gigabytes */
-        case 'm': val *= 1024 * 1024;        break; /* megabytes */
-        case 'k': val *= 1024;               break; /* kilobytes */
-        default : return W_OPT_BAD_ARG;
-    }
-
-save_and_exit:
-    *((unsigned long long*) ctx->option->extra) = val;
-    return W_OPT_OK;
-}
-
-
 #define HELP_MESSAGE \
     "Usage: rotlog [OPTIONS] logdir\n"                                 \
     "Log standard input to a directory of timestamped files\n"         \
@@ -383,7 +350,7 @@ static const w_opt_t drlog_options[] = {
     { 1, 'T', "max-time", time_period_option, &maxtime,
         "Maximum time to use a log file (suffixes: mhdwMy)." },
 
-    { 1, 's', "max-size", suffixed_size_to_bytes, &maxsize,
+    { 1, 's', "max-size", storage_size_option, &maxsize,
         "Maximum size of each log file (suffixes: kmg)." },
 
     { 1, 'b', "buffered", W_OPT_BOOL, &buffered,
