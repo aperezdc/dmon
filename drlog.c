@@ -175,18 +175,18 @@ testdir:
                    directory);
 
         if (snprintf (path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
-            w_die ("Path name too long for current in [$s]\n", directory);
+            w_die ("Path name too long: $s\n", directory);
 
         out_io = w_io_unix_open (path,
                                  O_APPEND | O_CREAT | O_WRONLY,
                                  LOGFILE_PERMS);
 
         if (!out_io)
-            w_die ("Cannot open [$s]: $E\n", path);
+            w_die ("Cannot open '$s': $E\n", path);
 
         if (snprintf (path, sizeof (path), "%s/" LOGDIR_TSTAMP, directory) < 0) {
             w_obj_unref (out_io);
-            w_die ("Path name too long for timestamp in [$s]\n", directory);
+            w_die ("Path name too long: $s\n", directory);
         }
 
         if ((ts_io = w_io_unix_open (path, O_RDONLY, 0)) == NULL) {
@@ -195,7 +195,7 @@ recreate_ts:
             ts_io = w_io_unix_open (path, O_WRONLY | O_CREAT | O_TRUNC,
                                     LOGFILE_PERMS);
             if (!ts_io) {
-                w_io_format (w_stderr, "Unable to write timestamp in [$s]\n",
+                w_io_format (w_stderr, "Unable to write timestamp to '$s'\n",
                              directory);
                 w_obj_unref (out_io);
                 w_die (NULL);
@@ -237,16 +237,16 @@ recreate_ts:
                 w_die ("Unable to get current date: $E\n");
 
             if (snprintf (newpath, sizeof (newpath), "%s/" LOGFILE_PREFIX, directory) < 0)
-                w_die ("Path name too long for new path in [$s]\n", directory);
+                w_die ("Path name too long: $s\n", directory);
 
             if (strftime (newpath + strlen (newpath),
                           sizeof (newpath) - strlen(newpath),
                           "%Y-%m-%d-%H:%M:%S",
                           time_gm) == 0)
-                w_die ("Path name too long for new path in [$s]\n", directory);
+                w_die ("Path name too long: '$s'\n", directory);
 
-            if ( snprintf(path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
-                w_die ("Path name too long for new path in [$s]\n", directory);
+            if (snprintf(path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
+                w_die ("Path name too long: $s\n", directory);
 
             rotate_log ();
 
@@ -254,10 +254,10 @@ recreate_ts:
             out_io = NULL;
 
             if (rename (path, newpath) < 0 && unlink (path) < 0)
-                w_die ("Unable to rename [$s] to [$s]\n", path, newpath);
+                w_die ("Unable to rename '$s' to '$s'\n", path, newpath);
 
             if (snprintf (path, sizeof (path), "%s/" LOGDIR_TSTAMP, directory) < 0)
-                w_die ("Path name too long for timestamp in [$s]\n", directory);
+                w_die ("Path name too long: $s\n", directory);
 
             unlink (path);
             goto testdir;
