@@ -337,40 +337,6 @@ quit_handler (int signum)
 }
 
 
-static w_opt_status_t
-suffixed_time_to_seconds (const w_opt_context_t *ctx)
-{
-    unsigned long val = 0;
-    char *endpos;
-
-    w_assert (ctx);
-    w_assert (ctx->option);
-    w_assert (ctx->option->extra);
-    w_assert (ctx->option->narg == 1);
-
-    val = strtoull (ctx->argument[0], &endpos, 0);
-
-    if (val == ULLONG_MAX && errno == ERANGE)
-        return W_OPT_BAD_ARG;
-
-    if (!endpos || *endpos == '\0')
-        goto save_and_exit;
-
-    switch (*endpos) {
-        case 'y': val *= 60 * 60 * 24 * 365; break; /* years   */
-        case 'M': val *= 60 * 60 * 24 * 30;  break; /* months  */
-        case 'w': val *= 60 * 60 * 24 * 7;   break; /* weeks   */
-        case 'd': val *= 60 * 60 * 24;       break; /* days    */
-        case 'h': val *= 60 * 60;            break; /* hours   */
-        case 'm': val *= 60;                 break; /* minutes */
-        default : return W_OPT_BAD_ARG;
-    }
-
-save_and_exit:
-    *((unsigned long long*) ctx->option->extra) = val;
-    return W_OPT_OK;
-}
-
 
 static w_opt_status_t
 suffixed_size_to_bytes (const w_opt_context_t *ctx)
@@ -414,7 +380,7 @@ static const w_opt_t drlog_options[] = {
     { 1, 'm', "max-files", W_OPT_UINT, &maxfiles,
         "Maximum number of log files to keep." },
 
-    { 1, 'T', "max-time", suffixed_time_to_seconds, &maxtime,
+    { 1, 'T', "max-time", time_period_option, &maxtime,
         "Maximum time to use a log file (suffixes: mhdwMy)." },
 
     { 1, 's', "max-size", suffixed_size_to_bytes, &maxsize,

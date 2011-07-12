@@ -252,31 +252,55 @@ become_daemon (void)
 }
 
 
-int
-parse_time_arg (const char *str, unsigned long *result)
+wbool
+time_period_to_seconds (const char *str, unsigned long long *result)
 {
-    char *endpos = NULL;
+    unsigned long long val = 0;
+    char *endpos;
 
-    w_assert (str != NULL);
-    w_assert (result != NULL);
+    w_assert (str);
+    w_assert (result);
 
-    *result = strtoul (str, &endpos, 0);
-    if (endpos == NULL || *endpos == '\0')
-        return 0;
+    val = strtoull (str, &endpos, 0);
+
+    if (val == ULLONG_MAX && errno == ERANGE)
+        return W_YES;
+
+    if (!endpos || *endpos == '\0')
+        goto save_and_exit;
 
     switch (*endpos) {
-        case 'w': *result *= 60 * 60 * 24 * 7; break;
-        case 'd': *result *= 60 * 60 * 24; break;
-        case 'h': *result *= 60 * 60; break;
-        case 'm': *result *= 60; break;
-        default: return 1;
+        case 'y': val *= 60 * 60 * 24 * 365; break; /* years   */
+        case 'M': val *= 60 * 60 * 24 * 30;  break; /* months  */
+        case 'w': val *= 60 * 60 * 24 * 7;   break; /* weeks   */
+        case 'd': val *= 60 * 60 * 24;       break; /* days    */
+        case 'h': val *= 60 * 60;            break; /* hours   */
+        case 'm': val *= 60;                 break; /* minutes */
+        default : return W_YES;
     }
 
-    return 0;
+save_and_exit:
+    *result = val;
+    return W_NO;
 }
 
 
-static int
+w_opt_status_t
+time_period_option (const w_opt_context_t *ctx)
+{
+    w_assert (ctx);
+    w_assert (ctx->option);
+    w_assert (ctx->option->extra);
+    w_assert (ctx->option->narg == 1);
+
+    return (time_period_to_seconds (ctx->argument[0], ctx->option->extra))
+            ? W_OPT_BAD_ARG
+            : W_OPT_OK;
+}
+
+
+
+static wbool
 _parse_limit_bytes (const char *sval, long *rval)
 {
     char *endpos;
@@ -291,30 +315,29 @@ _parse_limit_bytes (const char *sval, long *rval)
         case  'm': case 'M': val *= 1024 * 1024;        break; /* megabytes */
         case  'k': case 'K': val *= 1024;               break; /* kilobytes */
         case '\0': break;
-        default  : return 1;
+        default  : return W_YES;
     }
     *rval = val;
-    return 0;
+    return W_NO;
 }
 
 
-static int
+static wbool
 _parse_limit_time (const char *sval, long *rval)
 {
-    unsigned long val;
-    int retcode;
+    unsigned long long val;
+    wbool failed;
 
     w_assert (sval != NULL);
     w_assert (rval != NULL);
 
-    /* reuse parse_time_arg() */
-    retcode = parse_time_arg (sval, &val);
+    failed = time_period_to_seconds (sval, &val);
     *rval = val;
-    return retcode;
+    return failed || (val > LONG_MAX);
 }
 
 
-static int
+static wbool
 _parse_limit_number (const char *sval, long *rval)
 {
     w_assert (sval != NULL);
@@ -326,7 +349,7 @@ _parse_limit_number (const char *sval, long *rval)
 static const struct {
     const char *name;
     int         what;
-    int       (*parse)(const char*, long*);
+    wbool     (*parse)(const char*, long*);
     const char *desc;
 } rlimit_specs[] = {
 #ifdef RLIMIT_AS

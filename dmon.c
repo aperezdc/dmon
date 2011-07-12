@@ -321,21 +321,6 @@ _store_uidgids_option (const w_opt_context_t *ctx)
 
 
 static w_opt_status_t
-_time_option (const w_opt_context_t *ctx)
-{
-    w_assert (ctx);
-    w_assert (ctx->argument);
-    w_assert (ctx->argument[0]);
-    w_assert (ctx->option);
-    w_assert (ctx->option->extra);
-
-    return (parse_time_arg (ctx->argument[0], ctx->option->extra))
-           ? W_OPT_BAD_ARG
-           : W_OPT_OK;
-}
-
-
-static w_opt_status_t
 _config_option (const w_opt_context_t *ctx)
 {
     w_assert (ctx);
@@ -395,11 +380,11 @@ static const w_opt_t dmon_options[] = {
         "Exit if command exits with a zero return code. The process "
         "will be still respawned when it exits with a non-zero code." },
 
-    { 1, 't', "timeout", _time_option, &cmd_timeout,
+    { 1, 't', "timeout", time_period_option, &cmd_timeout,
         "If command execution takes longer than the time specified "
         "the process will be killed and started again." },
 
-    { 1, 'i', "interval", _time_option, &cmd_interval,
+    { 1, 'i', "interval", time_period_option, &cmd_interval,
         "Time to wait between successful command executions. When "
         "exit code is non-zero, the interval is ignored and the "
         "command is executed again as soon as possible." },

@@ -8,6 +8,7 @@
 #ifndef __util_h__
 #define __util_h__
 
+#include "wheel.h"
 #include <sys/types.h>
 #define DMON_GID_COUNT 76
 
@@ -38,8 +39,13 @@ void safe_setrlimit (int what, long value);
 int  interruptible_sleep (unsigned);
 const char* limit_name (int);
 
-int parse_time_arg  (const char*, unsigned long*);
-int parse_limit_arg (const char*, int*, long*);
+int parse_limit_arg (const char *str, int *what, long *value);
+
+wbool time_period_to_seconds (const char         *str,
+                              unsigned long long *result);
+
+w_opt_status_t time_period_option (const w_opt_context_t *ctx);
+
 
 int replace_args_cb     (int       (*getc)(void*),
                          int        *argc,
