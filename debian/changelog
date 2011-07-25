@@ -1,10 +1,16 @@
+dmon (0.4.1) stable; urgency=low
+
+  * Improved user-visible error output, especially in "drlog".
+
+ -- Adrian Perez <aperez@igalia.com>  Fri, 22 Jul 2011 12:21:00 +0300
+
 dmon (0.4) stable; urgency=low
 
   * "dmon.8" manual page now includes description of status file format.
   * "dmon" can now read options from a config file by passing "-C path".
   * "rotlog" was imported as part of dmon and included as "drlog".
   * DMon is now using libwheel (built-in statically) as utility library.
-  * Removed usage of freedr's iolib.
+  * Removed usage of freedt's iolib.
 
  -- Adrian Perez <aperez@igalia.com>  Thu, 16 Jun 2010 12:21:00 +0300
 
