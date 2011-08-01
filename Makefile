@@ -75,16 +75,17 @@ endif
 
 
 ifneq ($(MULTICALL),0)
-dmon: dlog.o dslog.o drlog.o multicall.o
-dlog drlog dslog: dmon
+dmon: dlog.o dslog.o drlog.o dinit.o multicall.o
+dlog drlog dslog dinit: dmon
 	$(LN) -sf $< $@
 else
+dinit: dinit.o $(libwheel)
 dslog: dslog.o util.o $(libwheel)
 drlog: drlog.o util.o $(libwheel)
 dlog: dlog.o util.o $(libwheel)
 endif
 
-man: dmon.8 dlog.8 dslog.8 drlog.8
+man: dmon.8 dlog.8 dslog.8 drlog.8 dinit.8
 
 %.8: %.rst
 	$(RST2MAN) $< $@
@@ -92,14 +93,14 @@ man: dmon.8 dlog.8 dslog.8 drlog.8
 ifneq ($(MULTICALL),0)
 strip: dmon
 else
-strip: dmon dslog drlog dlog
+strip: dmon dslog drlog dlog dinit
 endif
 	$(STRIP) -x --strip-unneeded $^
 
 
 clean:
 	$(cmd_print) CLEAN
-	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o drlog.o
+	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o drlog.o dinit.o
 	$(RM) dmon dlog dslog drlog
 ifneq ($(LIBNOFORK),0)
 	$(RM) libnofork.so nofork.o
@@ -108,7 +109,7 @@ endif
 install: all
 	$(cmd_print) INSTALL
 	install -d $(DESTDIR)$(prefix)/share/man/man8
-	install -m 644 dmon.8 dlog.8 dslog.8 drlog.8 \
+	install -m 644 dmon.8 dlog.8 dslog.8 drlog.8 dinit.8 \
 		$(DESTDIR)$(prefix)/share/man/man8
 	install -d $(DESTDIR)$(prefix)/bin
 ifneq ($(LIBNOFORK),0)
@@ -118,11 +119,12 @@ ifneq ($(LIBNOFORK),0)
 endif
 ifneq ($(MULTICALL),0)
 	install -m 755 dmon $(DESTDIR)$(prefix)/bin
+	ln -fs dmon $(DESTDIR)$(prefix)/bin/dinit
 	ln -fs dmon $(DESTDIR)$(prefix)/bin/drlog
 	ln -fs dmon $(DESTDIR)$(prefix)/bin/dslog
 	ln -fs dmon $(DESTDIR)$(prefix)/bin/dlog
 else
-	install -m 755 dmon dlog dslog drlog \
+	install -m 755 dmon dlog dslog drlog dinit \
 		$(DESTDIR)$(prefix)/bin
 endif
 
