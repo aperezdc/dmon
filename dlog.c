@@ -8,6 +8,7 @@
 #include "wheel.h"
 #include "util.h"
 #include <stdlib.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,9 +28,10 @@
 #endif /* !TSTAMP_LEN */
 
 
-static wbool running   = W_YES;
-static wbool timestamp = W_NO;
-static wbool buffered  = W_NO;
+static wbool   running   = W_YES;
+static wbool   timestamp = W_NO;
+static wbool   buffered  = W_NO;
+static w_io_t *log_io    = NULL;
 
 
 static const w_opt_t dlog_options[] = {
@@ -43,14 +45,36 @@ static const w_opt_t dlog_options[] = {
 };
 
 
+static void
+handle_signal (int signum)
+{
+    if (buffered) {
+        w_io_flush (log_io);
+    }
+
+    if (log_io != w_stdout && log_io != w_stderr) {
+        w_io_close (log_io);
+        log_io = 0;
+    }
+
+    /*
+     * When handling HUP, we just sync and close the log file; in
+     * other cases (INT, TERM) we have to exit gracefully, too.
+     */
+    if (signum != SIGHUP) {
+        exit (EXIT_SUCCESS);
+    }
+}
+
+
 int
 dlog_main (int argc, char **argv)
 {
     w_buf_t overflow = W_BUF;
     w_buf_t linebuf = W_BUF;
     char *env_opts = NULL;
+    struct sigaction sa;
     unsigned consumed;
-    w_io_t *log_io;
 
     if ((env_opts = getenv ("DLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
@@ -62,11 +86,19 @@ dlog_main (int argc, char **argv)
     }
     else {
         w_io_close (w_stdout);
-        log_io = w_io_unix_open (argv[consumed], O_CREAT | O_APPEND | O_WRONLY, 0666);
-        if (!log_io)
-            w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
     }
 
+    sigemptyset (&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    sa.sa_handler = handle_signal;
+    safe_sigaction ("HUP", SIGHUP, &sa);
+
+    sa.sa_handler = handle_signal;
+    safe_sigaction ("INT", SIGINT, &sa);
+
+    sa.sa_handler = handle_signal;
+    safe_sigaction ("TERM", SIGTERM, &sa);
 
     while (running) {
         ssize_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
@@ -83,9 +115,23 @@ dlog_main (int argc, char **argv)
                 if (strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm) == 0)
                     w_die ("$s: cannot format timestamp: $E\n", argv[0]);
 
+                if (!log_io) {
+                    log_io = w_io_unix_open (argv[consumed],
+                                             O_CREAT | O_APPEND | O_WRONLY,
+                                             0666);
+                    if (!log_io)
+                        w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
+                }
                 w_io_format (log_io, "$s $B\n", timebuf, &linebuf);
             }
             else {
+                if (!log_io) {
+                    log_io = w_io_unix_open (argv[consumed],
+                                             O_CREAT | O_APPEND | O_WRONLY,
+                                             0666);
+                    if (!log_io)
+                        w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
+                }
                 w_io_format (log_io, "$B\n", &linebuf);
             }
 
