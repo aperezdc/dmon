@@ -28,7 +28,6 @@
 #endif /* !TSTAMP_LEN */
 
 
-static wbool   running   = W_YES;
 static wbool   timestamp = W_NO;
 static wbool   buffered  = W_NO;
 static w_io_t *log_io    = NULL;
@@ -100,7 +99,7 @@ dlog_main (int argc, char **argv)
     sa.sa_handler = handle_signal;
     safe_sigaction ("TERM", SIGTERM, &sa);
 
-    while (running) {
+    for (;;) {
         ssize_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
 
         if (ret == W_IO_ERR)
