@@ -390,6 +390,9 @@ int drlog_main (int argc, char **argv)
     safe_sigaction ("HUP", SIGHUP, &sa);
 
     sa.sa_handler = quit_handler;
+    safe_sigaction ("INT", SIGINT, &sa);
+
+    sa.sa_handler = quit_handler;
     safe_sigaction ("TERM", SIGTERM, &sa);
 
     for (;;) {
