@@ -55,14 +55,6 @@ int replace_args_cb     (int       (*getc)(void*),
                          char     ***argv,
                          void       *udata);
 
-int replace_args_fd     (int         fd,
-                         int        *pargc,
-                         char     ***pargv);
-
-int replace_args_file   (const char *filename,
-                         int        *argc,
-                         char     ***argv);
-
 int replace_args_string (const char *str,
                          int        *argc,
                          char     ***argv);

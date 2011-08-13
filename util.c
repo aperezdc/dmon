@@ -632,56 +632,6 @@ replace_args_cb (int   (*getc)(void*),
 
 
 static int
-fd_getc (void *udata)
-{
-    int fd = *((int*) udata);
-    int rc;
-    char ch;
-
-    do {
-        rc = read (fd, &ch, 1);
-    } while (rc < 0 && (errno == EAGAIN || errno == EINTR));
-
-    return (rc == 0) ? EOF : ch;
-}
-
-
-int
-replace_args_fd (int     fd,
-                 int    *pargc,
-                 char ***pargv)
-{
-    w_assert (fd >= 0);
-    w_assert (pargc);
-    w_assert (pargv);
-
-    return replace_args_cb (fd_getc, pargc, pargv, &fd);
-}
-
-
-int
-replace_args_file (const char *filename,
-                   int        *pargc,
-                   char     ***pargv)
-{
-    int fd, ret;
-
-    w_assert (filename);
-    w_assert (pargc);
-    w_assert (pargv);
-
-    if ((fd = open (filename, O_RDONLY, 0)) < 0)
-        return 1;
-
-    ret = replace_args_fd (fd, pargc, pargv);
-
-    close (fd);
-    return ret;
-}
-
-
-
-static int
 string_getc (void *udata)
 {
     const char **pstr = udata;
