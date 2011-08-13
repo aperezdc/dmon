@@ -41,7 +41,7 @@ endif
 ifneq ($(MULTICALL),0)
 dmon: dlog.o dslog.o drlog.o multicall.o
 dlog drlog dslog: dmon
-	ln -s $< $@
+	ln -sf $< $@
 else
 dslog: dslog.o util.o $(libwheel)
 drlog: drlog.o util.o $(libwheel)
