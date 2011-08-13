@@ -513,10 +513,9 @@ limit_name (int what)
 #endif /* !REPLACE_ARGS_SCHUNK */
 
 int
-replace_args_cb (int   (*getc)(void*),
-                 int    *pargc,
-                 char ***pargv,
-                 void   *udata)
+replace_args_string (const char *str,
+                     int        *pargc,
+                     char     ***pargv)
 {
     int ch;
     char *s = NULL;
@@ -527,14 +526,14 @@ replace_args_cb (int   (*getc)(void*),
     int slen = 0;
     char **argv = w_alloc (char*, maxarg);
 
-    w_assert (getc);
+    w_assert (str);
     w_assert (pargc);
     w_assert (pargv);
 
     /* Copy argv[0] pointer */
     argv[numarg++] = (*pargv)[0];
 
-    while ((ch = (*getc) (udata)) != EOF) {
+    while ((ch = *str++) != '\0') {
         if (!quotes && isspace (ch)) {
             if (!slen) {
                 /*
@@ -628,35 +627,6 @@ replace_args_cb (int   (*getc)(void*),
     *pargv = argv;
 
     return 0;
-}
-
-
-static int
-string_getc (void *udata)
-{
-    const char **pstr = udata;
-    const char *str = *pstr;
-    int ret;
-
-    if (*str == '\0')
-        return EOF;
-
-    ret = *str++;
-    *pstr = str;
-    return ret;
-}
-
-
-int
-replace_args_string (const char *str,
-                     int        *pargc,
-                     char     ***pargv)
-{
-    w_assert (str);
-    w_assert (pargc);
-    w_assert (pargv);
-
-    return replace_args_cb (string_getc, pargc, pargv, &str);
 }
 
 

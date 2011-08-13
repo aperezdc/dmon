@@ -49,12 +49,6 @@ wbool storage_size_to_bytes  (const char         *str,
 w_opt_status_t time_period_option  (const w_opt_context_t *ctx);
 w_opt_status_t storage_size_option (const w_opt_context_t *ctx);
 
-
-int replace_args_cb     (int       (*getc)(void*),
-                         int        *argc,
-                         char     ***argv,
-                         void       *udata);
-
 int replace_args_string (const char *str,
                          int        *argc,
                          char     ***argv);
