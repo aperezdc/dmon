@@ -43,25 +43,23 @@ program name.
 Command line options:
 .INDENT 0.0
 .TP
-.BI \-p \ PRIORITY
-.
+.BI \-p \ PRIORITY, \ \-\-priority \ PRIORITY
 Priority of messages. Refer to \fIsyslog(3)\fP to see possible
 values. Just pass any valid priority without the \fBLOG_\fP
 prefix. Case does not matter.
 .TP
-.BI \-f \ FACILITY
-.
+.BI \-f \ FACILITY, \ \-\-facility \ FACILITY
 Logging facility. Refer to \fIsyslog(3)\fP to see possible values.
 Just pass any valid facility without the \fBLOG_\fP prefix. Case
 does not matter.
 .TP
-.B \-c
-.
+.B \-c,  \-\-console
 If a message cannot be sent to the system logger, print a copy
 of it to the system console.
+.TP
+.B \-h,  \-\-help
+Show a summary of available options.
 .UNINDENT
-.sp
-\-h, \-?        Show a summary of available options.
 .sp
 Albeit it can be used stan\-alone, most of the time you will be running
 \fBdslog\fP under a process control tool like \fIdmon(8)\fP or \fIsupervise(8)\fP.

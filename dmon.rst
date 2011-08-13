@@ -31,27 +31,32 @@ USAGE
 
 Command line options:
 
--C PATH       Read contents from *PATH* as if they were command line options.
+-C PATH, --config PATH
+              Read contents from *PATH* as if they were command line options.
               Those will be parsed after the options picked from the
               ``DMON_OPTIONS`` environment variable and before the options
               given in the command line. If given, this option **must** be
               the first one passed to to ``dmon``.
 
--I PATH       Write status changes of monitored processes to *PATH*, one
+-I PATH, --write-info PATH
+              Write status changes of monitored processes to *PATH*, one
               status message per line. See the `status file format`_ section
               for details on the format.
 
--p PATH       Write the PID of the master ``dmon`` process to a file in the
+-p PATH, --pid-file PATH
+              Write the PID of the master ``dmon`` process to a file in the
               specified *PATH*. You can signal the process to interact with
               it. (See SIGNALS_ below.)
 
--i TIME       When execution of the process ends with a successful (zero)
+-i TIME, --interval TIME
+              When execution of the process ends with a successful (zero)
               exit status, wait for *TIME* seconds before respawning the
               process instead of doing it immediately. This can be used to
               make ``dmon`` behave as el-cheapo `cron(8)` replacement. This
               option cannot be used along with ``-1``.
 
--t TIME       If the process takes longer than *TIME* seconds to complete,
+-t TIME, --timeout TIME
+              If the process takes longer than *TIME* seconds to complete,
               terminate it by sending the *TERM*/*CONT* signal combo. Then
               the process will be respawned again. This is useful to ensure
               that potentially locking processes which should take less than
@@ -59,7 +64,8 @@ Command line options:
               this flag is useful in conjunction with ``-1``, and with
               ``-n`` e.g. when using it in a `cron(8)` job.
 
--L NUMBER     Enable tracking the system's load average, and suspend the
+-L NUMBER, --load-high NUMBER
+              Enable tracking the system's load average, and suspend the
               execution of the command process when the system load goes
               over *NUMBER*. To pause the process, *STOP* signal will be
               sent to it. You may want to use ``-l`` as well to specify
@@ -67,12 +73,14 @@ Command line options:
               when the system load falls below *NUMBER/2* the process will
               be resumed.
 
--l NUMBER     When using ``-L``, the command process execution will be
+-l NUMBER, --load-low NUMBER
+              When using ``-L``, the command process execution will be
               resumed when the system load falls below *NUMBER*, instead of
               using the default behavior of resuming the process when the
               load falls below half the limit specified with ``-L``.
 
--E ENVVAR     Manipulates environment variables. Specifying just a variable
+-E ENVVAR, --environ ENVVAR
+              Manipulates environment variables. Specifying just a variable
               name (e.g. ``-E foo``) as *ENVVAR* will clear it and remove
               the variable from the environment. Adding a value will define
               the variable (e.g. ``-E foo=bar``). This option may be
@@ -80,45 +88,52 @@ Command line options:
               *both* the ``dmon`` and the child process; this is intended
               behaviour.
 
--u UIDGID     Executes the command with the credentials of user *UID*,
+-u UIDGID, --cmd-user UIDGID
+              Executes the command with the credentials of user *UID*,
               and additional group *GID* specified separated with
               semicolons. Both user and group identifiers might be given
               as strings or numerically.
 
--U UIDGID     Executes the **log** command with the credentials of user
+-U UIDGID, --log-user UIDGID
+              Executes the **log** command with the credentials of user
               *UID*, and additional group *GID* specified separated with
               semicolons. Both user and group identifiers might be given
               as strings or numerically.
 
--n            Do not daemonize: ``dmon`` will keep working in foreground,
+-n, --no-daemon
+              Do not daemonize: ``dmon`` will keep working in foreground,
               without detaching and without closing its standard input and
               output streams. This is useful for debugging and, to a limited
               extent, to run interactive programs.
 
--1            Run command only once: if the command exits with a success
+-1, --once    Run command only once: if the command exits with a success
               status (i.e. exit code is zero), then ``dmon`` will exit and
               stop the logging process. If the program dies due to a signal
               or with a non-zero exit status, it is respawned. This option
               tends to be used in conjunction with ``-n``, and cannot be
               used with ``-i``.
 
--e            Redirect both the standard error and standard output streams
+-e, --stderr-redir
+              Redirect both the standard error and standard output streams
               to the log command. If not specified, only the standard output
               is redirected.
 
--s            Forward signals *CONT*, *ALRM*, *QUIT*, *USR1*, *USR2* and
+-s, --cmd-sigs
+              Forward signals *CONT*, *ALRM*, *QUIT*, *USR1*, *USR2* and
               *HUP* to the monitored command when ``dmon`` receives them.
 
--S            Forward signals *CONT*, *ALRM*, *QUIT*, *USR1*, *USR2* and
+-S, --log-sigs
+              Forward signals *CONT*, *ALRM*, *QUIT*, *USR1*, *USR2* and
               *HUP* to the log command when ``dmon`` receives them.
 
--r LIMIT      Set *LIMIT* for process execution. Limits are specified as
+-r LIMIT, --limit LIMIT
+              Set *LIMIT* for process execution. Limits are specified as
               ``name=value`` strings, and multiple limits may be set by
               using ``-r`` multiple times. The available set of limits
               depends on the current operating system, to get a list
               ``-r help`` can be used.
 
--h            Show a summary of available options.
+-h, --help    Show a summary of available options.
 
 Usual log commands include `dlog(8)` and `dslog(8)`, which are part of the
 ``dmon`` suite. Other log commands like `rotlog(8)` or `multilog(8)` may be

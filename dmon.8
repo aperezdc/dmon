@@ -45,36 +45,31 @@ monitored and re\-launched when it dies.
 Command line options:
 .INDENT 0.0
 .TP
-.BI \-C \ PATH
-.
+.BI \-C \ PATH, \ \-\-config \ PATH
 Read contents from \fIPATH\fP as if they were command line options.
 Those will be parsed after the options picked from the
 \fBDMON_OPTIONS\fP environment variable and before the options
 given in the command line. If given, this option \fBmust\fP be
 the first one passed to to \fBdmon\fP.
 .TP
-.BI \-I \ PATH
-.
+.BI \-I \ PATH, \ \-\-write\-info \ PATH
 Write status changes of monitored processes to \fIPATH\fP, one
 status message per line. See the \fI\%status file format\fP section
 for details on the format.
 .TP
-.BI \-p \ PATH
-.
+.BI \-p \ PATH, \ \-\-pid\-file \ PATH
 Write the PID of the master \fBdmon\fP process to a file in the
 specified \fIPATH\fP. You can signal the process to interact with
 it. (See \fI\%SIGNALS\fP below.)
 .TP
-.BI \-i \ TIME
-.
+.BI \-i \ TIME, \ \-\-interval \ TIME
 When execution of the process ends with a successful (zero)
 exit status, wait for \fITIME\fP seconds before respawning the
 process instead of doing it immediately. This can be used to
 make \fBdmon\fP behave as el\-cheapo \fIcron(8)\fP replacement. This
 option cannot be used along with \fB\-1\fP.
 .TP
-.BI \-t \ TIME
-.
+.BI \-t \ TIME, \ \-\-timeout \ TIME
 If the process takes longer than \fITIME\fP seconds to complete,
 terminate it by sending the \fITERM\fP/\fICONT\fP signal combo. Then
 the process will be respawned again. This is useful to ensure
@@ -83,8 +78,7 @@ some known time limit do not hog the computer. Most likely,
 this flag is useful in conjunction with \fB\-1\fP, and with
 \fB\-n\fP e.g. when using it in a \fIcron(8)\fP job.
 .TP
-.BI \-L \ NUMBER
-.
+.BI \-L \ NUMBER, \ \-\-load\-high \ NUMBER
 Enable tracking the system\(aqs load average, and suspend the
 execution of the command process when the system load goes
 over \fINUMBER\fP. To pause the process, \fISTOP\fP signal will be
@@ -93,15 +87,13 @@ under which load value the process is resumed, otherwise
 when the system load falls below \fINUMBER/2\fP the process will
 be resumed.
 .TP
-.BI \-l \ NUMBER
-.
+.BI \-l \ NUMBER, \ \-\-load\-low \ NUMBER
 When using \fB\-L\fP, the command process execution will be
 resumed when the system load falls below \fINUMBER\fP, instead of
 using the default behavior of resuming the process when the
 load falls below half the limit specified with \fB\-L\fP.
 .TP
-.BI \-E \ ENVVAR
-.
+.BI \-E \ ENVVAR, \ \-\-environ \ ENVVAR
 Manipulates environment variables. Specifying just a variable
 name (e.g. \fB\-E foo\fP) as \fIENVVAR\fP will clear it and remove
 the variable from the environment. Adding a value will define
@@ -110,29 +102,25 @@ specified multiple times. Environment variables will affect
 \fIboth\fP the \fBdmon\fP and the child process; this is intended
 behaviour.
 .TP
-.BI \-u \ UIDGID
-.
+.BI \-u \ UIDGID, \ \-\-cmd\-user \ UIDGID
 Executes the command with the credentials of user \fIUID\fP,
 and additional group \fIGID\fP specified separated with
 semicolons. Both user and group identifiers might be given
 as strings or numerically.
 .TP
-.BI \-U \ UIDGID
-.
+.BI \-U \ UIDGID, \ \-\-log\-user \ UIDGID
 Executes the \fBlog\fP command with the credentials of user
 \fIUID\fP, and additional group \fIGID\fP specified separated with
 semicolons. Both user and group identifiers might be given
 as strings or numerically.
 .TP
-.B \-n
-.
+.B \-n,  \-\-no\-daemon
 Do not daemonize: \fBdmon\fP will keep working in foreground,
 without detaching and without closing its standard input and
 output streams. This is useful for debugging and, to a limited
 extent, to run interactive programs.
 .TP
-.B \-1
-.
+.B \-1,  \-\-once
 Run command only once: if the command exits with a success
 status (i.e. exit code is zero), then \fBdmon\fP will exit and
 stop the logging process. If the program dies due to a signal
@@ -140,32 +128,27 @@ or with a non\-zero exit status, it is respawned. This option
 tends to be used in conjunction with \fB\-n\fP, and cannot be
 used with \fB\-i\fP.
 .TP
-.B \-e
-.
+.B \-e,  \-\-stderr\-redir
 Redirect both the standard error and standard output streams
 to the log command. If not specified, only the standard output
 is redirected.
 .TP
-.B \-s
-.
+.B \-s,  \-\-cmd\-sigs
 Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 \fIHUP\fP to the monitored command when \fBdmon\fP receives them.
 .TP
-.B \-S
-.
+.B \-S,  \-\-log\-sigs
 Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 \fIHUP\fP to the log command when \fBdmon\fP receives them.
 .TP
-.BI \-r \ LIMIT
-.
+.BI \-r \ LIMIT, \ \-\-limit \ LIMIT
 Set \fILIMIT\fP for process execution. Limits are specified as
 \fBname=value\fP strings, and multiple limits may be set by
 using \fB\-r\fP multiple times. The available set of limits
 depends on the current operating system, to get a list
 \fB\-r help\fP can be used.
 .TP
-.B \-h
-.
+.B \-h,  \-\-help
 Show a summary of available options.
 .UNINDENT
 .sp
@@ -178,16 +161,12 @@ As a convenience, time values passed to \fB\-i\fP, \fB\-t\fP and values of limit
 specified with \fB\-r\fP may be given with the following suffixes:
 .INDENT 0.0
 .IP \(bu 2
-.
 \fBm\fP: Minutes, e.g. \fB30m\fP means "30 minutes".
 .IP \(bu 2
-.
 \fBh\fP: Hours, e.g. \fB4h\fP means "4 hours".
 .IP \(bu 2
-.
 \fBd\fP: Days, e.g. \fB3d\fP means "3 days".
 .IP \(bu 2
-.
 \fBw\fP: Weeks, e.g. \fB1w\fP means "1 week".
 .UNINDENT
 .sp
@@ -195,13 +174,10 @@ For size values (bytes) the strings passed to \fB\-r\fP as limits may have the
 following suffixes:
 .INDENT 0.0
 .IP \(bu 2
-.
 \fBk\fP: Kilobytes.
 .IP \(bu 2
-.
 \fBm\fP: Megabytes.
 .IP \(bu 2
-.
 \fBg\fP: Gigabytes.
 .UNINDENT
 .SH SIGNALS

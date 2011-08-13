@@ -43,27 +43,32 @@ USAGE
 
 Command line options:
 
--m NUMBER   Maximum amount of maintained log files. When ``drlog`` sees
+-m NUMBER, --max-files NUMBER
+            Maximum amount of maintained log files. When ``drlog`` sees
             more than *NUMBER* log files in the log *directory* it will
             remove the oldest log file.
 
--T TIME     Maximum number of time to use a log file. Once ``drlog`` spends
+-T TIME, --max-time TIME
+            Maximum number of time to use a log file. Once ``drlog`` spends
             more than *TIME* using a log file it will start writing to a new
             one. Suffixes *m* (minutes), *h* (hours), *d* (days), *w* (weeks),
             *M* (months) and *y* (years) may be used after the number. If no
             suffix is given, it is assummed that *TIME* is in seconds.
 
--s SIZE     Maximum size of each log file. When a log file grows over
+-s SIZE, --max-size SIZE
+            Maximum size of each log file. When a log file grows over
             *SIZE* then ``drlog`` will rotate logs and open a new one.
             Suffixes *k* (kilobytes), *m* (megabytes) and *g* (gigabytes)
             may be used after the number. If no suffix is given, it is
             assumed that ``SIZE`` is in bytes.
 
--b          Buffered operation. If enabled, calls to `fsync(2)` will be
+-b, --buffered
+            Buffered operation. If enabled, calls to `fsync(2)` will be
             avoided. This improves performance, but may cause messages to
             be lost.
 
--t          Prepend a timestamp to each line. The timestamp format
+-t, --timestamp
+            Prepend a timestamp to each line. The timestamp format
             is ``YYYY-mm-dd/HH:MM:SS``, following that of rotated log files.
             It is easy to parse and sort. And human-readable, too.
 

@@ -44,20 +44,19 @@ output. The latter may be useful to add timestamps in shell pipelines.
 Command line options:
 .INDENT 0.0
 .TP
-.B \-b
-.
+.B \-b,  \-\-buffered
 Buffered operation. If enabled, calls to \fIfsync(2)\fP will be
 avoided. This improves performance, but may cause messages to
 be lost.
 .TP
-.B \-c
-.
-Do not prepend a timestamp to each saved line. By default
-timestamps are enabled. Timestamp format is
+.B \-t,  \-\-timestamp
+Prepend a timestamp to each saved line. By default
+timestamps are disabled. Timestamp format is
 \fBYYYY\-mm\-dd/HH:MM:SS\fP.
+.TP
+.B \-h,  \-\-help
+Show a summary of available options.
 .UNINDENT
-.sp
-\-h, \-?        Show a summary of available options.
 .sp
 Albeit it can be used stan\-alone, most of the time you will be running
 \fBdlog\fP under a process control tool like \fIdmon(8)\fP or \fIsupervise(8)\fP.

@@ -30,15 +30,17 @@ USAGE
 
 Command line options:
 
--b            Buffered operation. If enabled, calls to `fsync(2)` will be
+-b, --buffered
+              Buffered operation. If enabled, calls to `fsync(2)` will be
               avoided. This improves performance, but may cause messages to
               be lost.
 
--c            Do not prepend a timestamp to each saved line. By default
-              timestamps are enabled. Timestamp format is
+-t, --timestamp
+              Prepend a timestamp to each saved line. By default
+              timestamps are disabled. Timestamp format is
               ``YYYY-mm-dd/HH:MM:SS``.
 
--h, -?        Show a summary of available options.
+-h, --help    Show a summary of available options.
 
 Albeit it can be used stan-alone, most of the time you will be running
 ``dlog`` under a process control tool like `dmon(8)` or `supervise(8)`.
