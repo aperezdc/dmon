@@ -73,13 +73,15 @@ libnofork.so: nofork.o -lc
 	$(LD) $(LDFLAGS) -shared -o $@ $^
 endif
 
+DINIT_SRCS := dinit.c $(wildcard dinit-*.c)
+DINIT_OBJS := $(patsubst %.c,%.o,$(DINIT_SRCS))
 
 ifneq ($(MULTICALL),0)
-dmon: dlog.o dslog.o drlog.o dinit.o multicall.o
+dmon: dlog.o dslog.o drlog.o  multicall.o $(DINIT_OBJS)
 dlog drlog dslog dinit: dmon
 	$(LN) -sf $< $@
 else
-dinit: dinit.o $(libwheel)
+dinit: $(DINIT_OBJS) $(libwheel)
 dslog: dslog.o util.o $(libwheel)
 drlog: drlog.o util.o $(libwheel)
 dlog: dlog.o util.o $(libwheel)
@@ -100,8 +102,9 @@ endif
 
 clean:
 	$(cmd_print) CLEAN
-	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o drlog.o dinit.o
-	$(RM) dmon dlog dslog drlog
+	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o drlog.o
+	$(RM) $(DINIT_OBJS)
+	$(RM) dmon dlog dslog drlog dinit
 ifneq ($(LIBNOFORK),0)
 	$(RM) libnofork.so nofork.o
 endif

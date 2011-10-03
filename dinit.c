@@ -6,6 +6,7 @@
  */
 
 #include "wheel.h"
+#include "dinit.h"
 #include <stdlib.h>
 
 #ifdef NO_MULTICALL
@@ -16,6 +17,7 @@
 int
 dinit_main (int argc, char **argv)
 {
+    dinit_do_mounts ();
     exit (EXIT_SUCCESS);
 }
 

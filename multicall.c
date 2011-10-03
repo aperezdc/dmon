@@ -24,6 +24,7 @@ extern int dmon_main  (int, char**);
 extern int dlog_main  (int, char**);
 extern int dslog_main (int, char**);
 extern int drlog_main (int, char**);
+extern int dinit_main (int, char**);
 
 
 APPLET_LIST_BEGIN
@@ -31,6 +32,7 @@ APPLET_LIST_BEGIN
     APPLET (dlog)
     APPLET (dslog)
     APPLET (drlog)
+    APPLET (dinit)
 APPLET_LIST_END
 
 
