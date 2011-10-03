@@ -18,6 +18,8 @@
 #include "wheel/wheel.h"
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -31,6 +33,36 @@
 #include <time.h>
 #include <grp.h>
 #include <pwd.h>
+
+
+wbool
+mkdir_p (const char *path, mode_t mode)
+{
+    struct stat sb;
+    const char *sep;
+    w_assert (path);
+
+    /*
+     * Node already exists in filesystem: if it is actually a
+     * directory, just return, otherwise signal an error.
+     */
+    if (stat (path, &sb) == 0)
+        return S_ISDIR (sb.st_mode);
+
+    /*
+     * Find dirname, create parents first, and then the current
+     * component of the path.
+     */
+    if ((sep = strrchr (path, '/')) != NULL) {
+        char *dirname = w_str_dupl (path, sep - path);
+        wbool ret = mkdir_p (dirname, mode);
+        w_free (dirname);
+        if (!ret)
+            return W_NO;
+    }
+
+    return mkdir (path, mode) == 0;
+}
 
 
 void
