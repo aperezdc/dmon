@@ -1,0 +1,3 @@
+[submodule "wheel"]
+	path = wheel
+	url = git://gitorious.org/wheel/wheel.git
