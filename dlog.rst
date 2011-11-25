@@ -30,6 +30,11 @@ USAGE
 
 Command line options:
 
+-p, --prefix TEXT
+              Insert the given text as prefix for each logged message. If
+              adding timestamps is enabled, the text is inserted *after*
+              the timestamp, but still before the logged text.
+
 -b, --buffered
               Buffered operation. If enabled, calls to `fsync(2)` will be
               avoided. This improves performance, but may cause messages to

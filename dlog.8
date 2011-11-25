@@ -44,6 +44,11 @@ output. The latter may be useful to add timestamps in shell pipelines.
 Command line options:
 .INDENT 0.0
 .TP
+.BI \-p,  \-\-prefix \ TEXT
+Insert the given text as prefix for each logged message. If
+adding timestamps is enabled, the text is inserted \fIafter\fP
+the timestamp, but still before the logged text.
+.TP
 .B \-b,  \-\-buffered
 Buffered operation. If enabled, calls to \fIfsync(2)\fP will be
 avoided. This improves performance, but may cause messages to

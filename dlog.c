@@ -30,10 +30,14 @@
 
 static wbool   timestamp = W_NO;
 static wbool   buffered  = W_NO;
+static char   *prefix    = NULL;
 static w_io_t *log_io    = NULL;
 
 
 static const w_opt_t dlog_options[] = {
+    { 1, 'p', "prefix", W_OPT_STRING, &prefix,
+        "Insert the given prefix string between timestamps and logged text." },
+
     { 0, 'b', "buffered", W_OPT_BOOL, &buffered,
         "Buffered operation, do not use flush to disk after each line." },
 
@@ -121,7 +125,12 @@ dlog_main (int argc, char **argv)
                     if (!log_io)
                         w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
                 }
-                w_io_format (log_io, "$s $B\n", timebuf, &linebuf);
+                if (prefix) {
+                    w_io_format (log_io, "$s $s $B\n", timebuf, prefix, &linebuf);
+                }
+                else {
+                    w_io_format (log_io, "$s $B\n", timebuf, &linebuf);
+                }
             }
             else {
                 if (!log_io) {
@@ -131,7 +140,12 @@ dlog_main (int argc, char **argv)
                     if (!log_io)
                         w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
                 }
-                w_io_format (log_io, "$B\n", &linebuf);
+                if (prefix) {
+                    w_io_format (log_io, "$s $B\n", prefix, &linebuf);
+                }
+                else {
+                    w_io_format (log_io, "$B\n", &linebuf);
+                }
             }
 
             if (!buffered) {
