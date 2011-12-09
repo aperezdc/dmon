@@ -62,6 +62,10 @@ Command line options:
             may be used after the number. If no suffix is given, it is
             assumed that ``SIZE`` is in bytes.
 
+-i NUMBER, --input-fd NUMBER
+            Use file descriptor ``NUMBER`` to read input. By default the
+            standard input descriptor (number ``0``) is used.
+
 -b, --buffered
             Buffered operation. If enabled, calls to `fsync(2)` will be
             avoided. This improves performance, but may cause messages to

@@ -53,6 +53,10 @@ Logging facility. Refer to \fIsyslog(3)\fP to see possible values.
 Just pass any valid facility without the \fBLOG_\fP prefix. Case
 does not matter.
 .TP
+.BI \-i \ NUMBER, \ \-\-input\-fd \ NUMBER
+Use file descriptor \fBNUMBER\fP to read input. By default the
+standard input descriptor (number \fB0\fP) is used.
+.TP
 .B \-c,  \-\-console
 If a message cannot be sent to the system logger, print a copy
 of it to the system console.

@@ -39,6 +39,10 @@ Command line options:
               Just pass any valid facility without the ``LOG_`` prefix. Case
               does not matter.
 
+-i NUMBER, --input-fd NUMBER
+              Use file descriptor ``NUMBER`` to read input. By default the
+              standard input descriptor (number ``0``) is used.
+
 -c, --console
               If a message cannot be sent to the system logger, print a copy
               of it to the system console.

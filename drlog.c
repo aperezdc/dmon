@@ -69,6 +69,7 @@
 
 static char              *directory  = NULL;
 static w_io_t            *out_io     = NULL;
+static int                in_fd      = -1;
 static unsigned           maxfiles   = LOGFILE_DEFMAX;
 static unsigned long long maxtime    = LOGFILE_DEFTIME;
 static unsigned long long maxsize    = LOGFILE_DEFSIZE;
@@ -357,6 +358,9 @@ static const w_opt_t drlog_options[] = {
     { 1, 's', "max-size", storage_size_option, &maxsize,
         "Maximum size of each log file (suffixes: kmg)." },
 
+    { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
+        "File descriptor to read input from (default: stdin)." },
+
     { 1, 'b', "buffered", W_OPT_BOOL, &buffered,
         "Buffered operation, do not flush to disk after each line." },
 
@@ -370,6 +374,7 @@ static const w_opt_t drlog_options[] = {
 int drlog_main (int argc, char **argv)
 {
     struct sigaction sa;
+    w_io_t *in_io = NULL;
     char *env_opts = NULL;
     unsigned consumed;
 
@@ -382,6 +387,10 @@ int drlog_main (int argc, char **argv)
         w_die ("$s: No log directory path was specified.\n", argv[0]);
 
     directory = argv[consumed];
+
+    in_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
+    if (!in_io)
+        w_die ("$s: Cannot open input: $E.\n", argv[0]);
 
     sigemptyset (&sa.sa_mask);
     sa.sa_flags = 0;
@@ -396,7 +405,7 @@ int drlog_main (int argc, char **argv)
     safe_sigaction ("TERM", SIGTERM, &sa);
 
     for (;;) {
-        ssize_t ret = w_io_read_line (w_stdin, &line, &overflow, 0);
+        ssize_t ret = w_io_read_line (in_io, &line, &overflow, 0);
 
         if (ret == W_IO_ERR) {
             w_io_format (w_stderr, "Unable to read from standard input: $E.\n");

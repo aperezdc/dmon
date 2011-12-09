@@ -153,10 +153,12 @@ int
 dslog_main (int argc, char **argv)
 {
     int flags = 0;
+    int in_fd = -1;
     int facility = name_to_facility (DEFAULT_FACILITY);
     int priority = name_to_priority (DEFAULT_PRIORITY);
     wbool console = W_NO;
     char *env_opts = NULL;
+    w_io_t *log_io = NULL;
     w_buf_t linebuf = W_BUF;
     w_buf_t overflow = W_BUF;
     unsigned consumed;
@@ -166,6 +168,8 @@ dslog_main (int argc, char **argv)
             "Log facility (default: daemon)." },
         { 1, 'p', "priority", _priority_option, &priority,
             "Log priority (default: warning)." },
+        { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
+            "File descriptor to read input from (default: stdin)." },
         { 0, 'c', "console", W_OPT_BOOL, &console,
             "Log to console if sending messages to logger fails." },
         W_OPT_END
@@ -180,6 +184,10 @@ dslog_main (int argc, char **argv)
     if (console)
         flags |= LOG_CONS;
 
+    log_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
+    if (!log_io)
+        w_die ("$s: cannot open input: $E\n", argv[0]);
+
     /* We will be no longer using standard output. */
     w_io_close (w_stdout);
 
@@ -189,7 +197,7 @@ dslog_main (int argc, char **argv)
     openlog (argv[consumed], flags, facility);
 
     while (running) {
-        ssize_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
+        ssize_t ret = w_io_read_line (log_io, &linebuf, &overflow, 0);
 
         if (ret == W_IO_ERR) {
             w_io_format (w_stderr, "$s: error reading input: $E\n", argv[0]);

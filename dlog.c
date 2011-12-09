@@ -32,11 +32,16 @@ static wbool   timestamp = W_NO;
 static wbool   buffered  = W_NO;
 static char   *prefix    = NULL;
 static w_io_t *log_io    = NULL;
+static w_io_t *in_io     = NULL;
+static int     in_fd     = -1;
 
 
 static const w_opt_t dlog_options[] = {
     { 1, 'p', "prefix", W_OPT_STRING, &prefix,
         "Insert the given prefix string between timestamps and logged text." },
+
+    { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
+        "File descriptor to read input from (default: stdin)." },
 
     { 0, 'b', "buffered", W_OPT_BOOL, &buffered,
         "Buffered operation, do not use flush to disk after each line." },
@@ -89,6 +94,11 @@ dlog_main (int argc, char **argv)
     }
     else {
         w_io_close (w_stdout);
+    }
+
+    in_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
+    if (in_io == NULL) {
+        w_die ("$s: cannot open input: $E\n", argv[0]);
     }
 
     sigemptyset (&sa.sa_mask);

@@ -30,10 +30,14 @@ USAGE
 
 Command line options:
 
--p, --prefix TEXT
+-p TEXT, --prefix TEXT
               Insert the given text as prefix for each logged message. If
               adding timestamps is enabled, the text is inserted *after*
               the timestamp, but still before the logged text.
+
+-i NUMBER, --input-fd NUMBER
+              Use file descriptor ``NUMBER`` to read input. By default the
+              standard input descriptor (number ``0``) is used.
 
 -b, --buffered
               Buffered operation. If enabled, calls to `fsync(2)` will be

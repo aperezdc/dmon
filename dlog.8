@@ -44,10 +44,14 @@ output. The latter may be useful to add timestamps in shell pipelines.
 Command line options:
 .INDENT 0.0
 .TP
-.BI \-p,  \-\-prefix \ TEXT
+.BI \-p \ TEXT, \ \-\-prefix \ TEXT
 Insert the given text as prefix for each logged message. If
 adding timestamps is enabled, the text is inserted \fIafter\fP
 the timestamp, but still before the logged text.
+.TP
+.BI \-i \ NUMBER, \ \-\-input\-fd \ NUMBER
+Use file descriptor \fBNUMBER\fP to read input. By default the
+standard input descriptor (number \fB0\fP) is used.
 .TP
 .B \-b,  \-\-buffered
 Buffered operation. If enabled, calls to \fIfsync(2)\fP will be
