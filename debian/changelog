@@ -1,3 +1,13 @@
+dmon (0.4.2) stable; urgency=low
+
+  * "drlog", "dslog" and "dlog" can now read data from arbitrary file
+    descriptors and add a prefix text to log lines. They also handle
+    certain signals gracefully now.
+  * Manual pages now also document long versions of the command line
+    options.
+
+ -- Adrian Perez <aperez@igalia.com>  Sat, 07 Jan 2012 20:08:00 +0200
+
 dmon (0.4.1) stable; urgency=low
 
   * Improved user-visible error output, especially in "drlog".
