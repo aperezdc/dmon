@@ -255,7 +255,7 @@ become_daemon (void)
 }
 
 
-wbool
+w_bool_t
 time_period_to_seconds (const char *str, unsigned long long *result)
 {
     unsigned long long val = 0;
@@ -302,7 +302,7 @@ time_period_option (const w_opt_context_t *ctx)
 }
 
 
-wbool
+w_bool_t
 storage_size_to_bytes (const char *str, unsigned long long *result)
 {
     unsigned long long val = 0;
@@ -347,11 +347,11 @@ storage_size_option (const w_opt_context_t *ctx)
 }
 
 
-static wbool
+static w_bool_t
 _parse_limit_time (const char *sval, long *rval)
 {
     unsigned long long val;
-    wbool failed;
+    w_bool_t failed;
 
     w_assert (sval != NULL);
     w_assert (rval != NULL);
@@ -362,7 +362,7 @@ _parse_limit_time (const char *sval, long *rval)
 }
 
 
-static wbool
+static w_bool_t
 _parse_limit_number (const char *sval, long *rval)
 {
     w_assert (sval != NULL);
@@ -371,11 +371,11 @@ _parse_limit_number (const char *sval, long *rval)
 }
 
 
-static wbool
+static w_bool_t
 _parse_limit_bytes (const char *sval, long *rval)
 {
     unsigned long long val;
-    wbool failed;
+    w_bool_t failed;
 
     w_assert (sval != NULL);
     w_assert (rval != NULL);
@@ -389,7 +389,7 @@ _parse_limit_bytes (const char *sval, long *rval)
 static const struct {
     const char *name;
     int         what;
-    wbool     (*parse)(const char*, long*);
+    w_bool_t  (*parse)(const char*, long*);
     const char *desc;
 } rlimit_specs[] = {
 #ifdef RLIMIT_AS

@@ -108,7 +108,7 @@ name_to_priority (const char *name)
 }
 
 
-static wbool running = W_YES;
+static w_bool_t running = W_YES;
 
 
 static w_opt_status_t
@@ -156,7 +156,7 @@ dslog_main (int argc, char **argv)
     int in_fd = -1;
     int facility = name_to_facility (DEFAULT_FACILITY);
     int priority = name_to_priority (DEFAULT_PRIORITY);
-    wbool console = W_NO;
+    w_bool_t console = W_NO;
     char *env_opts = NULL;
     w_io_t *log_io = NULL;
     w_buf_t linebuf = W_BUF;
@@ -204,10 +204,10 @@ dslog_main (int argc, char **argv)
             exit (111);
         }
 
-        if (w_buf_length (&linebuf))
+        if (w_buf_size (&linebuf))
             syslog (priority, "%s", w_buf_str (&linebuf));
 
-        w_buf_reset (&linebuf);
+        w_buf_clear (&linebuf);
 
         if (ret == W_IO_EOF) /* EOF reached */
             break;

@@ -28,12 +28,12 @@
 #endif /* !TSTAMP_LEN */
 
 
-static wbool   timestamp = W_NO;
-static wbool   buffered  = W_NO;
-static char   *prefix    = NULL;
-static w_io_t *log_io    = NULL;
-static w_io_t *in_io     = NULL;
-static int     in_fd     = -1;
+static w_bool_t timestamp = W_NO;
+static w_bool_t buffered  = W_NO;
+static char    *prefix    = NULL;
+static w_io_t  *log_io    = NULL;
+static w_io_t  *in_io     = NULL;
+static int      in_fd     = -1;
 
 
 static const w_opt_t dlog_options[] = {
@@ -119,7 +119,7 @@ dlog_main (int argc, char **argv)
         if (ret == W_IO_ERR)
             w_die ("$s: error reading input: $E\n", argv[0]);
 
-        if (w_buf_length (&linebuf)) {
+        if (w_buf_size (&linebuf)) {
             if (timestamp) {
                 time_t now = time(NULL);
                 char timebuf[TSTAMP_LEN+1];
@@ -163,7 +163,7 @@ dlog_main (int argc, char **argv)
             }
         }
 
-        w_buf_reset (&linebuf);
+        w_buf_clear (&linebuf);
 
         if (ret == W_IO_EOF) /* EOF reached */
             break;

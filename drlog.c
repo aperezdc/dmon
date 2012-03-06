@@ -75,8 +75,8 @@ static unsigned long long maxtime    = LOGFILE_DEFTIME;
 static unsigned long long maxsize    = LOGFILE_DEFSIZE;
 static unsigned long long curtime    = 0;
 static unsigned long long cursize    = 0;
-static wbool              timestamp  = W_NO;
-static wbool              buffered   = W_NO;
+static w_bool_t           timestamp  = W_NO;
+static w_bool_t           buffered   = W_NO;
 static int                returncode = 0;
 static w_buf_t            line       = W_BUF;
 static w_buf_t            overflow   = W_BUF;
@@ -213,11 +213,11 @@ recreate_ts:
                 (sscanf (w_buf_str (&tsb), "%llu", &ts_) <= 0))
             {
                 w_obj_unref (ts_io);
-                w_buf_free (&tsb);
+                w_buf_clear (&tsb);
                 goto recreate_ts;
             }
             ts = ts_;
-            w_buf_free (&tsb);
+            w_buf_clear (&tsb);
         }
         w_obj_unref (ts_io);
         curtime = ts;
@@ -267,8 +267,8 @@ recreate_ts:
         }
     }
 
-    if (w_buf_length (&line) == 0) {
-        w_buf_free (&line);
+    if (w_buf_empty (&line)) {
+        w_buf_clear (&line);
         return;
     }
 
@@ -284,21 +284,21 @@ recreate_ts:
 
     w_buf_append_buf (&out, &line);
     w_buf_append_char (&out, '\n');
-    w_buf_free (&line);
+    w_buf_clear (&line);
 
     for (;;) {
-        if (w_io_write (out_io, out.buf, w_buf_length (&out)) >= 0) {
+        if (w_io_write (out_io, w_buf_data (&out), w_buf_size (&out)) >= 0) {
             if (!buffered) {
                 w_io_flush (out_io);
             }
-            cursize += w_buf_length (&out);
+            cursize += w_buf_size (&out);
             break;
         }
 
         w_io_format (w_stderr, "Cannot write to logfile: $E.\n");
         safe_sleep (5);
     }
-    w_buf_free (&out);
+    w_buf_clear (&out);
 }
 
 

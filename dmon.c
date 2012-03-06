@@ -32,15 +32,15 @@ static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
 static float         load_high    = 0.0f;
-static wbool         success_exit = W_NO;
-static wbool         log_signals  = W_NO;
-static wbool         cmd_signals  = W_NO;
+static w_bool_t      success_exit = W_NO;
+static w_bool_t      log_signals  = W_NO;
+static w_bool_t      cmd_signals  = W_NO;
 static unsigned long cmd_timeout  = 0;
 static unsigned long cmd_interval = 0;
 static int           check_child  = 0;
 static int           running      = 1;
 static int           paused       = 0;
-static wbool         nodaemon     = W_NO;
+static w_bool_t      nodaemon     = W_NO;
 static char         *status_path  = NULL;
 static char         *pidfile_path = NULL;
 
@@ -406,7 +406,7 @@ dmon_main (int argc, char **argv)
 {
 	w_io_t *pidfile_io = NULL;
 	char *opts_env = NULL;
-	wbool success;
+	w_bool_t success;
 	unsigned i, consumed;
 
     /* Check for "-C configfile" given in the command line. */
