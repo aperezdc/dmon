@@ -36,11 +36,13 @@ static const struct {
     { "/proc/self/fd/0", "/dev/stdin"  },
     { "/proc/self/fd/1", "/dev/stdout" },
     { "/proc/self/fd/2", "/dev/stderr" },
+    { "/run",            "/var/run"    },
 };
 
 
 static const char *s_mkdirs[] = {
     "/tmp",
+    "/var",       /* Ensure that /var exists so /var/run can be created */
     "/run/dinit", /* This is used by dinit itself, has to exist */
 };
 
