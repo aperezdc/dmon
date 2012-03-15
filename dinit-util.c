@@ -41,7 +41,7 @@ static const struct {
 int
 dinit_do_mounts (void)
 {
-    static wbool done = W_NO;
+    static w_bool_t done = W_NO;
     unsigned i;
 
     if (done) return 0;

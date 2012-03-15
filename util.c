@@ -35,7 +35,7 @@
 #include <pwd.h>
 
 
-wbool
+w_bool_t
 mkdir_p (const char *path, mode_t mode)
 {
     struct stat sb;
@@ -55,7 +55,7 @@ mkdir_p (const char *path, mode_t mode)
      */
     if ((sep = strrchr (path, '/')) != NULL) {
         char *dirname = w_str_dupl (path, sep - path);
-        wbool ret = mkdir_p (dirname, mode);
+        w_bool_t ret = mkdir_p (dirname, mode);
         w_free (dirname);
         if (!ret)
             return W_NO;
