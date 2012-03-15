@@ -10,6 +10,9 @@
 
 /* dinit-util.c */
 int dinit_do_mounts (void);
+void dinit_poweroff (void);
+void dinit_reboot (void);
+void dinit_halt (void);
 
 #endif /* !__dinit_h__ */
 

@@ -81,3 +81,49 @@ dinit_do_mounts (void)
     return 0;
 }
 
+
+#include <sys/reboot.h>
+
+#if defined(__linux)
+# define REBOOT      reboot
+# define D_HALT      RB_HALT_SYSTEM
+# define D_POWEROFF  RB_POWER_OFF
+# define D_REBOOT    RB_AUTOBOOT
+#elif defined(__FreeBSD__)
+# define REBOOT      reboot
+# define D_HALT      RB_HALT
+# define D_POWEROFF  RB_POWEROFF
+# define D_REBOOT    RB_AUTOBOOT
+#elif defined(__NetBSD__)
+# define REBOOT(x)   reboot (x, NULL)
+# define D_HALT      RB_HALT
+# define D_REBOOT    RB_AUTOBOOT
+# define D_POWEROFF (RB_HALT | RB_POWERDOWN)
+#elif defined(__OpenBSD__)
+# define REBOOT      reboot
+# define D_HALT      RB_HALT
+# define D_REBOOT    RB_AUTOBOOT
+# define D_POWEROFF (RB_HALT | RB_POWERDOWN)
+#else
+# define REBOOT(x)  ((void)0)
+#endif
+
+
+void
+dinit_halt (void)
+{
+    REBOOT (D_HALT);
+}
+
+void
+dinit_poweroff (void)
+{
+    REBOOT (D_POWEROFF);
+}
+
+void
+dinit_reboot (void)
+{
+    REBOOT (D_REBOOT);
+}
+
