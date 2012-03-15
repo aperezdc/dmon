@@ -39,6 +39,12 @@ static const struct {
 };
 
 
+static const char *s_mkdirs[] = {
+    "/tmp",
+    "/run/dinit", /* This is used by dinit itself, has to exist */
+};
+
+
 int
 dinit_do_mounts (void)
 {
@@ -57,6 +63,11 @@ dinit_do_mounts (void)
         {
             return errno;
         }
+    }
+
+    for (i = 0; i < w_lengthof (s_mkdirs); i++) {
+        if (!mkdir_p (s_mkdirs[i], 0777))
+            return errno;
     }
 
     for (i = 0; i < w_lengthof (s_symlinks); i++) {
