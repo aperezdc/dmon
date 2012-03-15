@@ -21,6 +21,7 @@ static const struct {
     { "proc",     "/proc",    NULL,        MS_NOSUID | MS_NOEXEC | MS_NODEV },
     { "sysfs",    "/sys",     NULL,        MS_NOSUID | MS_NOEXEC | MS_NODEV },
     { "devtmpfs", "/dev",     "mode=755",  MS_NOSUID                        },
+    { "tmpfs",    "/run",     "mode=755",  MS_NOSUID | MS_NOEXEC            },
     { "tmpfs",    "/dev/shm", "mode=1777", MS_NOSUID | MS_NODEV             },
     { "devpts",   "/dev/pts", "mode=620",  MS_NOSUID | MS_NOEXEC            },
 };
