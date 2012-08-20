@@ -255,98 +255,6 @@ become_daemon (void)
 }
 
 
-w_bool_t
-time_period_to_seconds (const char *str, unsigned long long *result)
-{
-    unsigned long long val = 0;
-    char *endpos;
-
-    w_assert (str);
-    w_assert (result);
-
-    val = strtoull (str, &endpos, 0);
-
-    if (val == ULLONG_MAX && errno == ERANGE)
-        return W_YES;
-
-    if (!endpos || *endpos == '\0')
-        goto save_and_exit;
-
-    switch (*endpos) {
-        case 'y': val *= 60 * 60 * 24 * 365; break; /* years   */
-        case 'M': val *= 60 * 60 * 24 * 30;  break; /* months  */
-        case 'w': val *= 60 * 60 * 24 * 7;   break; /* weeks   */
-        case 'd': val *= 60 * 60 * 24;       break; /* days    */
-        case 'h': val *= 60 * 60;            break; /* hours   */
-        case 'm': val *= 60;                 break; /* minutes */
-        default : return W_YES;
-    }
-
-save_and_exit:
-    *result = val;
-    return W_NO;
-}
-
-
-w_opt_status_t
-time_period_option (const w_opt_context_t *ctx)
-{
-    w_assert (ctx);
-    w_assert (ctx->option);
-    w_assert (ctx->option->extra);
-    w_assert (ctx->option->narg == 1);
-
-    return (time_period_to_seconds (ctx->argument[0], ctx->option->extra))
-            ? W_OPT_BAD_ARG
-            : W_OPT_OK;
-}
-
-
-w_bool_t
-storage_size_to_bytes (const char *str, unsigned long long *result)
-{
-    unsigned long long val = 0;
-    char *endpos;
-
-    w_assert (str);
-    w_assert (result);
-
-    val = strtoull (str, &endpos, 0);
-
-    if (val == ULLONG_MAX && errno == ERANGE)
-        return W_YES;
-
-    if (!endpos || *endpos == '\0')
-        goto save_and_exit;
-
-    switch (*endpos) {
-        case  'g': case 'G': val *= 1024 * 1024 * 1024; break; /* gigabytes */
-        case  'm': case 'M': val *= 1024 * 1024;        break; /* megabytes */
-        case  'k': case 'K': val *= 1024;               break; /* kilobytes */
-        case '\0': break;
-        default  : return W_YES;
-    }
-
-save_and_exit:
-    *result = val;
-    return W_NO;
-}
-
-
-w_opt_status_t
-storage_size_option (const w_opt_context_t *ctx)
-{
-    w_assert (ctx);
-    w_assert (ctx->option);
-    w_assert (ctx->option->extra);
-    w_assert (ctx->option->narg == 1);
-
-    return (storage_size_to_bytes (ctx->argument[0], ctx->option->extra))
-            ? W_OPT_BAD_ARG
-            : W_OPT_OK;
-}
-
-
 static w_bool_t
 _parse_limit_time (const char *sval, long *rval)
 {
@@ -356,7 +264,7 @@ _parse_limit_time (const char *sval, long *rval)
     w_assert (sval != NULL);
     w_assert (rval != NULL);
 
-    failed = time_period_to_seconds (sval, &val);
+    failed = w_str_time_period (sval, &val);
     *rval = val;
     return failed || (val > LONG_MAX);
 }
@@ -380,7 +288,7 @@ _parse_limit_bytes (const char *sval, long *rval)
     w_assert (sval != NULL);
     w_assert (rval != NULL);
 
-    failed = storage_size_to_bytes (sval, &val);
+    failed = w_str_size_bytes (sval, &val);
     *rval = val;
     return failed || (val > LONG_MAX);
 }

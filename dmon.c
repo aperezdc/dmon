@@ -380,11 +380,11 @@ static const w_opt_t dmon_options[] = {
         "Exit if command exits with a zero return code. The process "
         "will be still respawned when it exits with a non-zero code." },
 
-    { 1, 't', "timeout", time_period_option, &cmd_timeout,
+    { 1, 't', "timeout", W_OPT_TIME_PERIOD, &cmd_timeout,
         "If command execution takes longer than the time specified "
         "the process will be killed and started again." },
 
-    { 1, 'i', "interval", time_period_option, &cmd_interval,
+    { 1, 'i', "interval", W_OPT_TIME_PERIOD, &cmd_interval,
         "Time to wait between successful command executions. When "
         "exit code is non-zero, the interval is ignored and the "
         "command is executed again as soon as possible." },

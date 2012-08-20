@@ -352,10 +352,10 @@ static const w_opt_t drlog_options[] = {
     { 1, 'm', "max-files", W_OPT_UINT, &maxfiles,
         "Maximum number of log files to keep." },
 
-    { 1, 'T', "max-time", time_period_option, &maxtime,
+    { 1, 'T', "max-time", W_OPT_TIME_PERIOD, &maxtime,
         "Maximum time to use a log file (suffixes: mhdwMy)." },
 
-    { 1, 's', "max-size", storage_size_option, &maxsize,
+    { 1, 's', "max-size", W_OPT_DATA_SIZE, &maxsize,
         "Maximum size of each log file (suffixes: kmg)." },
 
     { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
