@@ -16,6 +16,49 @@
 #include <grp.h> /* setgroups() */
 
 
+static void
+_task_free (void *taskptr)
+{
+    task_t *task = taskptr;
+
+    if (task->argc) {
+        int i;
+        w_assert (task->argv);
+
+        for (i = 0; i < task->argc; i++)
+            w_free (task->argv[i]);
+
+        task->argv = 0;
+        task->argv = NULL;
+    }
+}
+
+
+task_t*
+task_new (int argc, const char **argv)
+{
+    task_t template = TASK;
+    task_t *task = w_obj_new (task_t);
+    memcpy (((w_obj_t*) task) + 1,
+            ((w_obj_t*) &template) + 1,
+            sizeof (task_t) - sizeof (w_obj_t));
+
+    if (argc) {
+        int i;
+        w_assert (argv);
+
+        task->argv = w_alloc (char*, argc);
+        for (i = 0; i < argc; i++)
+            task->argv[i] = w_str_dup (argv[i]);
+        task->argc = argc;
+    }
+    else {
+        w_assert (argv == NULL);
+    }
+    return (task_t*) w_obj_dtor (task, _task_free);
+}
+
+
 void
 task_start (task_t *task)
 {
@@ -70,7 +113,7 @@ task_start (task_t *task)
         }
     }
 
-    /* Groups must be changed first, whilw we have privileges */
+    /* Groups must be changed first, while we have privileges */
     if (task->user.gid > 0) {
         w_debug (("set group id $I\n", (unsigned) task->pid));
         if (setgid (task->user.gid))
@@ -110,7 +153,7 @@ task_signal_dispatch (task_t *task)
         w_die ("cannot send signal $i to process $L: $E\n",
              task->signal, (unsigned long) task->pid);
     }
-    task->signal = NO_SIGNAL;
+    task_signal_queue (task, NO_SIGNAL);
 }
 
 
@@ -123,7 +166,7 @@ task_signal (task_t *task, int signum)
     task_signal_dispatch (task);
 
     /* Then send our own */
-    task->signal = signum;
+    task_signal_queue (task, signum);
     task_signal_dispatch (task);
 }
 
@@ -140,14 +183,14 @@ task_action_dispatch (task_t *task)
             task_start (task);
             break;
         case A_STOP:
-            task->action = A_NONE;
+            task_action_queue (task, A_NONE);
             if (task->pid != NO_PID) {
                 task_signal (task, SIGTERM);
                 task_signal (task, SIGCONT);
             }
             break;
         case A_SIGNAL:
-            task->action = A_NONE;
+            task_action_queue (task, A_NONE);
             task_signal_dispatch (task);
             break;
     }
@@ -163,7 +206,7 @@ task_action (task_t *task, action_t action)
     task_action_dispatch (task);
 
     /* Send our own action. */
-    task->action = action;
+    task_action_queue (task, action);
     task_action_dispatch (task);
 }
 

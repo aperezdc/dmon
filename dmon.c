@@ -158,7 +158,7 @@ reap_and_check (void)
             running = 0;
         }
         else {
-            cmd_task.action = A_START;
+            task_action_queue (&cmd_task, A_START);
         }
         return status;
     }
@@ -167,8 +167,8 @@ reap_and_check (void)
 
         write_status (("log exit $L $i\n", (unsigned long) pid, status));
 
-        log_task.action = A_START;
         log_task.pid = NO_PID;
+        task_action_queue (&log_task, A_START);
     }
     else {
         w_debug (("reaped unknown process $I", (unsigned) pid));
@@ -211,7 +211,7 @@ handle_signal (int signum)
     if (cmd_timeout && signum == SIGALRM) {
         write_status (("cmd timeout $L\n", (unsigned long) cmd_task.pid));
         task_action (&cmd_task, A_STOP);
-        cmd_task.action = A_START;
+        task_action_queue (&cmd_task, A_START);
         alarm (cmd_timeout);
         return;
     }
@@ -225,13 +225,13 @@ handle_signal (int signum)
         /* Try to forward signals */
         if (cmd_signals) {
             w_debug (("delayed signal $i for cmd process\n", signum));
-            cmd_task.action = A_SIGNAL;
-            cmd_task.signal = signum;
+            task_action_queue (&cmd_task, A_SIGNAL);
+            task_signal_queue (&cmd_task, signum);
         }
         if (log_signals && log_enabled) {
             w_debug (("delayed signal $i for log process\n", signum));
-            log_task.action = A_SIGNAL;
-            log_task.signal = signum;
+            task_action_queue (&log_task, A_SIGNAL);
+            task_action_queue (&log_task, signum);
         }
     }
 
@@ -549,7 +549,7 @@ dmon_main (int argc, char **argv)
              * or reap_and_check() may request stopping on successful exit
              */
             if (!running) {
-                cmd_task.action = A_NONE;
+                task_action_queue (&cmd_task, A_NONE);
                 break;
             }
         }

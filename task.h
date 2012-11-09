@@ -19,7 +19,9 @@ typedef enum {
 } action_t;
 
 
-typedef struct {
+W_OBJ (task_t)
+{
+    w_obj_t  parent;
     pid_t    pid;
     action_t action;
     int      argc;
@@ -30,11 +32,12 @@ typedef struct {
     time_t   started;
     uidgid_t user;
     unsigned redir_errfd;
-} task_t;
+};
 
 #define NO_PID    (-1)
 #define NO_SIGNAL (-1)
-#define TASK      { NO_PID,    \
+#define TASK      { W_OBJ_STATIC (NULL), \
+                    NO_PID,    \
                     A_START,   \
                     0,         \
                     NULL,      \
@@ -45,12 +48,18 @@ typedef struct {
                     UIDGID,    \
                     0 }
 
+#define task_action_queue(task, _action) \
+    ((task)->action = (_action))
 
-void task_start           (task_t *task);
-void task_signal_dispatch (task_t *task);
-void task_action_dispatch (task_t *task);
-void task_signal          (task_t *task, int signum);
-void task_action          (task_t *task, action_t action);
+#define task_signal_queue(task, _signal) \
+    ((task)->signal = (_signal))
+
+task_t* task_new             (int argc, const char **argv);
+void    task_start           (task_t *task);
+void    task_signal_dispatch (task_t *task);
+void    task_action_dispatch (task_t *task);
+void    task_signal          (task_t *task, int signum);
+void    task_action          (task_t *task, action_t action);
 
 #endif /* !__task_h__ */
 
