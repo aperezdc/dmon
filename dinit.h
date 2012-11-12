@@ -9,7 +9,7 @@
 #define __dinit_h__
 
 /* dinit-util.c */
-int dinit_do_mounts (void);
+int  dinit_do_mounts (void);
 void dinit_poweroff (void);
 void dinit_reboot (void);
 void dinit_halt (void);

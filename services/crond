@@ -1,0 +1,19 @@
+command = crond -n
+mode = respawn
+
+log = rotate
+log.filesystem.path = /var/log/cron
+log.filesystem.buffered = no
+log.filesystem.rotate.max-files = 10
+
+script.before = echo "Starting service $SVC_NAME"
+
+scrtip.after.shell = /bin/bash
+script.after <<
+	echo "This is a multiline script runing after $SVC_NAME"
+	if [[ $SVC_NAME = crond ]] ; then
+		echo "The service is some kind of cron daemon"
+	else
+		echo "Dunno what the service is"
+	fi
+<<

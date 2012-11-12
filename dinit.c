@@ -17,7 +17,11 @@
 int
 dinit_main (int argc, char **argv)
 {
+    w_unused (argc);
+    w_unused (argv);
+
     dinit_do_mounts ();
+
     exit (EXIT_SUCCESS);
 }
 
