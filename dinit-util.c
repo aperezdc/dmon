@@ -42,8 +42,10 @@ static const struct {
 
 static const char *s_mkdirs[] = {
     "/tmp",
-    "/var",       /* Ensure that /var exists so /var/run can be created */
-    "/run/dinit", /* This is used by dinit itself, has to exist */
+    "/var",             /* Ensure that /var exists so /var/run can be created */
+    "/run/dinit",       /* This is used by dinit itself, has to exist */
+    "/run/lock",
+    "/run/udev",
 };
 
 
