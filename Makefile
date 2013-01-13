@@ -57,6 +57,9 @@ ifeq ($(MULTICALL),0)
   CPPFLAGS += -DNO_MULTICALL
 endif
 
+DINIT_OPTIONS := $(shell [ -r config ] && grep -E '^DINIT_' config)
+DINIT_OPTIONS := $(patsubst %,-D%,$(DINIT_OPTIONS))
+
 all: dmon dlog dslog drlog
 
 libwheel_STDIO   := 0
@@ -77,7 +80,7 @@ DINIT_SRCS := dinit.c $(wildcard dinit-*.c)
 DINIT_OBJS := $(patsubst %.c,%.o,$(DINIT_SRCS))
 
 ifneq ($(MULTICALL),0)
-dmon: dlog.o dslog.o drlog.o  multicall.o $(DINIT_OBJS)
+dmon: dlog.o dslog.o drlog.o multicall.o $(DINIT_OBJS)
 dlog drlog dslog dinit: dmon
 	$(LN) -sf $< $@
 else
@@ -86,6 +89,7 @@ dslog: dslog.o util.o $(libwheel)
 drlog: drlog.o util.o $(libwheel)
 dlog: dlog.o util.o $(libwheel)
 endif
+$(DINIT_OBJS): CPPFLAGS += $(DINIT_OPTIONS)
 
 man: dmon.8 dlog.8 dslog.8 drlog.8 dinit.8
 
