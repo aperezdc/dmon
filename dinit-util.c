@@ -1,14 +1,16 @@
 /*
  * dinit-util.c
- * Copyright (C) 2011 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2011-2012 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
 #include "util.h"
+#include "dinit.h"
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 
 
@@ -50,7 +52,7 @@ static const char *s_mkdirs[] = {
 
 
 int
-dinit_do_mounts (void)
+dinit_init_filesystem (void)
 {
     static w_bool_t done = W_NO;
     unsigned i;
@@ -81,6 +83,71 @@ dinit_do_mounts (void)
 
     done = W_YES;
     return 0;
+}
+
+
+int
+dinit_init_hostname (void)
+{
+    static const char *files[] = {
+        "/etc/hostname",
+    };
+
+    unsigned i;
+    w_buf_t buf = W_BUF;
+
+    for (i = 0; i < w_lengthof (files); i++) {
+        if (dinit_file_head_n1 (files[i], &buf)) {
+            /* First line of file read, set hostname */
+            return sethostname (w_buf_str (&buf), w_buf_size (&buf)) == 0;
+        }
+    }
+
+    return W_YES;
+}
+
+
+w_bool_t
+dinit_file_head_n1 (const char *path, w_buf_t *buf)
+{
+    w_io_unix_t io;
+    int ch;
+
+    w_assert (path);
+    w_assert (buf);
+
+    if (!w_io_unix_init (&io, path, O_RDONLY, 0))
+        return W_NO;
+    while ((ch = w_io_getchar ((w_io_t*) &io)) != '\n' && ch != W_IO_EOF && ch != W_IO_ERR)
+        w_buf_append_char (buf, ch);
+    return ch != W_IO_ERR;
+}
+
+
+void
+dinit_panic (const char *fmt, ...)
+{
+    va_list arg;
+
+    va_start (arg, fmt);
+    w_io_format  (w_stderr, "[1;31m");
+    w_io_formatv (w_stderr, fmt, arg);
+    w_io_format  (w_stderr, "[0;0m\n");
+    va_end (arg);
+
+    w_io_flush (w_stderr);
+
+#if defined(DINIT_REBOOT_ON_PANIC) && DINIT_REBOOT_ON_PANIC
+    w_io_format (w_stderr, "dinit: Rebooting in 10 seconds...\n");
+    w_io_flush (w_stderr);
+    sleep (10);
+    dinit_reboot ();
+#else
+    w_io_format (w_stderr, "dinit: Stopped.\n");
+    w_io_flush (w_stderr);
+    while (W_YES)
+        sleep (666);
+#endif
 }
 
 
