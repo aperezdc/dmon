@@ -59,6 +59,10 @@ dinit_init_filesystem (void)
 
     if (done) return 0;
 
+    /* First of all, remount / read-write */
+    if (mount ("rootfs", "/", NULL, MS_REMOUNT | MS_RELATIME, NULL) == -1)
+        dinit_panic ("Cannot remount rootfs read-write: $E");
+
     for (i = 0; i < w_lengthof (s_mounts); i++) {
         if (!mkdir_p (s_mounts[i].mountpoint, 0777) ||
             mount (s_mounts[i].fstype,
