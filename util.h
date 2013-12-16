@@ -8,7 +8,7 @@
 #ifndef __util_h__
 #define __util_h__
 
-#include "wheel.h"
+#include "wheel/wheel.h"
 #include <sys/types.h>
 #define DMON_GID_COUNT 76
 

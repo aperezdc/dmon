@@ -6,7 +6,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "wheel.h"
+#include "wheel/wheel.h"
 #include "util.h"
 #include <time.h>
 #include <stdio.h>

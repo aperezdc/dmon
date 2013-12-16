@@ -10,7 +10,7 @@
 #endif /* NO_MULTICALL */
 
 
-#include "wheel.h"
+#include "wheel/wheel.h"
 #include <string.h>
 
 

@@ -6,7 +6,7 @@
  */
 
 #include "task.h"
-#include "wheel.h"
+#include "wheel/wheel.h"
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>

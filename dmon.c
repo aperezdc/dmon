@@ -8,7 +8,7 @@
 #define _BSD_SOURCE             /* getloadavg() */
 #define _POSIX_C_SOURCE 199309L /* nanosleep()  */
 
-#include "wheel.h"
+#include "wheel/wheel.h"
 #include "task.h"
 #include "util.h"
 #include <sys/types.h>

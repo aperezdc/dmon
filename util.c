@@ -15,7 +15,7 @@
 #define _GNU_SOURCE 1
 
 #include "util.h"
-#include "wheel.h"
+#include "wheel/wheel.h"
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <limits.h>
