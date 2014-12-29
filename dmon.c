@@ -1,17 +1,16 @@
 /*
  * dmon.c
- * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
-#define _BSD_SOURCE             /* getloadavg() */
-#define _POSIX_C_SOURCE 199309L /* nanosleep()  */
+#define _GNU_SOURCE 1
 
+#include <sys/types.h>
 #include "wheel/wheel.h"
 #include "task.h"
 #include "util.h"
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,15 +31,15 @@ static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
 static float         load_high    = 0.0f;
-static w_bool_t      success_exit = W_NO;
-static w_bool_t      log_signals  = W_NO;
-static w_bool_t      cmd_signals  = W_NO;
+static bool          success_exit = false;
+static bool          log_signals  = false;
+static bool          cmd_signals  = false;
 static unsigned long cmd_timeout  = 0;
 static unsigned long cmd_interval = 0;
 static int           check_child  = 0;
 static int           running      = 1;
 static int           paused       = 0;
-static w_bool_t      nodaemon     = W_NO;
+static bool          nodaemon     = false;
 static char         *status_path  = NULL;
 static char         *pidfile_path = NULL;
 
@@ -73,18 +72,20 @@ static const struct {
 static inline void
 _write_status (const char *fmt, ...)
 {
-    va_list arg;
-
     w_assert (status_io);
 
+    va_list arg;
     va_start (arg, fmt);
-    w_io_formatv (status_io, fmt, arg);
+    w_io_result_t r = w_io_formatv (status_io, fmt, arg);
     va_end (arg);
+
+    if (w_io_failed (r))
+        W_WARN ("I/O error writing to status file: $E\n");
 }
 
-#define write_status(_args) \
-    if (status_io != NULL)    \
-        _write_status _args
+#define write_status(...) \
+    if (status_io != NULL) \
+        _write_status(__VA_ARGS__)
 
 
 #define task_action_dispatch_and_write_status(_what, _task)         \
@@ -135,17 +136,15 @@ signal_to_name (int signum)
 static int
 reap_and_check (void)
 {
+    W_DEBUG ("waiting for a children to reap...\n");
+
     int status;
-    pid_t pid;
-
-    w_debug (("waiting for a children to reap...\n"));
-
-    pid = waitpid (-1, &status, WNOHANG);
+    pid_t pid = waitpid (-1, &status, WNOHANG);
 
     if (pid == cmd_task.pid) {
-        w_debug (("reaped cmd process $I\n", (unsigned) pid));
+        W_DEBUGC ("  reaped cmd process $I\n", (unsigned) pid);
 
-        write_status (("cmd exit $L $i\n", (unsigned long) pid, status));
+        write_status ("cmd exit $L $i\n", (unsigned long) pid, status);
 
         cmd_task.pid = NO_PID;
 
@@ -154,7 +153,7 @@ reap_and_check (void)
          * then we do not want to respawn, but to gracefully shutdown.
          */
         if (success_exit && WIFEXITED (status) && WEXITSTATUS (status) == 0) {
-            w_debug (("cmd process ended successfully, will exit\n"));
+            W_DEBUGC ("  cmd process ended successfully, will exit\n");
             running = 0;
         }
         else {
@@ -163,15 +162,15 @@ reap_and_check (void)
         return status;
     }
     else if (log_enabled && pid == log_task.pid) {
-        w_debug (("reaped log process $I\n", (unsigned) pid));
+        W_DEBUGC ("  reaped log process $I\n", (unsigned) pid);
 
-        write_status (("log exit $L $i\n", (unsigned long) pid, status));
+        write_status ("log exit $L $i\n", (unsigned long) pid, status);
 
         log_task.pid = NO_PID;
         task_action_queue (&log_task, A_START);
     }
-    else {
-        w_debug (("reaped unknown process $I", (unsigned) pid));
+    else { 
+        W_DEBUGC ("  reaped unknown process $I", (unsigned) pid);
     }
 
     /*
@@ -186,9 +185,7 @@ reap_and_check (void)
 static void
 handle_signal (int signum)
 {
-    unsigned i = 0;
-
-    w_debug (("handle signal $i ($s)\n", signum, signal_to_name (signum)));
+    W_DEBUG ("handle signal $i ($s)\n", signum, signal_to_name (signum));
 
     /* Receiving INT/TERM signal will stop gracefully */
     if (signum == SIGINT || signum == SIGTERM) {
@@ -209,13 +206,14 @@ handle_signal (int signum)
      * respawning.
      */
     if (cmd_timeout && signum == SIGALRM) {
-        write_status (("cmd timeout $L\n", (unsigned long) cmd_task.pid));
+        write_status ("cmd timeout $L\n", (unsigned long) cmd_task.pid);
         task_action (&cmd_task, A_STOP);
         task_action_queue (&cmd_task, A_START);
         alarm (cmd_timeout);
         return;
     }
 
+    unsigned i = 0;
     while (forward_signals[i].code != NO_SIGNAL) {
         if (signum == forward_signals[i++].code)
             break;
@@ -224,18 +222,16 @@ handle_signal (int signum)
     if (signum != NO_SIGNAL) {
         /* Try to forward signals */
         if (cmd_signals) {
-            w_debug (("delayed signal $i for cmd process\n", signum));
+            W_DEBUGC ("  delayed signal $i for cmd process\n", signum);
             task_action_queue (&cmd_task, A_SIGNAL);
             task_signal_queue (&cmd_task, signum);
         }
         if (log_signals && log_enabled) {
-            w_debug (("delayed signal $i for log process\n", signum));
+            W_DEBUGC ("  delayed signal $i for log process\n", signum);
             task_action_queue (&log_task, A_SIGNAL);
             task_action_queue (&log_task, signum);
         }
     }
-
-    return;
 }
 
 
@@ -327,9 +323,8 @@ _config_option (const w_opt_context_t *ctx)
     w_assert (ctx->argv);
     w_assert (ctx->argv[0]);
 
-    w_io_format (w_stderr,
-                 "$s: Option --config/-C must be the first one specified\n",
-                 ctx->argv[0]);
+    w_printerr ("$s: Option --config/-C must be the first one specified\n",
+                ctx->argv[0]);
 
     return W_OPT_EXIT_FAIL;
 }
@@ -406,7 +401,7 @@ dmon_main (int argc, char **argv)
 {
 	w_io_t *pidfile_io = NULL;
 	char *opts_env = NULL;
-	w_bool_t success;
+	bool success;
 	unsigned i, consumed;
 
     /* Check for "-C configfile" given in the command line. */
@@ -416,14 +411,13 @@ dmon_main (int argc, char **argv)
                      !strcmp ("--config", argv[1])))
 
     {
-        w_io_t *cfg_io = NULL;
+        w_lobj w_io_t *cfg_io = NULL;
         char *err_msg = NULL;
 
         if ((cfg_io = w_io_unix_open (argv[2], O_RDONLY, 0)) == NULL)
             w_die ("$s: Could not open file '$s', $E\n", argv[0], argv[2]);
 
         success = w_opt_parse_io (dmon_options, cfg_io, &err_msg);
-        w_obj_unref (cfg_io);
 
         if (!success || err_msg)
             w_die ("$s: Error parsing '$s' at line $s\n", argv[0], argv[2], err_msg);
@@ -439,7 +433,7 @@ dmon_main (int argc, char **argv)
                                 "log-cmd [log-cmd-options]]",
                                 argc, argv);
 
-    w_debug (("w_opt_parse consumed $I arguments\n", consumed));
+    W_DEBUG ("w_opt_parse consumed $I arguments\n", consumed);
 
     if (status_path) {
         status_io = w_io_unix_open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
@@ -474,7 +468,7 @@ dmon_main (int argc, char **argv)
         if (pipe (log_fds) != 0) {
             w_die ("$s: Cannot create pipe: $E\n", argv[0]);
         }
-        w_debug (("pipe_read = $i, pipe_write = $i\n", log_fds[0], log_fds[1]));
+        W_DEBUG ("pipe_read = $i, pipe_write = $i\n", log_fds[0], log_fds[1]);
         fd_cloexec (log_fds[0]);
         fd_cloexec (log_fds[1]);
     }
@@ -512,7 +506,11 @@ dmon_main (int argc, char **argv)
 
     /* We have a valid file descriptor: write PID */
     if (pidfile_io) {
-        w_io_format (pidfile_io, "$L\n", (unsigned long) getpid ());
+        w_io_result_t r = w_io_format (pidfile_io,
+                                       "$L\n",
+                                       (unsigned long) getpid ());
+        if (w_io_failed (r))
+            W_WARN ("I/O error writing to PID file: $E\n");
         w_obj_unref (pidfile_io);
     }
 
@@ -523,7 +521,7 @@ dmon_main (int argc, char **argv)
     log_task.read_fd  = log_fds[0];
 
     while (running) {
-        w_debug ((">>> loop iteration\n"));
+        W_DEBUG (">>> loop iteration\n");
         if (check_child) {
             int retcode = reap_and_check ();
 
@@ -540,7 +538,7 @@ dmon_main (int argc, char **argv)
 
                 do {
                     retval = nanosleep (&ts, &ts);
-                    w_debug (("nanosleep -> $i\n", retval));
+                    W_DEBUGC ("  nanosleep -> $i\n", retval);
                 } while (retval == -1 && errno == EINTR && running);
             }
 
@@ -561,46 +559,46 @@ dmon_main (int argc, char **argv)
         if (load_enabled) {
             double load_cur;
 
-            w_debug (("checking load after sleeping 1s\n"));
+            W_DEBUGC ("  checking load after sleeping 1s\n");
             interruptible_sleep (1);
 
             if (getloadavg (&load_cur, 1) == -1)
-                w_die ("$s: Could not get load average!\n");
+                W_WARN ("getloadavg() failed: $E\n");
 
             if (paused) {
                 /* If the current load dropped below load_low -> resume */
                 if (load_cur <= load_low) {
-                    w_debug (("resuming... "));
+                    W_DEBUGC ("  resuming...\n");
                     task_signal (&cmd_task, SIGCONT);
-                    write_status (("cmd resume $L\n", (unsigned long) cmd_task.pid));
+                    write_status ("cmd resume $L\n", (unsigned long) cmd_task.pid);
                     paused = 0;
                 }
             }
             else {
                 /* If the load went above load_high -> pause */
                 if (load_cur > load_high) {
-                    w_debug (("pausing... "));
+                    W_DEBUGC ("  pausing...\n");
                     task_signal (&cmd_task, SIGSTOP);
-                    write_status (("cmd pause $L\n", (unsigned long) cmd_task.pid));
+                    write_status ("cmd pause $L\n", (unsigned long) cmd_task.pid);
                     paused = 1;
                 }
             }
         }
         else {
             /* Wait for signals to arrive. */
-            w_debug (("waiting for signals to come...\n"));
+            W_DEBUGC ("  waiting for signals to come...\n");
             pause ();
         }
     }
 
-    w_debug (("exiting gracefully...\n"));
+    W_DEBUG ("exiting gracefully...\n");
 
     if (cmd_task.pid != NO_PID) {
-        write_status (("cmd stop $L\n", (unsigned long) cmd_task.pid));
+        write_status ("cmd stop $L\n", (unsigned long) cmd_task.pid);
         task_action (&cmd_task, A_STOP);
     }
     if (log_enabled && log_task.pid != NO_PID) {
-        write_status (("log stop $L\n", (unsigned long) log_task.pid));
+        write_status ("log stop $L\n", (unsigned long) log_task.pid);
         task_action (&log_task, A_STOP);
     }
 

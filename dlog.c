@@ -1,6 +1,6 @@
 /*
  * dlog.c
- * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
@@ -28,12 +28,12 @@
 #endif /* !TSTAMP_LEN */
 
 
-static w_bool_t timestamp = W_NO;
-static w_bool_t buffered  = W_NO;
-static char    *prefix    = NULL;
-static w_io_t  *log_io    = NULL;
-static w_io_t  *in_io     = NULL;
-static int      in_fd     = -1;
+static bool    timestamp = false;
+static bool    buffered  = false;
+static char   *prefix    = NULL;
+static w_io_t *log_io    = NULL;
+static w_io_t *in_io     = NULL;
+static int     in_fd     = -1;
 
 
 static const w_opt_t dlog_options[] = {
@@ -57,11 +57,13 @@ static void
 handle_signal (int signum)
 {
     if (buffered) {
-        w_io_flush (log_io);
+        if (w_io_failed (w_io_flush (log_io)))
+            W_WARN ("Error flushing log: $E\n");
     }
 
     if (log_io != w_stdout && log_io != w_stderr) {
-        w_io_close (log_io);
+        if (w_io_failed (w_io_close (log_io)))
+            W_WARN ("Error closing log: $E\n");
         log_io = 0;
     }
 
@@ -93,7 +95,7 @@ dlog_main (int argc, char **argv)
         log_io = w_stdout;
     }
     else {
-        w_io_close (w_stdout);
+        W_IO_NORESULT (w_io_close (w_stdout));
     }
 
     in_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
@@ -114,12 +116,14 @@ dlog_main (int argc, char **argv)
     safe_sigaction ("TERM", SIGTERM, &sa);
 
     for (;;) {
-        ssize_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
+        w_io_result_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
 
-        if (ret == W_IO_ERR)
+        if (w_io_failed (ret))
             w_die ("$s: error reading input: $E\n", argv[0]);
 
         if (w_buf_size (&linebuf)) {
+            w_io_result_t r;
+
             if (timestamp) {
                 time_t now = time(NULL);
                 char timebuf[TSTAMP_LEN+1];
@@ -135,14 +139,14 @@ dlog_main (int argc, char **argv)
                     if (!log_io)
                         w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
                 }
+
                 if (prefix) {
-                    w_io_format (log_io, "$s $s $B\n", timebuf, prefix, &linebuf);
+                    r = w_io_format (log_io, "$s $s $B\n", timebuf, prefix, &linebuf);
+                } else {
+                    r = w_io_format (log_io, "$s $B\n", timebuf, &linebuf);
                 }
-                else {
-                    w_io_format (log_io, "$s $B\n", timebuf, &linebuf);
-                }
-            }
-            else {
+
+            } else {
                 if (!log_io) {
                     log_io = w_io_unix_open (argv[consumed],
                                              O_CREAT | O_APPEND | O_WRONLY,
@@ -150,26 +154,31 @@ dlog_main (int argc, char **argv)
                     if (!log_io)
                         w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
                 }
+
                 if (prefix) {
-                    w_io_format (log_io, "$s $B\n", prefix, &linebuf);
-                }
-                else {
-                    w_io_format (log_io, "$B\n", &linebuf);
+                    r = w_io_format (log_io, "$s $B\n", prefix, &linebuf);
+                } else {
+                    r = w_io_format (log_io, "$B\n", &linebuf);
                 }
             }
 
+            if (w_io_failed (r))
+                W_WARN ("$s: writing to log failed: $E\n", argv[0]);
+
             if (!buffered) {
-                w_io_flush (log_io);
+                if (w_io_failed (r = w_io_flush (log_io)))
+                    W_WARN ("$s: flushing log failed: $E\n", argv[0]);
             }
         }
 
         w_buf_clear (&linebuf);
 
-        if (ret == W_IO_EOF) /* EOF reached */
+        if (w_io_eof (ret))
             break;
     }
 
-    w_io_close (log_io);
+    if (w_io_failed (w_io_close (log_io)))
+        W_WARN ("$s: error closing log file: $E\n", argv[0]);
 
     exit (EXIT_SUCCESS);
 }

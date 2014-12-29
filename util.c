@@ -1,17 +1,10 @@
 /*
  * util.c
- * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
-/* Needed for nanosleep(2) */
-#define _POSIX_C_SOURCE 199309L
-
-/* Needed for fsync(2) */
-#define _BSD_SOURCE 1
-
-/* Needed for ULLONG_MAX */
 #define _GNU_SOURCE 1
 
 #include "util.h"
@@ -174,9 +167,8 @@ _parse_gids (char     *s,
     w_assert (u);
 
     if (u->ngid >= DMON_GID_COUNT) {
-        w_io_format (w_stderr,
-                     "more than $L groups given, ignoring additional ones\n",
-                     DMON_GID_COUNT);
+        w_printerr ("more than $L groups given, ignoring additional ones\n",
+                    DMON_GID_COUNT);
         return 0;
     }
 
@@ -255,22 +247,20 @@ become_daemon (void)
 }
 
 
-static w_bool_t
+static bool
 _parse_limit_time (const char *sval, long *rval)
 {
-    unsigned long long val;
-    w_bool_t failed;
-
     w_assert (sval != NULL);
     w_assert (rval != NULL);
 
-    failed = w_str_time_period (sval, &val);
+    unsigned long long val;
+    bool failed = w_str_time_period (sval, &val);
     *rval = val;
     return failed || (val > LONG_MAX);
 }
 
 
-static w_bool_t
+static bool
 _parse_limit_number (const char *sval, long *rval)
 {
     w_assert (sval != NULL);
@@ -279,16 +269,14 @@ _parse_limit_number (const char *sval, long *rval)
 }
 
 
-static w_bool_t
+static bool
 _parse_limit_bytes (const char *sval, long *rval)
 {
-    unsigned long long val;
-    w_bool_t failed;
-
     w_assert (sval != NULL);
     w_assert (rval != NULL);
 
-    failed = w_str_size_bytes (sval, &val);
+    unsigned long long val;
+    bool failed = w_str_size_bytes (sval, &val);
     *rval = val;
     return failed || (val > LONG_MAX);
 }
@@ -297,7 +285,7 @@ _parse_limit_bytes (const char *sval, long *rval)
 static const struct {
     const char *name;
     int         what;
-    w_bool_t  (*parse)(const char*, long*);
+    bool      (*parse)(const char*, long*);
     const char *desc;
 } rlimit_specs[] = {
 #ifdef RLIMIT_AS
@@ -379,9 +367,9 @@ parse_limit_arg (const char *str, int *what, long *value)
 
     if (!strcmp (str, "help")) {
         for (i = 0; i < w_lengthof (rlimit_specs); i++) {
-            w_io_format (w_stdout, "$s -- $s\n",
-                         rlimit_specs[i].name,
-                         rlimit_specs[i].desc);
+            w_print ("$s -- $s\n",
+                     rlimit_specs[i].name,
+                     rlimit_specs[i].desc);
         }
         return -1;
     }

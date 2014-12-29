@@ -1,6 +1,6 @@
 /*
  * drlog.c
- * Copyright © 2010-2011 Adrián Pérez <aperez@igalia.com>
+ * Copyright © 2010-2014 Adrián Pérez <aperez@igalia.com>
  * Copyright © 2008-2010 Adrián Pérez <aperez@connectical.com>
  *
  * Distributed under terms of the MIT license.
@@ -75,8 +75,8 @@ static unsigned long long maxtime    = LOGFILE_DEFTIME;
 static unsigned long long maxsize    = LOGFILE_DEFSIZE;
 static unsigned long long curtime    = 0;
 static unsigned long long cursize    = 0;
-static w_bool_t           timestamp  = W_NO;
-static w_bool_t           buffered   = W_NO;
+static bool               timestamp  = false;
+static bool               buffered   = false;
 static int                returncode = 0;
 static w_buf_t            line       = W_BUF;
 static w_buf_t            overflow   = W_BUF;
@@ -101,9 +101,8 @@ rescan:
     older_year = INT_MAX;
 
     if ((dir = opendir (directory)) == NULL) {
-        w_io_format (w_stderr,
-                     "Unable to open directory '$s' for rotation ($E).\n",
-                     directory);
+        w_printerr ("Unable to open directory '$s' for rotation ($E).\n",
+                    directory);
         return -1;
     }
 
@@ -141,8 +140,8 @@ rescan:
             return -3;
         }
         if (snprintf (path, sizeof (path), "%s/%s", directory, old_name) < 0) {
-            w_io_format (w_stderr, "Path too long to unlink: $s/$s\n",
-                         directory, old_name);
+            w_printerr ("Path too long to unlink: $s/$s\n",
+                        directory, old_name);
             return -4;
         }
         if (unlink (path) < 0) {
@@ -198,18 +197,19 @@ recreate_ts:
             ts_io = w_io_unix_open (path, O_WRONLY | O_CREAT | O_TRUNC,
                                     LOGFILE_PERMS);
             if (!ts_io) {
-                w_io_format (w_stderr, "Unable to write timestamp to '$s'\n",
-                             directory);
                 w_obj_unref (out_io);
-                w_die (NULL);
+                w_die ("Unable to write timestamp to '$s': $E\n",
+                       directory);
             }
-            w_io_format (ts_io, "$I\n", (unsigned long) ts);
+            w_io_result_t r = w_io_format (ts_io, "$I\n", (unsigned long) ts);
+            if (w_io_failed (r))
+                w_die ("Unable to write to '$s': $E\n", path);
         }
         else {
             unsigned long long ts_;
             w_buf_t tsb = W_BUF;
 
-            if ((w_io_read_line (ts_io, &tsb, &overflow, 0) == W_IO_ERR) ||
+            if (w_io_failed (w_io_read_line (ts_io, &tsb, &overflow, 0)) ||
                 (sscanf (w_buf_str (&tsb), "%llu", &ts_) <= 0))
             {
                 w_obj_unref (ts_io);
@@ -224,7 +224,8 @@ recreate_ts:
         if (maxtime) {
             curtime -= (curtime % maxtime);
         }
-        cursize = (unsigned long long) lseek (W_IO_UNIX_FD (out_io), 0, SEEK_CUR);
+        cursize = (unsigned long long) lseek (w_io_unix_get_fd ((w_io_unix_t*) out_io),
+                                              0, SEEK_CUR);
     }
 
     if ((maxsize != 0) && (maxtime != 0)) {
@@ -267,7 +268,7 @@ recreate_ts:
         }
     }
 
-    if (w_buf_empty (&line)) {
+    if (w_buf_is_empty (&line)) {
         w_buf_clear (&line);
         return;
     }
@@ -287,15 +288,17 @@ recreate_ts:
     w_buf_clear (&line);
 
     for (;;) {
-        if (w_io_write (out_io, w_buf_data (&out), w_buf_size (&out)) >= 0) {
+        w_io_result_t r = w_io_write (out_io,
+                                      w_buf_const_data (&out),
+                                      w_buf_size (&out));
+        if (!w_io_failed (r)) {
             if (!buffered) {
-                w_io_flush (out_io);
+                W_IO_NORESULT (w_io_flush (out_io));
             }
             cursize += w_buf_size (&out);
             break;
         }
-
-        w_io_format (w_stderr, "Cannot write to logfile: $E.\n");
+        w_printerr ("Cannot write to logfile: $E.\n");
         safe_sleep (5);
     }
     w_buf_clear (&out);
@@ -308,15 +311,14 @@ close_log (void)
     flush_line ();
 
     for (;;) {
-        if (w_io_close (out_io)) {
+        if (!w_io_failed (w_io_close (out_io))) {
             w_obj_unref (out_io);
             out_io = NULL;
             break;
         }
 
-        w_io_format (w_stderr,
-                     "Unable to close logfile at directory '$s\n",
-                     directory);
+        w_printerr ("Unable to close logfile at directory '$s\n",
+                    directory);
         safe_sleep (5);
     }
 }
@@ -405,14 +407,14 @@ int drlog_main (int argc, char **argv)
     safe_sigaction ("TERM", SIGTERM, &sa);
 
     for (;;) {
-        ssize_t ret = w_io_read_line (in_io, &line, &overflow, 0);
+        w_io_result_t ret = w_io_read_line (in_io, &line, &overflow, 0);
 
-        if (ret == W_IO_ERR) {
-            w_io_format (w_stderr, "Unable to read from standard input: $E.\n");
+        if (w_io_failed (ret)) {
+            w_printerr ("Unable to read from standard input: $E.\n");
             returncode = 1;
             quit_handler (0);
         }
-        if (ret == W_IO_EOF)
+        if (w_io_eof (ret))
             break;
         flush_line ();
     }

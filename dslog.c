@@ -1,6 +1,6 @@
 /*
  * dslog.c
- * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
@@ -108,7 +108,7 @@ name_to_priority (const char *name)
 }
 
 
-static w_bool_t running = W_YES;
+static bool running = true;
 
 
 static w_opt_status_t
@@ -156,7 +156,7 @@ dslog_main (int argc, char **argv)
     int in_fd = -1;
     int facility = name_to_facility (DEFAULT_FACILITY);
     int priority = name_to_priority (DEFAULT_PRIORITY);
-    w_bool_t console = W_NO;
+    bool console = false;
     char *env_opts = NULL;
     w_io_t *log_io = NULL;
     w_buf_t linebuf = W_BUF;
@@ -189,7 +189,7 @@ dslog_main (int argc, char **argv)
         w_die ("$s: cannot open input: $E\n", argv[0]);
 
     /* We will be no longer using standard output. */
-    w_io_close (w_stdout);
+    W_IO_NORESULT (w_io_close (w_stdout));
 
     if (consumed >= (unsigned) argc)
         w_die ("$s: process name not specified.\n", argv[0]);
@@ -197,10 +197,10 @@ dslog_main (int argc, char **argv)
     openlog (argv[consumed], flags, facility);
 
     while (running) {
-        ssize_t ret = w_io_read_line (log_io, &linebuf, &overflow, 0);
+        w_io_result_t ret = w_io_read_line (log_io, &linebuf, &overflow, 0);
 
-        if (ret == W_IO_ERR) {
-            w_io_format (w_stderr, "$s: error reading input: $E\n", argv[0]);
+        if (w_io_failed (ret)) {
+            w_printerr ("$s: error reading input: $E\n", argv[0]);
             exit (111);
         }
 
@@ -209,7 +209,7 @@ dslog_main (int argc, char **argv)
 
         w_buf_clear (&linebuf);
 
-        if (ret == W_IO_EOF) /* EOF reached */
+        if (w_io_eof (ret))
             break;
     }
 

@@ -1,6 +1,6 @@
 /*
  * util.h
- * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
@@ -41,10 +41,10 @@ const char* limit_name (int);
 
 int parse_limit_arg (const char *str, int *what, long *value);
 
-w_bool_t time_period_to_seconds (const char         *str,
-                                 unsigned long long *result);
-w_bool_t storage_size_to_bytes  (const char         *str,
-                                 unsigned long long *result);
+bool time_period_to_seconds (const char         *str,
+                             unsigned long long *result);
+bool storage_size_to_bytes  (const char         *str,
+                             unsigned long long *result);
 
 w_opt_status_t time_period_option  (const w_opt_context_t *ctx);
 w_opt_status_t storage_size_option (const w_opt_context_t *ctx);

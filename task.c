@@ -62,13 +62,13 @@ task_new (int argc, const char **argv)
 void
 task_start (task_t *task)
 {
+    w_assert (task != NULL);
+
     time_t now = time (NULL);
     unsigned sleep_time = (difftime (now, task->started) > 1) ? 0 : 1;
 
-    w_assert (task != NULL);
-
-    w_debug (("Last start $Is ago, will wait for $Is\n",
-             (unsigned) difftime (now, task->started), sleep_time));
+    W_DEBUG ("Last start $Is ago, will wait for $Is\n",
+             (unsigned) difftime (now, task->started), sleep_time);
     memcpy (&task->started, &now, sizeof (time_t));
 
     if ((task->pid = fork ()) < 0)
@@ -78,7 +78,7 @@ task_start (task_t *task)
 
     /* We got a valid PID, return */
     if (task->pid > 0) {
-        w_debug (("child pid = $I\n", (unsigned) task->pid));
+        W_DEBUGC ("  child pid = $I\n", (unsigned) task->pid);
         return;
     }
 
@@ -91,44 +91,44 @@ task_start (task_t *task)
 
     /* Execute child */
     if (task->write_fd >= 0) {
-        w_debug (("redirecting write_fd = $i -> $i\n", task->write_fd, STDOUT_FILENO));
+        W_DEBUGC ("  redirecting write_fd = $i -> $i\n", task->write_fd, STDOUT_FILENO);
         if (dup2 (task->write_fd, STDOUT_FILENO) < 0) {
-            w_debug (("redirection failed: $E\n"));
+            w_printerr ("dup2() redirection failed: $E\n");
             _exit (111);
         }
     }
     if (task->read_fd >= 0) {
-        w_debug (("redirecting read_fd = $i -> $i\n", task->read_fd, STDIN_FILENO));
+        W_DEBUGC ("  redirecting read_fd = $i -> $i\n", task->read_fd, STDIN_FILENO);
         if (dup2 (task->read_fd, STDIN_FILENO) < 0) {
-            w_debug (("redirection failed: $E\n"));
+            w_printerr ("dup2() redirection failed: $E\n");
             _exit (111);
         }
     }
 
     if (task->redir_errfd) {
-        w_debug (("redirecting stderr -> stdout\n"));
+        W_DEBUG ("  redirecting stderr -> stdout\n");
         if (dup2 (STDOUT_FILENO, STDERR_FILENO) < 0) {
-            w_debug (("could not redirect stderr: $E\n"));
-            exit (111);
+            w_printerr ("dup2() failed for stderr: $E\n");
+            _exit (111);
         }
     }
 
     /* Groups must be changed first, while we have privileges */
     if (task->user.gid > 0) {
-        w_debug (("set group id $I\n", (unsigned) task->pid));
+        W_DEBUG ("  set group id $I\n", (unsigned) task->pid);
         if (setgid (task->user.gid))
-            w_die ("could not set groud id: $E\n");
+            w_die ("could not set group id: $E\n");
     }
 
     if (task->user.ngid > 0) {
-        w_debug (("calling setgroups ($I groups)\n", task->user.ngid));
+        W_DEBUG ("  calling setgroups ($I groups)\n", task->user.ngid);
         if (setgroups (task->user.ngid, task->user.gids))
             w_die ("could not set additional groups: $E\n");
     }
 
     /* Now drop privileges */
     if (task->user.uid > 0) {
-        w_debug (("set user id $I\n", (unsigned) task->user.uid));
+        W_DEBUG ("  set user id $I\n", (unsigned) task->user.uid);
         if (setuid (task->user.uid))
             w_die ("could not set user id: $E\n");
     }
@@ -146,8 +146,8 @@ task_signal_dispatch (task_t *task)
     if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
         return;
 
-    w_debug (("dispatch signal $i to process $I\n",
-             task->signal, (unsigned) task->pid));
+    W_DEBUG ("signal $i to process $I\n",
+             task->signal, (unsigned) task->pid);
 
     if (kill (task->pid, task->signal) < 0) {
         w_die ("cannot send signal $i to process $L: $E\n",
