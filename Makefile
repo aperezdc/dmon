@@ -13,9 +13,8 @@ endif
 
 ifeq ($(__verbose),0)
   define cmd_print
-    @printf " %-10s %s\n"
+    printf " %-10s %s\n"
   endef
-  silent   := @
   saved_CC := $(CC)
   saved_LD := $(LD)
   saved_AR := $(AR)
@@ -31,11 +30,11 @@ ifeq ($(__verbose),0)
   ifeq ($(findstring install,$(MAKECMDGOALS)),install)
     MAKEFLAGS += s
   endif
+.SILENT:
 else
   define cmd_print
-    @:
+    :
   endef
-  silent :=
   STRIP   = strip
   LN      = ln
 endif
