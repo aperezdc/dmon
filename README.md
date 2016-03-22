@@ -5,7 +5,10 @@
 This README contains only some random bits. For more in-depth writing, you
 may want to read the articles on DMon:
 
-  http://blogs.igalia.com/aperez/tag/dmon/
+* 2010/08/27: [DMon: Process monitoring with style](https://perezdecastro.org/2010/dmon-process-monitoring-with-style.html)
+* 2010/10/04: [DMon status report: evolution to 0.3.7](https://perezdecastro.org/2010/dmon-status-report-0-3-7.html)
+* 2011/07/25: [DMon 0.4: New guts & new features](https://perezdecastro.org/2011/dmon-0-4-new-guts-and-new-features.html)
+* 2012/01/07: [DMon 0.4.2 “Three Wise Men” released](https://perezdecastro.org/2012/dmon-0-4-2-released.html)
 
 There are also manual pages, so please take a look at them.
 
