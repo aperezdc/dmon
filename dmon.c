@@ -399,10 +399,10 @@ static const w_opt_t dmon_options[] = {
 int
 dmon_main (int argc, char **argv)
 {
-	w_io_t *pidfile_io = NULL;
-	char *opts_env = NULL;
-	bool success;
-	unsigned i, consumed;
+    w_io_t *pidfile_io = NULL;
+    char *opts_env = NULL;
+    bool success;
+    unsigned i, consumed;
 
     /* Check for "-C configfile" given in the command line. */
     if (argc > 2 && ((argv[1][0] == '-' &&
@@ -447,20 +447,20 @@ dmon_main (int argc, char **argv)
     if (load_enabled && almost_zerof (load_low))
         load_low = load_high / 2.0f;
 
-	cmd_task.argv = argv + consumed;
+    cmd_task.argv = argv + consumed;
 
-	/* Skip over until "--" is found */
-	while (i < (unsigned) argc && strcmp (argv[i], "--") != 0) {
-		cmd_task.argc++;
-		i++;
-	}
+    /* Skip over until "--" is found */
+    while (i < (unsigned) argc && strcmp (argv[i], "--") != 0) {
+        cmd_task.argc++;
+        i++;
+    }
 
-	/* There is a log command */
-	if (i < (unsigned) argc && strcmp (argv[i], "--") == 0) {
-		log_task.argc = argc - cmd_task.argc - consumed - 1;
-		log_task.argv = argv + argc - log_task.argc;
+    /* There is a log command */
+    if (i < (unsigned) argc && strcmp (argv[i], "--") == 0) {
+        log_task.argc = argc - cmd_task.argc - consumed - 1;
+        log_task.argv = argv + argc - log_task.argc;
         log_task.argv[log_task.argc] = NULL;
-	}
+    }
 
     cmd_task.argv[cmd_task.argc] = NULL;
 
@@ -607,7 +607,7 @@ dmon_main (int argc, char **argv)
         status_io = NULL;
     }
 
-	exit (EXIT_SUCCESS);
+    exit (EXIT_SUCCESS);
 }
 
 /* vim: expandtab shiftwidth=4 tabstop=4
