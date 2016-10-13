@@ -1,7 +1,7 @@
 Source: dmon
 Section: utils
 Priority: optional
-Homepage: http://furi-ku.org/+/cgit/code/dmon
+Homepage: https://github.com/aperezdc/dmon
 Maintainer: Adrian Perez <aperez@igalia.com>
 Build-Depends: debhelper (>= 7)
 Standards-Version: 3.8.4
