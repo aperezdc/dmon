@@ -48,6 +48,12 @@ Command line options:
               specified *PATH*. You can signal the process to interact with
               it. (See SIGNALS_ below.)
 
+-W PATH, --work-dir PATH
+              Change to the directory located at *PATH* and use it as working
+              directory. Note that all other paths passed to ``dmon`` (except
+              the configuration file) will be interpreted as relative to the
+              working directory.
+
 -i TIME, --interval TIME
               When execution of the process ends with a successful (zero)
               exit status, wait for *TIME* seconds before respawning the

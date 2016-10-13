@@ -42,6 +42,7 @@ static int           paused       = 0;
 static bool          nodaemon     = false;
 static char         *status_path  = NULL;
 static char         *pidfile_path = NULL;
+static char         *workdir_path = NULL;
 
 
 static const struct {
@@ -342,6 +343,10 @@ static const w_opt_t dmon_options[] = {
     { 1, 'p', "pid-file", W_OPT_STRING, &pidfile_path,
         "Write PID to a file in the given path." },
 
+    { 1, 'W', "work-dir", W_OPT_STRING, &workdir_path,
+        "Specify a working directory. All other specified relative paths have "
+        "to be specified in relation with this directory." },
+
     { 0, 'n', "no-daemon", W_OPT_BOOL, &nodaemon,
         "Do not daemonize, stay in foreground." },
 
@@ -434,6 +439,11 @@ dmon_main (int argc, char **argv)
                                 argc, argv);
 
     W_DEBUG ("w_opt_parse consumed $I arguments\n", consumed);
+
+    if (workdir_path) {
+        if (chdir (workdir_path) != 0)
+            w_die ("$s: Cannot use '$s' as work directory, $E\n", argv[0], workdir_path);
+    }
 
     if (status_path) {
         status_io = w_io_unix_open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);

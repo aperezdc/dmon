@@ -1,4 +1,4 @@
-.\" Man page generated from reStructeredText.
+.\" Man page generated from reStructuredText.
 .
 .TH DMON 8 "" "" ""
 .SH NAME
@@ -45,31 +45,37 @@ monitored and re\-launched when it dies.
 Command line options:
 .INDENT 0.0
 .TP
-.BI \-C \ PATH, \ \-\-config \ PATH
+.BI \-C \ PATH\fP,\fB \ \-\-config \ PATH
 Read contents from \fIPATH\fP as if they were command line options.
 Those will be parsed after the options picked from the
 \fBDMON_OPTIONS\fP environment variable and before the options
 given in the command line. If given, this option \fBmust\fP be
-the first one passed to to \fBdmon\fP.
+the first one passed to to \fBdmon\fP\&.
 .TP
-.BI \-I \ PATH, \ \-\-write\-info \ PATH
+.BI \-I \ PATH\fP,\fB \ \-\-write\-info \ PATH
 Write status changes of monitored processes to \fIPATH\fP, one
 status message per line. See the \fI\%status file format\fP section
 for details on the format.
 .TP
-.BI \-p \ PATH, \ \-\-pid\-file \ PATH
+.BI \-p \ PATH\fP,\fB \ \-\-pid\-file \ PATH
 Write the PID of the master \fBdmon\fP process to a file in the
-specified \fIPATH\fP. You can signal the process to interact with
+specified \fIPATH\fP\&. You can signal the process to interact with
 it. (See \fI\%SIGNALS\fP below.)
 .TP
-.BI \-i \ TIME, \ \-\-interval \ TIME
+.BI \-W \ PATH\fP,\fB \ \-\-work\-dir \ PATH
+Change to the directory located at \fIPATH\fP and use it as working
+directory. Note that all other paths passed to \fBdmon\fP (except
+the configuration file) will be interpreted as relative to the
+working directory.
+.TP
+.BI \-i \ TIME\fP,\fB \ \-\-interval \ TIME
 When execution of the process ends with a successful (zero)
 exit status, wait for \fITIME\fP seconds before respawning the
 process instead of doing it immediately. This can be used to
 make \fBdmon\fP behave as el\-cheapo \fIcron(8)\fP replacement. This
-option cannot be used along with \fB\-1\fP.
+option cannot be used along with \fB\-1\fP\&.
 .TP
-.BI \-t \ TIME, \ \-\-timeout \ TIME
+.BI \-t \ TIME\fP,\fB \ \-\-timeout \ TIME
 If the process takes longer than \fITIME\fP seconds to complete,
 terminate it by sending the \fITERM\fP/\fICONT\fP signal combo. Then
 the process will be respawned again. This is useful to ensure
@@ -78,22 +84,22 @@ some known time limit do not hog the computer. Most likely,
 this flag is useful in conjunction with \fB\-1\fP, and with
 \fB\-n\fP e.g. when using it in a \fIcron(8)\fP job.
 .TP
-.BI \-L \ NUMBER, \ \-\-load\-high \ NUMBER
+.BI \-L \ NUMBER\fP,\fB \ \-\-load\-high \ NUMBER
 Enable tracking the system\(aqs load average, and suspend the
 execution of the command process when the system load goes
-over \fINUMBER\fP. To pause the process, \fISTOP\fP signal will be
+over \fINUMBER\fP\&. To pause the process, \fISTOP\fP signal will be
 sent to it. You may want to use \fB\-l\fP as well to specify
 under which load value the process is resumed, otherwise
 when the system load falls below \fINUMBER/2\fP the process will
 be resumed.
 .TP
-.BI \-l \ NUMBER, \ \-\-load\-low \ NUMBER
+.BI \-l \ NUMBER\fP,\fB \ \-\-load\-low \ NUMBER
 When using \fB\-L\fP, the command process execution will be
 resumed when the system load falls below \fINUMBER\fP, instead of
 using the default behavior of resuming the process when the
-load falls below half the limit specified with \fB\-L\fP.
+load falls below half the limit specified with \fB\-L\fP\&.
 .TP
-.BI \-E \ ENVVAR, \ \-\-environ \ ENVVAR
+.BI \-E \ ENVVAR\fP,\fB \ \-\-environ \ ENVVAR
 Manipulates environment variables. Specifying just a variable
 name (e.g. \fB\-E foo\fP) as \fIENVVAR\fP will clear it and remove
 the variable from the environment. Adding a value will define
@@ -102,53 +108,53 @@ specified multiple times. Environment variables will affect
 \fIboth\fP the \fBdmon\fP and the child process; this is intended
 behaviour.
 .TP
-.BI \-u \ UIDGID, \ \-\-cmd\-user \ UIDGID
+.BI \-u \ UIDGID\fP,\fB \ \-\-cmd\-user \ UIDGID
 Executes the command with the credentials of user \fIUID\fP,
 and additional group \fIGID\fP specified separated with
 semicolons. Both user and group identifiers might be given
 as strings or numerically.
 .TP
-.BI \-U \ UIDGID, \ \-\-log\-user \ UIDGID
+.BI \-U \ UIDGID\fP,\fB \ \-\-log\-user \ UIDGID
 Executes the \fBlog\fP command with the credentials of user
 \fIUID\fP, and additional group \fIGID\fP specified separated with
 semicolons. Both user and group identifiers might be given
 as strings or numerically.
 .TP
-.B \-n,  \-\-no\-daemon
+.B \-n\fP,\fB  \-\-no\-daemon
 Do not daemonize: \fBdmon\fP will keep working in foreground,
 without detaching and without closing its standard input and
 output streams. This is useful for debugging and, to a limited
 extent, to run interactive programs.
 .TP
-.B \-1,  \-\-once
+.B \-1\fP,\fB  \-\-once
 Run command only once: if the command exits with a success
 status (i.e. exit code is zero), then \fBdmon\fP will exit and
 stop the logging process. If the program dies due to a signal
 or with a non\-zero exit status, it is respawned. This option
 tends to be used in conjunction with \fB\-n\fP, and cannot be
-used with \fB\-i\fP.
+used with \fB\-i\fP\&.
 .TP
-.B \-e,  \-\-stderr\-redir
+.B \-e\fP,\fB  \-\-stderr\-redir
 Redirect both the standard error and standard output streams
 to the log command. If not specified, only the standard output
 is redirected.
 .TP
-.B \-s,  \-\-cmd\-sigs
+.B \-s\fP,\fB  \-\-cmd\-sigs
 Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 \fIHUP\fP to the monitored command when \fBdmon\fP receives them.
 .TP
-.B \-S,  \-\-log\-sigs
+.B \-S\fP,\fB  \-\-log\-sigs
 Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 \fIHUP\fP to the log command when \fBdmon\fP receives them.
 .TP
-.BI \-r \ LIMIT, \ \-\-limit \ LIMIT
+.BI \-r \ LIMIT\fP,\fB \ \-\-limit \ LIMIT
 Set \fILIMIT\fP for process execution. Limits are specified as
 \fBname=value\fP strings, and multiple limits may be set by
 using \fB\-r\fP multiple times. The available set of limits
 depends on the current operating system, to get a list
 \fB\-r help\fP can be used.
 .TP
-.B \-h,  \-\-help
+.B \-h\fP,\fB  \-\-help
 Show a summary of available options.
 .UNINDENT
 .sp
@@ -198,6 +204,8 @@ signals are ignored.
 .sp
 The following command will supervise a shell which prints a string each
 fifth second, and the output is logged to a file with timestamps:
+.INDENT 0.0
+.INDENT 3.5
 .sp
 .nf
 .ft C
@@ -205,9 +213,13 @@ dmon \-n sh \-c \(aqwhile echo "Hello World" ; do sleep 5 ; done\(aq \e
   \-\- dlog logfile
 .ft P
 .fi
+.UNINDENT
+.UNINDENT
 .sp
 In order to turn the previous example into a daemon, we only need to
-remove the \fB\-n\fP. I may be convenient to specify a PID file path:
+remove the \fB\-n\fP\&. I may be convenient to specify a PID file path:
+.INDENT 0.0
+.INDENT 3.5
 .sp
 .nf
 .ft C
@@ -216,9 +228,13 @@ dmon \-p example.pid \e
   \-\- dlog logfile
 .ft P
 .fi
+.UNINDENT
+.UNINDENT
 .sp
 The following example launches the \fIcron(8)\fP daemon with the logging
 process running as user and group \fBlog:wheel\fP:
+.INDENT 0.0
+.INDENT 3.5
 .sp
 .nf
 .ft C
@@ -226,30 +242,42 @@ dmon \-p /var/run/crond.pid \-u log:wheel \-e cron \-f
   \-\- dlog /var/log/cron.log
 .ft P
 .fi
+.UNINDENT
+.UNINDENT
 .sp
 This example will run a (probably lengthy) backup process, pausing it when
 the system load goes above 3.5 and resuming it when the load drops below
 1.0:
+.INDENT 0.0
+.INDENT 3.5
 .sp
 .nf
 .ft C
 dmon \-1 \-n \-l 1 \-L 3.5 rsync \-avz ~/ /backup/homedir
 .ft P
 .fi
+.UNINDENT
+.UNINDENT
 .sp
 If you have a PID file, terminating the daemon is an easy task:
+.INDENT 0.0
+.INDENT 3.5
 .sp
 .nf
 .ft C
 kill $(cat example.pid)
 .ft P
 .fi
+.UNINDENT
+.UNINDENT
 .SH STATUS FILE FORMAT
 .sp
 When using the \fB\-I\fP \fIPATH\fP option, status updates are written to \fIPATH\fP,
 one line per update. The following line formats may be used:
 .sp
 A process was started by \fBdmon\fP:
+.INDENT 0.0
+.INDENT 3.5
 .INDENT 0.0
 .INDENT 3.5
 .sp
@@ -261,8 +289,12 @@ log start <pid>
 .fi
 .UNINDENT
 .UNINDENT
+.UNINDENT
+.UNINDENT
 .sp
 A process is about to be stopped by \fBdmon\fP:
+.INDENT 0.0
+.INDENT 3.5
 .INDENT 0.0
 .INDENT 3.5
 .sp
@@ -274,9 +306,13 @@ log stop <pid>
 .fi
 .UNINDENT
 .UNINDENT
+.UNINDENT
+.UNINDENT
 .sp
 A process has exited by its own means, or was terminated by the other means
 different than \fBdmon\fP itself (e.g. by the kernel or the user):
+.INDENT 0.0
+.INDENT 3.5
 .INDENT 0.0
 .INDENT 3.5
 .sp
@@ -288,6 +324,8 @@ log exit <pid> <status>
 .fi
 .UNINDENT
 .UNINDENT
+.UNINDENT
+.UNINDENT
 .sp
 The \fB<status>\fP field is numeric, and must be interpreted the same as the
 \fIstatus\fP argument to the \fIwaitpid(2)\fP system call. Most of the time this is
@@ -295,6 +333,8 @@ the expected integer code passed to \fIexit(2)\fP, but this may not be true if
 the process exits forcibly.
 .sp
 A signal is about to be sent to a process:
+.INDENT 0.0
+.INDENT 3.5
 .INDENT 0.0
 .INDENT 3.5
 .sp
@@ -306,8 +346,12 @@ log signal <pid> <signal>
 .fi
 .UNINDENT
 .UNINDENT
+.UNINDENT
+.UNINDENT
 .sp
 The main monitored process timed out (when \fB\-t\fP is in effect):
+.INDENT 0.0
+.INDENT 3.5
 .INDENT 0.0
 .INDENT 3.5
 .sp
@@ -318,9 +362,13 @@ cmd timeout <pid>
 .fi
 .UNINDENT
 .UNINDENT
+.UNINDENT
+.UNINDENT
 .sp
 Process was paused or resumed due to system load constraints (when the
 \fB\-l\fP and \fB\-L\fP options are in effect):
+.INDENT 0.0
+.INDENT 3.5
 .INDENT 0.0
 .INDENT 3.5
 .sp
@@ -330,6 +378,8 @@ cmd pause <pid>
 cmd resume <pid>
 .ft P
 .fi
+.UNINDENT
+.UNINDENT
 .UNINDENT
 .UNINDENT
 .SH ENVIRONMENT
@@ -346,5 +396,4 @@ given in the command line, so they may still be overriden.
 .SH AUTHOR
 Adrian Perez <aperez@igalia.com>
 .\" Generated by docutils manpage writer.
-.\" 
 .
