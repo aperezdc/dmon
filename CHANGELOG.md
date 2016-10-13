@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [v0.4.3] - 2016-10-13
 ### Added
 - Allow setting the work directory with `-W`/`--work-dir` in the command line
   (or `work-dir` in a configuration file).
@@ -21,5 +23,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - `dlog` and `drlog` now handle the `INT`, `TERM`, and `HUP` signals gracefully.
 
-[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.4.3...HEAD
+[v0.4.3]: https://github.com/aperezdc/dmon/compare/v0.4.2...v0.4.3
 [v0.4.2]: https://github.com/aperezdc/dmon/compare/v0.4.1...v0.4.2

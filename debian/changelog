@@ -1,3 +1,10 @@
+dmon (0.4.3) stable; urgency=low
+
+  * "dmon" can now set the work directory using the -W/--work-dir command
+    line flag.
+
+ -- Adrian Perez <aperez@igalia.com>  Thu, 13 Oct 2016 15:49:00 +0300
+
 dmon (0.4.2) stable; urgency=low
 
   * "drlog", "dslog" and "dlog" can now read data from arbitrary file
