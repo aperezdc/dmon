@@ -25,19 +25,19 @@
 #endif /* NO_MULTICALL */
 
 
-static int           log_fds[2]   = { -1, -1 };
+       int           log_fds[2]   = { -1, -1 };
 static w_io_t       *status_io    = NULL;
-static task_t        cmd_task     = TASK;
-static task_t        log_task     = TASK;
+       task_t        cmd_task     = TASK;
+       task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
 static float         load_high    = 0.0f;
 static bool          success_exit = false;
-static bool          log_signals  = false;
-static bool          cmd_signals  = false;
-static unsigned long cmd_timeout  = 0;
+       bool          log_signals  = false;
+       bool          cmd_signals  = false;
+       unsigned long cmd_timeout  = 0;
 static unsigned long cmd_interval = 0;
-static int           check_child  = 0;
-static int           running      = 1;
+       int           check_child  = 0;
+       int           running      = 1;
 static int           paused       = 0;
 static bool          nodaemon     = false;
 static char         *status_path  = NULL;
@@ -183,58 +183,7 @@ reap_and_check (void)
 }
 
 
-static void
-handle_signal (int signum)
-{
-    W_DEBUG ("handle signal $i ($s)\n", signum, signal_to_name (signum));
-
-    /* Receiving INT/TERM signal will stop gracefully */
-    if (signum == SIGINT || signum == SIGTERM) {
-        running = 0;
-        return;
-    }
-
-    /* Handle CHLD: check children */
-    if (signum == SIGCHLD) {
-        check_child = 1;
-        return;
-    }
-
-    /*
-     * If we have a maximum time to run the process, and we receive SIGALRM,
-     * then the timeout was reached. As per signal(7) it is safe to kill(2)
-     * the process from a signal handler, so we do that and then mark it for
-     * respawning.
-     */
-    if (cmd_timeout && signum == SIGALRM) {
-        write_status ("cmd timeout $L\n", (unsigned long) cmd_task.pid);
-        task_action (&cmd_task, A_STOP);
-        task_action_queue (&cmd_task, A_START);
-        alarm (cmd_timeout);
-        return;
-    }
-
-    unsigned i = 0;
-    while (forward_signals[i].code != NO_SIGNAL) {
-        if (signum == forward_signals[i++].code)
-            break;
-    }
-
-    if (signum != NO_SIGNAL) {
-        /* Try to forward signals */
-        if (cmd_signals) {
-            W_DEBUGC ("  delayed signal $i for cmd process\n", signum);
-            task_action_queue (&cmd_task, A_SIGNAL);
-            task_signal_queue (&cmd_task, signum);
-        }
-        if (log_signals && log_enabled) {
-            W_DEBUGC ("  delayed signal $i for log process\n", signum);
-            task_action_queue (&log_task, A_SIGNAL);
-            task_signal_queue (&log_task, signum);
-        }
-    }
-}
-
+extern void handle_signal (int signum);
 
 
 static void

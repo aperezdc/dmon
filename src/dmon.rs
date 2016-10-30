@@ -6,10 +6,6 @@
 
 extern crate libc;
 
-extern {
-	fn task_signal_dispatch(task: &mut Task);
-}
-
 
 #[repr(C)]
 pub enum Action {
@@ -37,6 +33,86 @@ pub struct Task {
 	// TODO: Missing items.
 }
 
+
+const FORWARD_SIGNALS: [libc::c_int; 6] = [
+	libc::SIGCONT,
+	libc::SIGALRM,
+	libc::SIGQUIT,
+	libc::SIGUSR1,
+	libc::SIGUSR2,
+	libc::SIGHUP,
+];
+
+
+
+fn log_enabled() -> bool {
+    unsafe {
+        *log_fds != -1
+    }
+}
+
+
+extern {
+	fn task_signal_dispatch(task: &mut Task);
+	fn task_action(task: &mut Task, action: Action);
+	static log_fds: *mut libc::c_int;
+	static mut cmd_task: Task;
+	static cmd_timeout: libc::c_ulong;
+	static cmd_signals: bool;
+	static mut log_task: Task;
+	static log_signals: bool;
+	static mut check_child: libc::c_int;
+	static mut running: libc::c_int;
+}
+
+
+#[no_mangle]
+pub extern fn handle_signal(signum: libc::c_int)
+{
+    // TODO: Debug statements.
+    // W_DEBUG ("handle signal $i ($s)\n", signum, signal_to_name (signum));
+
+    match signum {
+        libc::SIGINT | libc::SIGTERM => {
+            // Stop gracefuly.
+            unsafe { running = 0 }
+            return
+        },
+        libc::SIGCHLD => {
+            unsafe { check_child = 1 }
+            return
+        },
+        libc::SIGALRM if cmd_timeout > 0 => {
+            // TODO:
+            // write_status ("cmd timeout $L\n", (unsigned long) cmd_task.pid);
+            unsafe {
+                task_action(&mut cmd_task, Action::Stop);
+                task_action_queue(&mut cmd_task, Action::Start);
+                libc::alarm(cmd_timeout as libc::c_uint);
+            }
+            return
+        },
+        _ => {}
+    }
+
+    if FORWARD_SIGNALS.iter().any(|&x| x == signum) {
+        // Try to forward signals.
+        if cmd_signals {
+            // TODO: W_DEBUGC ("  delayed signal $i for cmd process\n", signum);
+            unsafe {
+                task_action_queue(&mut cmd_task, Action::Signal);
+                task_signal_queue(&mut cmd_task, signum);
+            }
+        }
+        if log_signals && log_enabled() {
+            // TODO: W_DEBUGC ("  delayed signal $i for log process\n", signum);
+            unsafe {
+                task_action_queue(&mut log_task, Action::Signal);
+                task_signal_queue(&mut log_task, signum);
+            }
+        }
+    }
+}
 
 #[no_mangle]
 pub extern fn task_action_queue(task: &mut Task, action: Action)

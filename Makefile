@@ -67,6 +67,9 @@ libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
 
 
+CFLAGS  += -pthread
+LDFLAGS += -pthread
+LDLIBS  += -lm -ldl
 target/release/libdmon.a:
 	cargo build --release
 target/debug/libdmon.a:
