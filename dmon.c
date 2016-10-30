@@ -31,7 +31,7 @@ static w_io_t       *status_io    = NULL;
        task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
 static float         load_high    = 0.0f;
-static bool          success_exit = false;
+       bool          success_exit = false;
        bool          log_signals  = false;
        bool          cmd_signals  = false;
        unsigned long cmd_timeout  = 0;
@@ -134,55 +134,7 @@ signal_to_name (int signum)
 #endif /* _DEBUG_PRINT */
 
 
-static int
-reap_and_check (void)
-{
-    W_DEBUG ("waiting for a children to reap...\n");
-
-    int status;
-    pid_t pid = waitpid (-1, &status, WNOHANG);
-
-    if (pid == cmd_task.pid) {
-        W_DEBUGC ("  reaped cmd process $I\n", (unsigned) pid);
-
-        write_status ("cmd exit $L $i\n", (unsigned long) pid, status);
-
-        cmd_task.pid = NO_PID;
-
-        /*
-         * If exit-on-success was request AND the process exited ok,
-         * then we do not want to respawn, but to gracefully shutdown.
-         */
-        if (success_exit && WIFEXITED (status) && WEXITSTATUS (status) == 0) {
-            W_DEBUGC ("  cmd process ended successfully, will exit\n");
-            running = 0;
-        }
-        else {
-            task_action_queue (&cmd_task, A_START);
-        }
-        return status;
-    }
-    else if (log_enabled && pid == log_task.pid) {
-        W_DEBUGC ("  reaped log process $I\n", (unsigned) pid);
-
-        write_status ("log exit $L $i\n", (unsigned long) pid, status);
-
-        log_task.pid = NO_PID;
-        task_action_queue (&log_task, A_START);
-    }
-    else { 
-        W_DEBUGC ("  reaped unknown process $I", (unsigned) pid);
-    }
-
-    /*
-     * For cases where a return status is not meaningful (PIDs other than
-     * that of the command being run) just return some invalid return code
-     * value.
-     */
-    return -1;
-}
-
-
+extern int reap_and_check (void);
 extern void handle_signal (int signum);
 
 
