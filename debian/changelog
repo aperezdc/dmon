@@ -1,3 +1,10 @@
+dmon (0.4.4) stable; urgency=high
+
+  * "dmon" now correctly forwards signals to the log process when the
+    -S/--log-sigs command line flag is in use.
+
+ -- Adrian Perez <aperez@igalia.com>  Thu, 30 Oct 2016 22:51:00 +0300
+
 dmon (0.4.3) stable; urgency=low
 
   * "dmon" can now set the work directory using the -W/--work-dir command
