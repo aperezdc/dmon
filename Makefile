@@ -43,6 +43,10 @@ CFLAGS  ?= -Os -g -Wall -W
 DESTDIR ?=
 prefix  ?= /usr/local
 
+DMON_RUST     ?= release
+DMON_RUST_LIB := target/$(DMON_RUST)/libdmon.a
+
+
 libwheel_PATH := wheel
 
 MULTICALL ?= 1
@@ -62,7 +66,15 @@ libwheel_STDIO   := 0
 libwheel_PTHREAD := 0
 include $(libwheel_PATH)/Makefile.libwheel
 
-dmon: dmon.o util.o task.o $(libwheel)
+
+target/release/libdmon.a:
+	cargo build --release
+target/debug/libdmon.a:
+	cargo build
+.PHONY: target/release/libdmon.a target/release/libdmon.a
+
+
+dmon: dmon.o util.o task.o $(libwheel) $(DMON_RUST_LIB)
 
 
 ifneq ($(LIBNOFORK),0)
@@ -78,9 +90,9 @@ dmon: dlog.o dslog.o drlog.o multicall.o
 dlog drlog dslog: dmon
 	$(LN) -sf $< $@
 else
-dslog: dslog.o util.o $(libwheel)
-drlog: drlog.o util.o $(libwheel)
-dlog: dlog.o util.o $(libwheel)
+dslog: dslog.o util.o $(libwheel) $(DMON_RUST_LIB)
+drlog: drlog.o util.o $(libwheel) $(DMON_RUST_LIB)
+dlog: dlog.o util.o $(libwheel) $(DMON_RUST_LIB)
 endif
 
 man: dmon.8 dlog.8 dslog.8 drlog.8

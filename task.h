@@ -48,17 +48,13 @@ W_OBJ (task_t)
                     UIDGID,    \
                     0 }
 
-#define task_action_queue(task, _action) \
-    ((task)->action = (_action))
-
-#define task_signal_queue(task, _signal) \
-    ((task)->signal = (_signal))
-
 task_t* task_new             (int argc, const char **argv);
 void    task_start           (task_t *task);
 void    task_signal_dispatch (task_t *task);
 void    task_action_dispatch (task_t *task);
+void    task_action_queue    (task_t *task, action_t action);
 void    task_signal          (task_t *task, int signum);
+void    task_signal_queue    (task_t *task, int signum);
 void    task_action          (task_t *task, action_t action);
 
 #endif /* !__task_h__ */

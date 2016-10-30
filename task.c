@@ -158,20 +158,6 @@ task_signal_dispatch (task_t *task)
 
 
 void
-task_signal (task_t *task, int signum)
-{
-    w_assert (task != NULL);
-
-    /* Dispatch pending signal first if needed */
-    task_signal_dispatch (task);
-
-    /* Then send our own */
-    task_signal_queue (task, signum);
-    task_signal_dispatch (task);
-}
-
-
-void
 task_action_dispatch (task_t *task)
 {
     w_assert (task != NULL);
