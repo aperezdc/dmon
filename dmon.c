@@ -230,7 +230,7 @@ handle_signal (int signum)
         if (log_signals && log_enabled) {
             W_DEBUGC ("  delayed signal $i for log process\n", signum);
             task_action_queue (&log_task, A_SIGNAL);
-            task_action_queue (&log_task, signum);
+            task_signal_queue (&log_task, signum);
         }
     }
 }
