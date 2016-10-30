@@ -74,6 +74,8 @@ target/release/libdmon.a:
 	cargo build --release
 target/debug/libdmon.a:
 	cargo build
+
+.NOTPARALLEL: target/release/libdmon.a target/release/libdmon.a
 .PHONY: target/release/libdmon.a target/release/libdmon.a
 
 
