@@ -56,7 +56,7 @@ static const w_opt_t dlog_options[] = {
 static void
 handle_signal (int signum)
 {
-    if (buffered) {
+    if (buffered && log_io != w_stdout) {
         if (w_io_failed (w_io_flush (log_io)))
             W_WARN ("Error flushing log: $E\n");
     }
@@ -165,7 +165,7 @@ dlog_main (int argc, char **argv)
             if (w_io_failed (r))
                 W_WARN ("$s: writing to log failed: $E\n", argv[0]);
 
-            if (!buffered) {
+            if (!buffered && log_io != w_stdout) {
                 if (w_io_failed (r = w_io_flush (log_io)))
                     W_WARN ("$s: flushing log failed: $E\n", argv[0]);
             }
