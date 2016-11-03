@@ -64,7 +64,7 @@ static const struct {
 };
 
 
-#define almost_zerof(_v)  ((_v) < 0.000000001f)
+extern _Bool almost_zerof(double v);
 
 #define log_enabled   (log_fds[0] != -1)
 #define load_enabled  (!almost_zerof (load_high))

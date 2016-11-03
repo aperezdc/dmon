@@ -52,6 +52,10 @@ fn log_enabled() -> bool {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn almost_zerof(v: libc::c_double) -> bool {
+    v < 0.000000001
+}
 
 extern {
 	fn task_signal_dispatch(task: &mut Task);
