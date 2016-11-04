@@ -7,4 +7,5 @@ authors = ["Adrián Pérez de Castro <aperez@igalia.com>"]
 crate-type = ["staticlib"]
 
 [dependencies]
+clippy = "*"
 libc = "0.2.0"
