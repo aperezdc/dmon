@@ -28,8 +28,6 @@ struct sigaction;
 /* uid[:gid[:gid...]] */
 int parse_uidgids (char*, uidgid_t*);
 
-int name_to_uidgid (const char*, uid_t*, gid_t*);
-
 void fd_cloexec (int);
 void become_daemon (void);
 void safe_sleep (unsigned);

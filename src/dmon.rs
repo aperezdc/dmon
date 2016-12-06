@@ -217,3 +217,47 @@ pub extern "C" fn name_to_gid(name: *const libc::c_char,
         None => 1
     }
 }
+
+
+#[no_mangle]
+#[allow(not_unsafe_ptr_arg_deref)]
+pub extern "C" fn name_to_uidgid(name: *const libc::c_char,
+                                 ouid: *mut libc::uid_t,
+                                 ogid: *mut libc::gid_t) -> libc::c_int
+{
+    let s = unsafe {
+        assert!(!name.is_null());
+        std::ffi::CStr::from_ptr(name)
+    }.to_str().unwrap();
+
+    let u = {
+        if let Ok(uid) = s.trim().parse::<u32>() {
+            let uu = unsafe { libc::getpwuid(uid as libc::uid_t) };
+            if uu.is_null() {
+                None
+            } else {
+                Some(unsafe { *uu })
+            }
+        } else {
+            let uu = unsafe { libc::getpwnam(name) };
+            if uu.is_null() {
+                None
+            } else {
+                Some(unsafe { *uu })
+            }
+        }
+    };
+
+    match u {
+        Some(uu) => {
+            if !ouid.is_null() {
+                unsafe { *ouid = uu.pw_uid };
+            }
+            if !ogid.is_null() {
+                unsafe { *ogid = uu.pw_gid };
+            }
+            0
+        },
+        None => 1
+    }
+}

@@ -27,6 +27,7 @@
 
 
 extern int name_to_gid(const char *name, gid_t *result);
+extern int name_to_uidgid(const char *name, uid_t *uresult, gid_t *gresult);
 
 
 void
@@ -94,39 +95,6 @@ interruptible_sleep (unsigned seconds)
     ts.tv_nsec = 0;
 
     return !(nanosleep (&ts, NULL) == -1 && errno == EINTR);
-}
-
-
-int
-name_to_uidgid (const char *str,
-                uid_t      *uresult,
-                gid_t      *gresult)
-{
-    struct passwd *pw;
-    unsigned long num;
-    char *dummy;
-
-    w_assert (str);
-    w_assert (uresult);
-    w_assert (gresult);
-
-    num = strtoul (str, &dummy, 0);
-    if (num == ULONG_MAX && errno == ERANGE)
-        return 1;
-
-    if (!dummy || *dummy == '\0') {
-        if ((pw = getpwuid ((uid_t) num)) == NULL)
-            return 1;
-    }
-    else {
-        if ((pw = getpwnam (str)) == NULL)
-            return 1;
-    }
-
-    *uresult = pw->pw_uid;
-    *gresult = pw->pw_gid;
-
-    return 0;
 }
 
 
