@@ -26,6 +26,9 @@
 #include <pwd.h>
 
 
+extern int name_to_gid(const char *name, gid_t *result);
+
+
 void
 fd_cloexec (int fd)
 {
@@ -123,35 +126,6 @@ name_to_uidgid (const char *str,
     *uresult = pw->pw_uid;
     *gresult = pw->pw_gid;
 
-    return 0;
-}
-
-
-int
-name_to_gid (const char *str, gid_t *result)
-{
-    struct group *grp;
-    unsigned long num;
-    char *dummy;
-
-    w_assert (str);
-    w_assert (result);
-
-    num = strtoul (str, &dummy, 0);
-
-    if (num == ULONG_MAX && errno == ERANGE)
-        return 1;
-
-    if (!dummy || *dummy == '\0') {
-        *result = (gid_t) num;
-        return 0;
-    }
-
-    if ((grp = getgrnam (str)) == NULL)
-        return 1;
-
-
-    *result = grp->gr_gid;
     return 0;
 }
 

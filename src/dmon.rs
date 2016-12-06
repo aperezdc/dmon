@@ -177,3 +177,43 @@ pub extern "C" fn task_signal(task: &mut Task, signum: libc::c_int) {
         task_signal_dispatch(task);
     }
 }
+
+
+#[no_mangle]
+#[allow(not_unsafe_ptr_arg_deref)]
+pub extern "C" fn name_to_gid(name: *const libc::c_char,
+                              ogid: *mut libc::gid_t) -> libc::c_int
+{
+    let s = unsafe {
+        assert!(!name.is_null());
+        std::ffi::CStr::from_ptr(name)
+    }.to_str().unwrap();
+
+    let gid = {
+        if let Ok(gid) = s.trim().parse::<u32>() {
+            let g = unsafe { libc::getgrgid(gid as libc::gid_t) };
+            if g.is_null() {
+                None
+            } else {
+                Some(gid as libc::gid_t)
+            }
+        } else {
+            let g = unsafe { libc::getgrnam(name) };
+            if g.is_null() {
+                None
+            } else {
+                Some(unsafe { (*g).gr_gid })
+            }
+        }
+    };
+
+    match gid {
+        Some(gid) => {
+            if !ogid.is_null() {
+                unsafe { *ogid = gid };
+            }
+            0
+        },
+        None => 1
+    }
+}
