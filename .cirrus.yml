@@ -1,0 +1,11 @@
+container:
+  image: base/devel:latest
+  memory: 256M
+  cpu: 1
+
+build_task:
+  build_script: |
+    pacman -Sy
+    pacman -S git --noconfirm
+    git submodule update --init --force
+    make -j$(nproc)
