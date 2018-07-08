@@ -1,0 +1,4 @@
+delete_merged_branches = true
+status = [
+	"continuous-integration/cirrus-ci/push",
+]
