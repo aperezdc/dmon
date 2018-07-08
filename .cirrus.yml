@@ -5,11 +5,11 @@ container:
 
 build_task:
   build_script: |
-    echo '=== Installing dependencies ==='
+    ### Dependencies
     pacman -Sy
     pacman -S git --noconfirm
-    echo '=== Updating Git submodules ==='
+    ### Git Submodules
     git submodule update --init --force
-    echo '=== Building ==='
+    ### Building
     make -j$(nproc)
-    echo '=== Success ==='
+    ### Done
