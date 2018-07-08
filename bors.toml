@@ -1,0 +1,5 @@
+delete_merged_branches = true
+status = [
+	# Apparently, this is the name that Cirrus CI uses. Ugh.
+	"continuous-integration/build",
+]
