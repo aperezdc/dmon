@@ -1,9 +1,10 @@
 container:
   image: base/devel:latest
   memory: 256M
-  cpu: 1
+  cpu: 2
 
 build_task:
+  # This is for BORS.
   build_script: |
     ### Dependencies
     pacman -Sy

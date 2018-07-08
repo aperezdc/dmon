@@ -1,6 +1,6 @@
 # DMon - Process Monitoring With Style
 
-[![Build Status](https://drone.io/github.com/aperezdc/dmon/status.png)](https://drone.io/github.com/aperezdc/dmon/latest)
+[![Build Status](https://api.cirrus-ci.com/github/aperezdc/dmon.svg)](https://cirrus-ci.com/github/aperezdc/dmon)
 
 This README contains only some random bits. For more in-depth writing, you
 may want to read the articles on DMon:
