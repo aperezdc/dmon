@@ -224,7 +224,7 @@ recreate_ts:
         if (maxtime) {
             curtime -= (curtime % maxtime);
         }
-        cursize = (unsigned long long) lseek (w_io_unix_get_fd ((w_io_unix_t*) out_io),
+        cursize = (unsigned long long) lseek (w_io_get_fd ((w_io_unix_t*) out_io),
                                               0, SEEK_CUR);
     }
 
