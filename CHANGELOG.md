@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.4.5] - 2018-08-05
+### Fixed
+- Make it possible to build `dmon` with newer GCC versions.
+
 ## [v0.4.4] - 2016-10-30
 ### Fixed
 - Correctly forward signals to the log process when using `-S`/`--log-sigs`.
@@ -27,7 +31,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - `dlog` and `drlog` now handle the `INT`, `TERM`, and `HUP` signals gracefully.
 
-[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.4.4...HEAD
-[v0.4.3]: https://github.com/aperezdc/dmon/compare/v0.4.3...v0.4.4
+[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.4.5...HEAD
+[v0.4.5]: https://github.com/aperezdc/dmon/compare/v0.4.4...v0.4.5
+[v0.4.4]: https://github.com/aperezdc/dmon/compare/v0.4.3...v0.4.4
 [v0.4.3]: https://github.com/aperezdc/dmon/compare/v0.4.2...v0.4.3
 [v0.4.2]: https://github.com/aperezdc/dmon/compare/v0.4.1...v0.4.2
