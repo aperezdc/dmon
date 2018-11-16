@@ -1,0 +1,9 @@
+image: alpine/edge
+packages:
+  - make
+  - gcc
+sources:
+  - https://git.sr.ht/~aperezdc/dmon
+tasks:
+  - build: |
+      make -C dmon
