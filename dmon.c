@@ -7,10 +7,11 @@
 
 #define _GNU_SOURCE 1
 
-#include <sys/types.h>
 #include "wheel/wheel.h"
 #include "task.h"
 #include "util.h"
+#include <assert.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -73,7 +74,7 @@ static const struct {
 static inline void
 _write_status (const char *fmt, ...)
 {
-    w_assert (status_io);
+    assert (status_io);
 
     va_list arg;
     va_start (arg, fmt);
@@ -265,9 +266,9 @@ _environ_option (const w_opt_context_t *ctx)
     char *equalsign;
     char *varname;
 
-    w_assert (ctx);
-    w_assert (ctx->argument);
-    w_assert (ctx->argument[0]);
+    assert (ctx);
+    assert (ctx->argument);
+    assert (ctx->argument[0]);
 
     if ((equalsign = strchr (ctx->argument[0], '=')) == NULL) {
         unsetenv (ctx->argument[0]);
@@ -288,9 +289,9 @@ _rlimit_option (const w_opt_context_t *ctx)
     int status;
     int limit;
 
-    w_assert (ctx);
-    w_assert (ctx->argument);
-    w_assert (ctx->argument[0]);
+    assert (ctx);
+    assert (ctx->argument);
+    assert (ctx->argument[0]);
 
     status = parse_limit_arg (ctx->argument[0], &limit, &value);
     if (status < 0)
@@ -306,10 +307,10 @@ _rlimit_option (const w_opt_context_t *ctx)
 static w_opt_status_t
 _store_uidgids_option (const w_opt_context_t *ctx)
 {
-    w_assert (ctx);
-    w_assert (ctx->userdata);
-    w_assert (ctx->argument);
-    w_assert (ctx->argument[0]);
+    assert (ctx);
+    assert (ctx->userdata);
+    assert (ctx->argument);
+    assert (ctx->argument[0]);
 
     return (parse_uidgids (ctx->argument[0], ctx->option->extra))
             ? W_OPT_BAD_ARG
@@ -320,9 +321,9 @@ _store_uidgids_option (const w_opt_context_t *ctx)
 static w_opt_status_t
 _config_option (const w_opt_context_t *ctx)
 {
-    w_assert (ctx);
-    w_assert (ctx->argv);
-    w_assert (ctx->argv[0]);
+    assert (ctx);
+    assert (ctx->argv);
+    assert (ctx->argv[0]);
 
     w_printerr ("$s: Option --config/-C must be the first one specified\n",
                 ctx->argv[0]);
@@ -420,12 +421,12 @@ dmon_main (int argc, char **argv)
         char *err_msg = NULL;
 
         if ((cfg_io = w_io_unix_open (argv[2], O_RDONLY, 0)) == NULL)
-            w_die ("$s: Could not open file '$s', $E\n", argv[0], argv[2]);
+            die ("%s: Could not open file '%s', %s\n", argv[0], argv[2], ERRSTR);
 
         success = w_opt_parse_io (dmon_options, cfg_io, &err_msg);
 
         if (!success || err_msg)
-            w_die ("$s: Error parsing '$s' at line $s\n", argv[0], argv[2], err_msg);
+            die ("%s: Error parsing '%s', %s\n", argv[0], argv[2], err_msg);
 
         replace_args_shift (2, &argc, &argv);
     }
@@ -442,17 +443,17 @@ dmon_main (int argc, char **argv)
 
     if (workdir_path) {
         if (chdir (workdir_path) != 0)
-            w_die ("$s: Cannot use '$s' as work directory, $E\n", argv[0], workdir_path);
+            die ("%s: Cannot use '%s' as work directory, %s\n", argv[0], workdir_path, ERRSTR);
     }
 
     if (status_path) {
         status_io = w_io_unix_open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
         if (!status_io)
-            w_die ("$s: Cannot open '$s' for writing, $E\n", argv[0], status_path);
+            die ("%s: Cannot open '%s' for writing, %s\n", argv[0], status_path, ERRSTR);
     }
 
     if (cmd_interval && success_exit)
-        w_die ("$s: Options '-i' and '-1' cannot be used together.\n", argv[0]);
+        die ("%s: Options '-i' and '-1' cannot be used together.\n", argv[0]);
 
     if (load_enabled && almost_zerof (load_low))
         load_low = load_high / 2.0f;
@@ -476,7 +477,7 @@ dmon_main (int argc, char **argv)
 
     if (log_task.argc > 0) {
         if (pipe (log_fds) != 0) {
-            w_die ("$s: Cannot create pipe: $E\n", argv[0]);
+            die ("%s: Cannot create pipe: %s\n", argv[0], ERRSTR);
         }
         W_DEBUG ("pipe_read = $i, pipe_write = $i\n", log_fds[0], log_fds[1]);
         fd_cloexec (log_fds[0]);
@@ -499,15 +500,15 @@ dmon_main (int argc, char **argv)
 #endif /* _DEBUG_PRINT */
 
     if (cmd_task.argc == 0)
-        w_die ("$s: No command to run given.\n", argv[0]);
+        die ("%s: No command to run given.\n", argv[0]);
 
     if (pidfile_path) {
         pidfile_io = w_io_unix_open (pidfile_path,
                                      O_TRUNC | O_CREAT | O_WRONLY,
                                      0666);
         if (!pidfile_io) {
-            w_die ("$s: cannot open '$s' for writing: $E\n",
-                   argv[0], pidfile_path);
+            die ("%s: cannot open '%s' for writing, %s\n",
+                 argv[0], pidfile_path, ERRSTR);
         }
     }
 

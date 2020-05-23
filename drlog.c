@@ -8,6 +8,7 @@
 
 #include "wheel/wheel.h"
 #include "util.h"
+#include <assert.h>
 #include <time.h>
 #include <stdio.h>
 #include <limits.h>
@@ -171,24 +172,24 @@ flush_line (void)
 
 testdir:
         if (stat (directory, &st) < 0 || !S_ISDIR (st.st_mode))
-            w_die ((errno == ENOENT)
-                        ? "Output directory does not exist: $s\n"
-                        : "Output path is not a directory: $s\n",
-                   directory);
+            die ((errno == ENOENT)
+                     ? "Output directory does not exist: %s\n"
+                     : "Output path is not a directory: %s\n",
+                  directory);
 
         if (snprintf (path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
-            w_die ("Path name too long: $s\n", directory);
+            die ("Path name too long: %s\n", directory);
 
         out_io = w_io_unix_open (path,
                                  O_APPEND | O_CREAT | O_WRONLY,
                                  LOGFILE_PERMS);
 
         if (!out_io)
-            w_die ("Cannot open '$s': $E\n", path);
+            die ("Cannot open '%s': %s\n", path, ERRSTR);
 
         if (snprintf (path, sizeof (path), "%s/" LOGDIR_TSTAMP, directory) < 0) {
             w_obj_unref (out_io);
-            w_die ("Path name too long: $s\n", directory);
+            die ("Path name too long: %s\n", directory);
         }
 
         if ((ts_io = w_io_unix_open (path, O_RDONLY, 0)) == NULL) {
@@ -198,12 +199,11 @@ recreate_ts:
                                     LOGFILE_PERMS);
             if (!ts_io) {
                 w_obj_unref (out_io);
-                w_die ("Unable to write timestamp to '$s': $E\n",
-                       directory);
+                die ("Unable to write timestamp to '%s', %s\n", directory, ERRSTR);
             }
             w_io_result_t r = w_io_format (ts_io, "$I\n", (unsigned long) ts);
             if (w_io_failed (r))
-                w_die ("Unable to write to '$s': $E\n", path);
+                die ("Unable to write to '%s': %s\n", path, ERRSTR);
         }
         else {
             unsigned long long ts_;
@@ -234,23 +234,25 @@ recreate_ts:
             char path[MAXPATHLEN];
             char newpath[MAXPATHLEN];
 
-            if (!out_io)
-                w_die ("Internal inconsistency at $s:$i\n", __FILE__, __LINE__);
+            if (!out_io) {
+                die ("Internal inconsistency at %s:%i\n", __FILE__, __LINE__);
+                assert (!"unreachable");
+            }
 
             if ((time_gm = gmtime(&now)) == NULL)
-                w_die ("Unable to get current date: $E\n");
+                die ("Unable to get current date: %s\n", ERRSTR);
 
             if (snprintf (newpath, sizeof (newpath), "%s/" LOGFILE_PREFIX, directory) < 0)
-                w_die ("Path name too long: $s\n", directory);
+                die ("Path name too long: %s\n", directory);
 
             if (strftime (newpath + strlen (newpath),
                           sizeof (newpath) - strlen(newpath),
                           "%Y-%m-%d-%H:%M:%S",
                           time_gm) == 0)
-                w_die ("Path name too long: '$s'\n", directory);
+                die ("Path name too long: '%s'\n", directory);
 
             if (snprintf(path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
-                w_die ("Path name too long: $s\n", directory);
+                die ("Path name too long: %s\n", directory);
 
             rotate_log ();
 
@@ -258,10 +260,10 @@ recreate_ts:
             out_io = NULL;
 
             if (rename (path, newpath) < 0 && unlink (path) < 0)
-                w_die ("Unable to rename '$s' to '$s'\n", path, newpath);
+                die ("Unable to rename '%s' to '%s'\n", path, newpath);
 
             if (snprintf (path, sizeof (path), "%s/" LOGDIR_TSTAMP, directory) < 0)
-                w_die ("Path name too long: $s\n", directory);
+                die ("Path name too long: %s\n", directory);
 
             unlink (path);
             goto testdir;
@@ -278,7 +280,7 @@ recreate_ts:
         struct tm *time_gm = gmtime (&now);
 
         if (strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm) == 0)
-            w_die ("Cannot format timestamp\n");
+            die ("Cannot format timestamp\n");
 
         w_buf_append_mem (&out, timebuf, strlen (timebuf));
     }
@@ -386,13 +388,13 @@ int drlog_main (int argc, char **argv)
     consumed = w_opt_parse (drlog_options, NULL, NULL, "logdir-path", argc, argv);
 
     if (consumed >= (unsigned) argc)
-        w_die ("$s: No log directory path was specified.\n", argv[0]);
+        die ("%s: No log directory path was specified.\n", argv[0]);
 
     directory = argv[consumed];
 
     in_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
     if (!in_io)
-        w_die ("$s: Cannot open input: $E.\n", argv[0]);
+        die ("%s: Cannot open input: %s.\n", argv[0], ERRSTR);
 
     sigemptyset (&sa.sa_mask);
     sa.sa_flags = 0;

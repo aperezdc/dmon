@@ -8,9 +8,15 @@
 #ifndef __util_h__
 #define __util_h__
 
+#if !(defined(__GNUC__) && __GNUC__ >= 3)
+# define __attribute__(dummy)
+#endif
+
 #include "wheel/wheel.h"
 #include <sys/types.h>
 #define DMON_GID_COUNT 76
+
+#define ERRSTR (strerror (errno))
 
 struct uidgid_s {
     uid_t    uid;
@@ -56,6 +62,10 @@ int replace_args_string (const char *str,
 void replace_args_shift (unsigned    amount,
                          int        *pargc,
                          char     ***pargv);
+
+void die(const char *format, ...)
+    __attribute__ ((format (printf, 1, 2)))
+    __attribute__ ((noreturn));
 
 #endif /* !__util_h__ */
 

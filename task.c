@@ -7,6 +7,8 @@
 
 #include "task.h"
 #include "wheel/wheel.h"
+#include <assert.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
@@ -23,10 +25,10 @@ _task_free (void *taskptr)
 
     if (task->argc) {
         int i;
-        w_assert (task->argv);
+        assert (task->argv);
 
         for (i = 0; i < task->argc; i++)
-            w_free (task->argv[i]);
+            free (task->argv[i]);
 
         task->argv = 0;
         task->argv = NULL;
@@ -45,7 +47,7 @@ task_new (int argc, const char **argv)
 
     if (argc) {
         int i;
-        w_assert (argv);
+        assert (argv);
 
         task->argv = w_alloc (char*, argc);
         for (i = 0; i < argc; i++)
@@ -53,7 +55,7 @@ task_new (int argc, const char **argv)
         task->argc = argc;
     }
     else {
-        w_assert (argv == NULL);
+        assert (argv == NULL);
     }
     return (task_t*) w_obj_dtor (task, _task_free);
 }
@@ -62,7 +64,7 @@ task_new (int argc, const char **argv)
 void
 task_start (task_t *task)
 {
-    w_assert (task != NULL);
+    assert (task != NULL);
 
     time_t now = time (NULL);
     unsigned sleep_time = (difftime (now, task->started) > 1) ? 0 : 1;
@@ -72,7 +74,7 @@ task_start (task_t *task)
     memcpy (&task->started, &now, sizeof (time_t));
 
     if ((task->pid = fork ()) < 0)
-        w_die ("fork failed: $E\n");
+        die ("fork failed: %s\n", ERRSTR);
 
     task->action = A_NONE;
 
@@ -117,20 +119,20 @@ task_start (task_t *task)
     if (task->user.gid > 0) {
         W_DEBUG ("  set group id $I\n", (unsigned) task->pid);
         if (setgid (task->user.gid))
-            w_die ("could not set group id: $E\n");
+            die ("could not set group id: %s\n", ERRSTR);
     }
 
     if (task->user.ngid > 0) {
         W_DEBUG ("  calling setgroups ($I groups)\n", task->user.ngid);
         if (setgroups (task->user.ngid, task->user.gids))
-            w_die ("could not set additional groups: $E\n");
+            die ("could not set additional groups: %s\n", ERRSTR);
     }
 
     /* Now drop privileges */
     if (task->user.uid > 0) {
         W_DEBUG ("  set user id $I\n", (unsigned) task->user.uid);
         if (setuid (task->user.uid))
-            w_die ("could not set user id: $E\n");
+            die ("could not set user id: %s\n", ERRSTR);
     }
 
     execvp (task->argv[0], task->argv);
@@ -141,7 +143,7 @@ task_start (task_t *task)
 void
 task_signal_dispatch (task_t *task)
 {
-    w_assert (task != NULL);
+    assert (task != NULL);
 
     if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
         return;
@@ -150,8 +152,8 @@ task_signal_dispatch (task_t *task)
              task->signal, (unsigned) task->pid);
 
     if (kill (task->pid, task->signal) < 0) {
-        w_die ("cannot send signal $i to process $L: $E\n",
-             task->signal, (unsigned long) task->pid);
+        die ("cannot send signal %i to process %lu: %s\n",
+             task->signal, (unsigned long) task->pid, ERRSTR);
     }
     task_signal_queue (task, NO_SIGNAL);
 }
@@ -160,7 +162,7 @@ task_signal_dispatch (task_t *task)
 void
 task_signal (task_t *task, int signum)
 {
-    w_assert (task != NULL);
+    assert (task != NULL);
 
     /* Dispatch pending signal first if needed */
     task_signal_dispatch (task);
@@ -174,7 +176,7 @@ task_signal (task_t *task, int signum)
 void
 task_action_dispatch (task_t *task)
 {
-    w_assert (task != NULL);
+    assert (task != NULL);
 
     switch (task->action) {
         case A_NONE: /* Nothing to do */
@@ -200,7 +202,7 @@ task_action_dispatch (task_t *task)
 void
 task_action (task_t *task, action_t action)
 {
-    w_assert (task != NULL);
+    assert (task != NULL);
 
     /* Dispatch pending action. */
     task_action_dispatch (task);

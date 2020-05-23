@@ -10,7 +10,7 @@
 #endif /* NO_MULTICALL */
 
 
-#include "wheel/wheel.h"
+#include "util.h"
 #include <string.h>
 
 
@@ -48,7 +48,7 @@ main (int argc, char **argv)
     mainfunc = choose_applet (argv0);
 
     if (mainfunc == NULL)
-        w_die ("$s: No such applet in multicall binary.\n", argv0);
+        die ("%s: No such applet in multicall binary.\n", argv0);
 
     return (*mainfunc)(argc, argv);
 }

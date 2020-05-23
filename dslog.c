@@ -7,6 +7,7 @@
 
 #include "wheel/wheel.h"
 #include "util.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -116,11 +117,11 @@ _facility_option (const w_opt_context_t *ctx)
 {
     int *facility;
 
-    w_assert (ctx);
-    w_assert (ctx->argument);
-    w_assert (ctx->argument[0]);
-    w_assert (ctx->option);
-    w_assert (ctx->option->extra);
+    assert (ctx);
+    assert (ctx->argument);
+    assert (ctx->argument[0]);
+    assert (ctx->option);
+    assert (ctx->option->extra);
 
     facility = (int*) ctx->option->extra;
 
@@ -135,11 +136,11 @@ _priority_option (const w_opt_context_t *ctx)
 {
     int *priority;
 
-    w_assert (ctx);
-    w_assert (ctx->argument);
-    w_assert (ctx->argument[0]);
-    w_assert (ctx->option);
-    w_assert (ctx->option->extra);
+    assert (ctx);
+    assert (ctx->argument);
+    assert (ctx->argument[0]);
+    assert (ctx->option);
+    assert (ctx->option->extra);
 
     priority = (int*) ctx->option->extra;
 
@@ -186,13 +187,13 @@ dslog_main (int argc, char **argv)
 
     log_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
     if (!log_io)
-        w_die ("$s: cannot open input: $E\n", argv[0]);
+        die ("%s: cannot open input: %s\n", argv[0], ERRSTR);
 
     /* We will be no longer using standard output. */
     W_IO_NORESULT (w_io_close (w_stdout));
 
     if (consumed >= (unsigned) argc)
-        w_die ("$s: process name not specified.\n", argv[0]);
+        die ("%s: process name not specified.\n", argv[0]);
 
     openlog (argv[consumed], flags, facility);
 

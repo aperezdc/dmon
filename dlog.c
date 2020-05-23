@@ -7,6 +7,7 @@
 
 #include "wheel/wheel.h"
 #include "util.h"
+#include <errno.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
@@ -100,7 +101,7 @@ dlog_main (int argc, char **argv)
 
     in_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
     if (in_io == NULL) {
-        w_die ("$s: cannot open input: $E\n", argv[0]);
+        die ("%s: cannot open input: %s\n", argv[0], ERRSTR);
     }
 
     sigemptyset (&sa.sa_mask);
@@ -119,7 +120,7 @@ dlog_main (int argc, char **argv)
         w_io_result_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
 
         if (w_io_failed (ret))
-            w_die ("$s: error reading input: $E\n", argv[0]);
+            die ("%s: error reading input: %s\n", argv[0], ERRSTR);
 
         if (w_buf_size (&linebuf)) {
             w_io_result_t r;
@@ -130,14 +131,15 @@ dlog_main (int argc, char **argv)
                 struct tm *time_gm = gmtime (&now);
 
                 if (strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm) == 0)
-                    w_die ("$s: cannot format timestamp: $E\n", argv[0]);
+                    die ("%s: cannot format timestamp: %s\n", argv[0], ERRSTR);
 
                 if (!log_io) {
                     log_io = w_io_unix_open (argv[consumed],
                                              O_CREAT | O_APPEND | O_WRONLY,
                                              0666);
                     if (!log_io)
-                        w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
+                        die ("%s: cannot open '%s': %s\n",
+                             argv[0], argv[consumed], ERRSTR);
                 }
 
                 if (prefix) {
@@ -152,7 +154,8 @@ dlog_main (int argc, char **argv)
                                              O_CREAT | O_APPEND | O_WRONLY,
                                              0666);
                     if (!log_io)
-                        w_die ("$s: cannot open '$s': $E\n", argv[0], argv[consumed]);
+                        die ("%s: cannot open '%s': %s\n",
+                             argv[0], argv[consumed], ERRSTR);
                 }
 
                 if (prefix) {

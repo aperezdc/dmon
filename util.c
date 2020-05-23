@@ -8,7 +8,7 @@
 #define _GNU_SOURCE 1
 
 #include "util.h"
-#include "wheel/wheel.h"
+#include <assert.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <limits.h>
@@ -30,7 +30,7 @@ void
 fd_cloexec (int fd)
 {
     if (fcntl (fd, F_SETFD, FD_CLOEXEC) < 0)
-        w_die ("unable to set FD_CLOEXEC\n");
+        die ("unable to set FD_CLOEXEC\n");
 }
 
 
@@ -56,8 +56,8 @@ void
 safe_sigaction (const char *name, int signum, struct sigaction *sa)
 {
     if (sigaction (signum, sa, NULL) < 0) {
-        w_die ("could not set handler for signal $s ($i): $E\n",
-             name, signum);
+        die ("could not set handler for signal %s (%i): %s\n",
+             name, signum, ERRSTR);
     }
 }
 
@@ -68,7 +68,7 @@ safe_setrlimit (int what, long value)
     struct rlimit r;
 
     if (getrlimit (what, &r) < 0)
-        w_die ("getrlimit ($s) failed: $E\n", limit_name (what));
+        die ("getrlimit (%s) failed: %s\n", limit_name (what), ERRSTR);
 
     if (value < 0 || (unsigned long) value > r.rlim_max)
         r.rlim_cur = r.rlim_max;
@@ -76,7 +76,7 @@ safe_setrlimit (int what, long value)
         r.rlim_cur = value;
 
     if (setrlimit (what, &r) < 0)
-        w_die ("setrlimit ($s=$l) failed: $E\n", limit_name (what), value);
+        die ("setrlimit (%s=%li) failed: %s\n", limit_name (what), value, ERRSTR);
 }
 
 
@@ -103,9 +103,9 @@ name_to_uidgid (const char *str,
     unsigned long num;
     char *dummy;
 
-    w_assert (str);
-    w_assert (uresult);
-    w_assert (gresult);
+    assert (str);
+    assert (uresult);
+    assert (gresult);
 
     num = strtoul (str, &dummy, 0);
     if (num == ULONG_MAX && errno == ERANGE)
@@ -134,8 +134,8 @@ name_to_gid (const char *str, gid_t *result)
     unsigned long num;
     char *dummy;
 
-    w_assert (str);
-    w_assert (result);
+    assert (str);
+    assert (result);
 
     num = strtoul (str, &dummy, 0);
 
@@ -163,8 +163,8 @@ _parse_gids (char     *s,
     char *pos = NULL;
     gid_t gid;
 
-    w_assert (s);
-    w_assert (u);
+    assert (s);
+    assert (u);
 
     if (u->ngid >= DMON_GID_COUNT) {
         w_printerr ("more than $L groups given, ignoring additional ones\n",
@@ -196,8 +196,8 @@ parse_uidgids (char     *s,
 {
     char *pos = NULL;
 
-    w_assert (s);
-    w_assert (u);
+    assert (s);
+    assert (u);
 
     memset (u, 0x00, sizeof (uidgid_t));
 
@@ -226,20 +226,20 @@ become_daemon (void)
     int nullfd = open ("/dev/null", O_RDWR, 0);
 
     if (nullfd < 0)
-        w_die ("cannot daemonize, unable to open '/dev/null': $E\n");
+        die ("cannot daemonize, unable to open '/dev/null': $E\n");
 
     fd_cloexec (nullfd);
 
     if (dup2 (nullfd, STDIN_FILENO) < 0)
-        w_die ("cannot daemonize, unable to redirect stdin: $E\n");
+        die ("cannot daemonize, unable to redirect stdin: %s\n", ERRSTR);
     if (dup2 (nullfd, STDOUT_FILENO) < 0)
-        w_die ("cannot daemonize, unable to redirect stdout: $E\n");
+        die ("cannot daemonize, unable to redirect stdout: %s\n", ERRSTR);
     if (dup2 (nullfd, STDERR_FILENO) < 0)
-        w_die ("cannot daemonize, unable to redirect stderr: $E\n");
+        die ("cannot daemonize, unable to redirect stderr: %s\n", ERRSTR);
 
     pid = fork ();
 
-    if (pid < 0) w_die ("cannot daemonize: $E\n");
+    if (pid < 0) die ("cannot daemonize: %s\n", ERRSTR);
     if (pid > 0) _exit (EXIT_SUCCESS);
 
     if (setsid () == -1)
@@ -250,8 +250,8 @@ become_daemon (void)
 static bool
 _parse_limit_time (const char *sval, long *rval)
 {
-    w_assert (sval != NULL);
-    w_assert (rval != NULL);
+    assert (sval != NULL);
+    assert (rval != NULL);
 
     unsigned long long val;
     bool failed = w_str_time_period (sval, &val);
@@ -263,8 +263,8 @@ _parse_limit_time (const char *sval, long *rval)
 static bool
 _parse_limit_number (const char *sval, long *rval)
 {
-    w_assert (sval != NULL);
-    w_assert (rval != NULL);
+    assert (sval != NULL);
+    assert (rval != NULL);
     return !(sscanf (sval, "%li", rval) == 1);
 }
 
@@ -272,8 +272,8 @@ _parse_limit_number (const char *sval, long *rval)
 static bool
 _parse_limit_bytes (const char *sval, long *rval)
 {
-    w_assert (sval != NULL);
-    w_assert (rval != NULL);
+    assert (sval != NULL);
+    assert (rval != NULL);
 
     unsigned long long val;
     bool failed = w_str_size_bytes (sval, &val);
@@ -361,9 +361,9 @@ parse_limit_arg (const char *str, int *what, long *value)
 {
     unsigned i;
 
-    w_assert (str != NULL);
-    w_assert (what != NULL);
-    w_assert (value != NULL);
+    assert (str != NULL);
+    assert (what != NULL);
+    assert (value != NULL);
 
     if (!strcmp (str, "help")) {
         for (i = 0; i < w_lengthof (rlimit_specs); i++) {
@@ -422,9 +422,9 @@ replace_args_string (const char *str,
     int slen = 0;
     char **argv = w_alloc (char*, maxarg);
 
-    w_assert (str);
-    w_assert (pargc);
-    w_assert (pargv);
+    assert (str);
+    assert (pargc);
+    assert (pargv);
 
     /* Copy argv[0] pointer */
     argv[numarg++] = (*pargv)[0];
@@ -535,10 +535,10 @@ replace_args_shift (unsigned amount,
     char **argv = *pargv;
     int    i;
 
-    w_assert (pargc);
-    w_assert (pargv);
-    w_assert (amount > 0);
-    w_assert (*pargc > (int) amount);
+    assert (pargc);
+    assert (pargv);
+    assert (amount > 0);
+    assert (*pargc > (int) amount);
 
     while (amount--) {
         argc--;
@@ -549,6 +549,20 @@ replace_args_shift (unsigned amount,
     *pargc = argc;
 }
 
+
+void
+die (const char *format, ...)
+{
+    va_list al;
+
+    va_start (al, format);
+    if (format) {
+        vfprintf (stderr, format, al);
+        fflush (stderr);
+    }
+    va_end (al);
+    exit (EXIT_FAILURE);
+}
 
 /* vim: expandtab shiftwidth=4 tabstop=4
  */
