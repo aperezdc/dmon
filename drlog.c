@@ -1,6 +1,6 @@
 /*
  * drlog.c
- * Copyright © 2010-2014 Adrián Pérez <aperez@igalia.com>
+ * Copyright © 2010-2020 Adrián Pérez <aperez@igalia.com>
  * Copyright © 2008-2010 Adrián Pérez <aperez@connectical.com>
  *
  * Distributed under terms of the MIT license.
@@ -69,7 +69,7 @@
 
 
 static char              *directory  = NULL;
-static w_io_t            *out_io     = NULL;
+static int                out_fd     = -1;
 static int                in_fd      = -1;
 static unsigned           maxfiles   = LOGFILE_DEFMAX;
 static unsigned long long maxtime    = LOGFILE_DEFTIME;
@@ -161,14 +161,13 @@ static void
 flush_line (void)
 {
     time_t now = time (NULL);
-    w_buf_t out = W_BUF;
 
-    if (!out_io) {
+    if (out_fd < 0) {
         /* We need to open the output file. */
         char path[MAXPATHLEN];
         struct stat st;
         time_t ts;
-        w_io_t *ts_io;
+        FILE *ts_file;
 
 testdir:
         if (stat (directory, &st) < 0 || !S_ISDIR (st.st_mode))
@@ -180,52 +179,48 @@ testdir:
         if (snprintf (path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
             die ("Path name too long: %s\n", directory);
 
-        out_io = w_io_unix_open (path,
-                                 O_APPEND | O_CREAT | O_WRONLY,
-                                 LOGFILE_PERMS);
-
-        if (!out_io)
+        if ((out_fd = open (path, O_APPEND | O_CREAT | O_WRONLY, LOGFILE_PERMS)) < 0)
             die ("Cannot open '%s': %s\n", path, ERRSTR);
 
         if (snprintf (path, sizeof (path), "%s/" LOGDIR_TSTAMP, directory) < 0) {
-            w_obj_unref (out_io);
+            close (out_fd);
             die ("Path name too long: %s\n", directory);
         }
 
-        if ((ts_io = w_io_unix_open (path, O_RDONLY, 0)) == NULL) {
+        if ((ts_file = fopen (path, "r")) == NULL) {
+            int ts_fd;
 recreate_ts:
             ts = time (NULL);
-            ts_io = w_io_unix_open (path, O_WRONLY | O_CREAT | O_TRUNC,
-                                    LOGFILE_PERMS);
-            if (!ts_io) {
-                w_obj_unref (out_io);
+            if ((ts_fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, LOGFILE_PERMS)) < 0) {
+                close (out_fd);
                 die ("Unable to write timestamp to '%s', %s\n", directory, ERRSTR);
             }
-            w_io_result_t r = w_io_format (ts_io, "$I\n", (unsigned long) ts);
-            if (w_io_failed (r))
+            ts_file = fdopen (ts_fd, "w");
+            assert (ts_file != NULL);
+
+            if (fprintf (ts_file, "%lu\n", (unsigned long) ts) < 0)
                 die ("Unable to write to '%s': %s\n", path, ERRSTR);
         }
         else {
             unsigned long long ts_;
             w_buf_t tsb = W_BUF;
 
-            if (w_io_failed (w_io_read_line (ts_io, &tsb, &overflow, 0)) ||
-                (sscanf (w_buf_str (&tsb), "%llu", &ts_) <= 0))
-            {
-                w_obj_unref (ts_io);
+            if (fscanf (ts_file, "%llu", &ts_) != 1 || ferror (ts_file)) {
+                fclose (ts_file);
                 w_buf_clear (&tsb);
                 goto recreate_ts;
             }
             ts = ts_;
             w_buf_clear (&tsb);
         }
-        w_obj_unref (ts_io);
+        fclose (ts_file);
+        ts_file = NULL;
+
         curtime = ts;
         if (maxtime) {
             curtime -= (curtime % maxtime);
         }
-        cursize = (unsigned long long) lseek (w_io_get_fd ((w_io_unix_t*) out_io),
-                                              0, SEEK_CUR);
+        cursize = (unsigned long long) lseek (out_fd, 0, SEEK_CUR);
     }
 
     if ((maxsize != 0) && (maxtime != 0)) {
@@ -234,7 +229,7 @@ recreate_ts:
             char path[MAXPATHLEN];
             char newpath[MAXPATHLEN];
 
-            if (!out_io) {
+            if (out_fd < 0) {
                 die ("Internal inconsistency at %s:%i\n", __FILE__, __LINE__);
                 assert (!"unreachable");
             }
@@ -256,8 +251,8 @@ recreate_ts:
 
             rotate_log ();
 
-            w_obj_unref (out_io);
-            out_io = NULL;
+            close (out_fd);
+            out_fd = -1;
 
             if (rename (path, newpath) < 0 && unlink (path) < 0)
                 die ("Unable to rename '%s' to '%s'\n", path, newpath);
@@ -275,35 +270,39 @@ recreate_ts:
         return;
     }
 
-    if (timestamp) {
-        char timebuf[TSTAMP_LEN+1];
-        struct tm *time_gm = gmtime (&now);
+    char timebuf[TSTAMP_LEN+1];
+    struct iovec iov[3];
+    int n_iov = 0;
 
-        if (strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm) == 0)
+    if (timestamp) {
+        struct tm *time_gm = gmtime (&now);
+        size_t timebuf_len;
+
+        if ((timebuf_len = strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm)) == 0)
             die ("Cannot format timestamp\n");
 
-        w_buf_append_mem (&out, timebuf, strlen (timebuf));
+        iov[n_iov++] = iov_from_data (timebuf, timebuf_len);
     }
 
-    w_buf_append_buf (&out, &line);
-    w_buf_append_char (&out, '\n');
-    w_buf_clear (&line);
+    iov[n_iov++] = iov_from_buffer (&line);
+    iov[n_iov++] = iov_from_literal ("\n");
+    assert ((unsigned) n_iov <= (sizeof (iov) / sizeof (iov[0])));
 
     for (;;) {
-        w_io_result_t r = w_io_write (out_io,
-                                      w_buf_const_data (&out),
-                                      w_buf_size (&out));
-        if (!w_io_failed (r)) {
-            if (!buffered) {
-                W_IO_NORESULT (w_io_flush (out_io));
-            }
-            cursize += w_buf_size (&out);
+        ssize_t r = writev (out_fd, iov, n_iov);
+        if (r > 0) {
+            cursize += r;
             break;
         }
-        w_printerr ("Cannot write to logfile: $E.\n");
+
+        fprintf (stderr, "Cannot write to logfile: %s.\n", ERRSTR);
         safe_sleep (5);
     }
-    w_buf_clear (&out);
+
+    if (!buffered)
+        fsync (out_fd);
+
+    w_buf_clear (&line);
 }
 
 
@@ -313,14 +312,13 @@ close_log (void)
     flush_line ();
 
     for (;;) {
-        if (!w_io_failed (w_io_close (out_io))) {
-            w_obj_unref (out_io);
-            out_io = NULL;
+        if (close (out_fd) == 0) {
+            out_fd = -1;
             break;
         }
 
-        w_printerr ("Unable to close logfile at directory '$s\n",
-                    directory);
+        fprintf (stderr, "Unable to close logfile at directory '%s', %s\n",
+                 directory, ERRSTR);
         safe_sleep (5);
     }
 }
@@ -334,6 +332,7 @@ roll_handler (int signum)
 }
 
 
+__attribute__((noreturn))
 static void
 quit_handler (int signum)
 {
@@ -365,7 +364,7 @@ static const w_opt_t drlog_options[] = {
     { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
         "File descriptor to read input from (default: stdin)." },
 
-    { 1, 'b', "buffered", W_OPT_BOOL, &buffered,
+    { 0, 'b', "buffered", W_OPT_BOOL, &buffered,
         "Buffered operation, do not flush to disk after each line." },
 
     { 0, 't', "timestamp", W_OPT_BOOL, &timestamp,
@@ -377,9 +376,9 @@ static const w_opt_t drlog_options[] = {
 
 int drlog_main (int argc, char **argv)
 {
-    struct sigaction sa;
-    w_io_t *in_io = NULL;
+    int in_fd = STDIN_FILENO;
     char *env_opts = NULL;
+    struct sigaction sa;
     unsigned consumed;
 
     if ((env_opts = getenv ("DRLOG_OPTIONS")) != NULL)
@@ -391,10 +390,6 @@ int drlog_main (int argc, char **argv)
         die ("%s: No log directory path was specified.\n", argv[0]);
 
     directory = argv[consumed];
-
-    in_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
-    if (!in_io)
-        die ("%s: Cannot open input: %s.\n", argv[0], ERRSTR);
 
     sigemptyset (&sa.sa_mask);
     sa.sa_flags = 0;
@@ -409,15 +404,16 @@ int drlog_main (int argc, char **argv)
     safe_sigaction ("TERM", SIGTERM, &sa);
 
     for (;;) {
-        w_io_result_t ret = w_io_read_line (in_io, &line, &overflow, 0);
+        ssize_t bytes = freadline (in_fd, &line, &overflow, 0);
+        if (bytes == 0)
+            break; /* EOF */
 
-        if (w_io_failed (ret)) {
-            w_printerr ("Unable to read from standard input: $E.\n");
+        if (bytes < 0) {
+            fprintf (stderr, "Unable to read from standard input: %s.\n", ERRSTR);
             returncode = 1;
             quit_handler (0);
         }
-        if (w_io_eof (ret))
-            break;
+
         flush_line ();
     }
 
