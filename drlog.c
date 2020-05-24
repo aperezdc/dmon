@@ -102,8 +102,8 @@ rescan:
     older_year = INT_MAX;
 
     if ((dir = opendir (directory)) == NULL) {
-        w_printerr ("Unable to open directory '$s' for rotation ($E).\n",
-                    directory);
+        fprintf (stderr, "Unable to open directory '%s' for rotation (%s).\n",
+                 directory, ERRSTR);
         return -1;
     }
 
@@ -141,8 +141,7 @@ rescan:
             return -3;
         }
         if (snprintf (path, sizeof (path), "%s/%s", directory, old_name) < 0) {
-            w_printerr ("Path too long to unlink: $s/$s\n",
-                        directory, old_name);
+            fprintf (stderr, "Path too long to unlink: %s/%s\n", directory, old_name);
             return -4;
         }
         if (unlink (path) < 0) {

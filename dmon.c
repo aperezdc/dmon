@@ -325,8 +325,9 @@ _config_option (const w_opt_context_t *ctx)
     assert (ctx->argv);
     assert (ctx->argv[0]);
 
-    w_printerr ("$s: Option --config/-C must be the first one specified\n",
-                ctx->argv[0]);
+    fprintf (stderr,
+             "%s: Option --config/-C must be the first one specified\n",
+             ctx->argv[0]);
 
     return W_OPT_EXIT_FAIL;
 }

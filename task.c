@@ -95,14 +95,14 @@ task_start (task_t *task)
     if (task->write_fd >= 0) {
         W_DEBUGC ("  redirecting write_fd = $i -> $i\n", task->write_fd, STDOUT_FILENO);
         if (dup2 (task->write_fd, STDOUT_FILENO) < 0) {
-            w_printerr ("dup2() redirection failed: $E\n");
+            fprintf (stderr, "dup2() redirection failed: %s\n", ERRSTR);
             _exit (111);
         }
     }
     if (task->read_fd >= 0) {
         W_DEBUGC ("  redirecting read_fd = $i -> $i\n", task->read_fd, STDIN_FILENO);
         if (dup2 (task->read_fd, STDIN_FILENO) < 0) {
-            w_printerr ("dup2() redirection failed: $E\n");
+            fprintf (stderr, "dup2() redirection failed: %s\n", ERRSTR);
             _exit (111);
         }
     }
@@ -110,7 +110,7 @@ task_start (task_t *task)
     if (task->redir_errfd) {
         W_DEBUG ("  redirecting stderr -> stdout\n");
         if (dup2 (STDOUT_FILENO, STDERR_FILENO) < 0) {
-            w_printerr ("dup2() failed for stderr: $E\n");
+            fprintf (stderr, "dup2() failed for stderr: %s\n", ERRSTR);
             _exit (111);
         }
     }

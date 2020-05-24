@@ -167,8 +167,9 @@ _parse_gids (char     *s,
     assert (u);
 
     if (u->ngid >= DMON_GID_COUNT) {
-        w_printerr ("more than $L groups given, ignoring additional ones\n",
-                    DMON_GID_COUNT);
+        fprintf (stderr,
+                 "More than %d groups given, ignoring additional ones\n",
+                 DMON_GID_COUNT);
         return 0;
     }
 
