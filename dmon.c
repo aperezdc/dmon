@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -27,7 +28,7 @@
 
 
 static int           log_fds[2]   = { -1, -1 };
-static w_io_t       *status_io    = NULL;
+static FILE         *status_file  = NULL;
 static task_t        cmd_task     = TASK;
 static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
@@ -71,50 +72,51 @@ static const struct {
 #define load_enabled  (!almost_zerof (load_high))
 
 
+__attribute__((format (printf, 1, 2)))
 static inline void
 _write_status (const char *fmt, ...)
 {
-    assert (status_io);
+    assert (status_file);
 
     va_list arg;
     va_start (arg, fmt);
-    w_io_result_t r = w_io_formatv (status_io, fmt, arg);
+    ssize_t r = vfprintf (status_file, fmt, arg);
     va_end (arg);
 
-    if (w_io_failed (r))
-        W_WARN ("I/O error writing to status file: $E\n");
+    if (r < 0)
+        W_WARN ("I/O error writing to status file: %s.\n", ERRSTR);
 }
 
 #define write_status(...) \
-    if (status_io != NULL) \
+    if (status_file != NULL) \
         _write_status(__VA_ARGS__)
 
 
-#define task_action_dispatch_and_write_status(_what, _task)         \
-    do {                                                            \
-        int __pidafter__ = 0;                                       \
-        if (status_io != NULL) {                                    \
-            switch ((_task)->action) {                              \
-                case A_NONE:                                        \
-                    break;                                          \
-                case A_START:                                       \
-                    _write_status ("$s start ", (_what));           \
-                    __pidafter__ = 1;                               \
-                    break;                                          \
-                case A_STOP:                                        \
-                    _write_status ("$s stop $L\n", (_what),         \
-                                   (unsigned long) ((_task)->pid)); \
-                    break;                                          \
-                case A_SIGNAL:                                      \
-                    _write_status ("$s signal $L $i\n",             \
-                                   (unsigned long) ((_task)->pid),  \
-                                   (_task)->signal);                \
-                    break;                                          \
-            }                                                       \
-        }                                                           \
-        task_action_dispatch (_task);                               \
-        if (__pidafter__ && status_io != NULL)                      \
-            _write_status ("$L\n", (unsigned long) ((_task)->pid)); \
+#define task_action_dispatch_and_write_status(_what, _task)      \
+    do {                                                          \
+        int __pidafter__ = 0;                                     \
+        if (status_file != NULL) {                                \
+            switch ((_task)->action) {                            \
+                case A_NONE:                                      \
+                    break;                                        \
+                case A_START:                                     \
+                    _write_status ("%s start ", (_what));         \
+                    __pidafter__ = 1;                             \
+                    break;                                        \
+                case A_STOP:                                      \
+                    _write_status ("%s stop %li\n", (_what),      \
+                                   (long) ((_task)->pid));        \
+                    break;                                        \
+                case A_SIGNAL:                                    \
+                    _write_status ("%s signal %li %i\n", (_what), \
+                                   (long) ((_task)->pid),         \
+                                   (_task)->signal);              \
+                    break;                                        \
+            }                                                     \
+        }                                                         \
+        task_action_dispatch (_task);                             \
+        if (__pidafter__ && status_file != NULL)                  \
+            _write_status ("%li\n", (long) ((_task)->pid));       \
     } while (0)
 
 
@@ -146,7 +148,7 @@ reap_and_check (void)
     if (pid == cmd_task.pid) {
         W_DEBUGC ("  reaped cmd process $I\n", (unsigned) pid);
 
-        write_status ("cmd exit $L $i\n", (unsigned long) pid, status);
+        write_status ("cmd exit %li %i\n", (long) pid, status);
 
         cmd_task.pid = NO_PID;
 
@@ -166,7 +168,7 @@ reap_and_check (void)
     else if (log_enabled && pid == log_task.pid) {
         W_DEBUGC ("  reaped log process $I\n", (unsigned) pid);
 
-        write_status ("log exit $L $i\n", (unsigned long) pid, status);
+        write_status ("log exit %li %i\n", (long) pid, status);
 
         log_task.pid = NO_PID;
         task_action_queue (&log_task, A_START);
@@ -208,7 +210,7 @@ handle_signal (int signum)
      * respawning.
      */
     if (cmd_timeout && signum == SIGALRM) {
-        write_status ("cmd timeout $L\n", (unsigned long) cmd_task.pid);
+        write_status ("cmd timeout %li\n", (long) cmd_task.pid);
         task_action (&cmd_task, A_STOP);
         task_action_queue (&cmd_task, A_START);
         alarm (cmd_timeout);
@@ -448,9 +450,10 @@ dmon_main (int argc, char **argv)
     }
 
     if (status_path) {
-        status_io = w_io_unix_open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
-        if (!status_io)
+        int fd = open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
+        if (fd < 0)
             die ("%s: Cannot open '%s' for writing, %s\n", argv[0], status_path, ERRSTR);
+        status_file = fdopen (fd, "w");
     }
 
     if (cmd_interval && success_exit)
@@ -579,7 +582,7 @@ dmon_main (int argc, char **argv)
                 if (load_cur <= load_low) {
                     W_DEBUGC ("  resuming...\n");
                     task_signal (&cmd_task, SIGCONT);
-                    write_status ("cmd resume $L\n", (unsigned long) cmd_task.pid);
+                    write_status ("cmd resume %li\n", (long) cmd_task.pid);
                     paused = 0;
                 }
             }
@@ -588,7 +591,7 @@ dmon_main (int argc, char **argv)
                 if (load_cur > load_high) {
                     W_DEBUGC ("  pausing...\n");
                     task_signal (&cmd_task, SIGSTOP);
-                    write_status ("cmd pause $L\n", (unsigned long) cmd_task.pid);
+                    write_status ("cmd pause %li\n", (long) cmd_task.pid);
                     paused = 1;
                 }
             }
@@ -603,17 +606,17 @@ dmon_main (int argc, char **argv)
     W_DEBUG ("exiting gracefully...\n");
 
     if (cmd_task.pid != NO_PID) {
-        write_status ("cmd stop $L\n", (unsigned long) cmd_task.pid);
+        write_status ("cmd stop %li\n", (long) cmd_task.pid);
         task_action (&cmd_task, A_STOP);
     }
     if (log_enabled && log_task.pid != NO_PID) {
-        write_status ("log stop $L\n", (unsigned long) log_task.pid);
+        write_status ("log stop %li\n", (long) log_task.pid);
         task_action (&log_task, A_STOP);
     }
 
-    if (status_io) {
-        w_obj_unref (status_io);
-        status_io = NULL;
+    if (status_file) {
+        fclose (status_file);
+        status_file = NULL;
     }
 
     exit (EXIT_SUCCESS);
