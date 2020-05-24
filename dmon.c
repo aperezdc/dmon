@@ -406,7 +406,7 @@ static const w_opt_t dmon_options[] = {
 int
 dmon_main (int argc, char **argv)
 {
-    w_io_t *pidfile_io = NULL;
+    FILE *pid_file = NULL;
     char *opts_env = NULL;
     bool success;
     unsigned i, consumed;
@@ -504,26 +504,23 @@ dmon_main (int argc, char **argv)
         die ("%s: No command to run given.\n", argv[0]);
 
     if (pidfile_path) {
-        pidfile_io = w_io_unix_open (pidfile_path,
-                                     O_TRUNC | O_CREAT | O_WRONLY,
-                                     0666);
-        if (!pidfile_io) {
+        int fd = open (pidfile_path, O_TRUNC | O_CREAT | O_WRONLY, 0666);
+        if (fd < 0) {
             die ("%s: cannot open '%s' for writing, %s\n",
                  argv[0], pidfile_path, ERRSTR);
         }
+        pid_file = fdopen (fd, "w");
     }
 
     if (!nodaemon)
         become_daemon ();
 
     /* We have a valid file descriptor: write PID */
-    if (pidfile_io) {
-        w_io_result_t r = w_io_format (pidfile_io,
-                                       "$L\n",
-                                       (unsigned long) getpid ());
-        if (w_io_failed (r))
+    if (pid_file) {
+        if (fprintf (pid_file, "%li\n", (long) getpid ()) < 0)
             W_WARN ("I/O error writing to PID file: $E\n");
-        w_obj_unref (pidfile_io);
+        fclose (pid_file);
+        pid_file = NULL;
     }
 
     setup_signals ();
