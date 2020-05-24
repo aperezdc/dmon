@@ -1,6 +1,6 @@
 /*
  * dslog.c
- * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
@@ -154,12 +154,11 @@ int
 dslog_main (int argc, char **argv)
 {
     int flags = 0;
-    int in_fd = -1;
+    int in_fd = STDIN_FILENO;
     int facility = name_to_facility (DEFAULT_FACILITY);
     int priority = name_to_priority (DEFAULT_PRIORITY);
     bool console = false;
     char *env_opts = NULL;
-    w_io_t *log_io = NULL;
     w_buf_t linebuf = W_BUF;
     w_buf_t overflow = W_BUF;
     unsigned consumed;
@@ -185,12 +184,8 @@ dslog_main (int argc, char **argv)
     if (console)
         flags |= LOG_CONS;
 
-    log_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
-    if (!log_io)
-        die ("%s: cannot open input: %s\n", argv[0], ERRSTR);
-
     /* We will be no longer using standard output. */
-    W_IO_NORESULT (w_io_close (w_stdout));
+    close (STDOUT_FILENO);
 
     if (consumed >= (unsigned) argc)
         die ("%s: process name not specified.\n", argv[0]);
@@ -198,10 +193,12 @@ dslog_main (int argc, char **argv)
     openlog (argv[consumed], flags, facility);
 
     while (running) {
-        w_io_result_t ret = w_io_read_line (log_io, &linebuf, &overflow, 0);
+        ssize_t bytes = freadline (in_fd, &linebuf, &overflow, 0);
+        if (bytes == 0)
+            break; /* EOF */
 
-        if (w_io_failed (ret)) {
-            w_printerr ("$s: error reading input: $E\n", argv[0]);
+        if (bytes < 0) {
+            fprintf (stderr, "%s: error reading input: %s\n", argv[0], ERRSTR);
             exit (111);
         }
 
@@ -209,9 +206,6 @@ dslog_main (int argc, char **argv)
             syslog (priority, "%s", w_buf_str (&linebuf));
 
         w_buf_clear (&linebuf);
-
-        if (w_io_eof (ret))
-            break;
     }
 
     closelog ();
