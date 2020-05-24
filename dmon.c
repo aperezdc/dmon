@@ -454,6 +454,7 @@ dmon_main (int argc, char **argv)
         if (fd < 0)
             die ("%s: Cannot open '%s' for writing, %s\n", argv[0], status_path, ERRSTR);
         status_file = fdopen (fd, "w");
+        setvbuf (status_file, NULL, _IOLBF, 0);
     }
 
     if (cmd_interval && success_exit)
