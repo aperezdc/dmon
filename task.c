@@ -1,6 +1,6 @@
 /*
  * task.c
- * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
@@ -16,49 +16,6 @@
 #include <signal.h>
 #include <time.h>
 #include <grp.h> /* setgroups() */
-
-
-static void
-_task_free (void *taskptr)
-{
-    task_t *task = taskptr;
-
-    if (task->argc) {
-        int i;
-        assert (task->argv);
-
-        for (i = 0; i < task->argc; i++)
-            free (task->argv[i]);
-
-        task->argv = 0;
-        task->argv = NULL;
-    }
-}
-
-
-task_t*
-task_new (int argc, const char **argv)
-{
-    task_t template = TASK;
-    task_t *task = w_obj_new (task_t);
-    memcpy (((w_obj_t*) task) + 1,
-            ((w_obj_t*) &template) + 1,
-            sizeof (task_t) - sizeof (w_obj_t));
-
-    if (argc) {
-        int i;
-        assert (argv);
-
-        task->argv = w_alloc (char*, argc);
-        for (i = 0; i < argc; i++)
-            task->argv[i] = w_str_dup (argv[i]);
-        task->argc = argc;
-    }
-    else {
-        assert (argv == NULL);
-    }
-    return (task_t*) w_obj_dtor (task, _task_free);
-}
 
 
 void

@@ -1,6 +1,6 @@
 /*
  * task.h
- * Copyright (C) 2010 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
@@ -19,9 +19,7 @@ typedef enum {
 } action_t;
 
 
-W_OBJ (task_t)
-{
-    w_obj_t  parent;
+typedef struct {
     pid_t    pid;
     action_t action;
     int      argc;
@@ -32,12 +30,11 @@ W_OBJ (task_t)
     time_t   started;
     uidgid_t user;
     unsigned redir_errfd;
-};
+} task_t;
 
 #define NO_PID    (-1)
 #define NO_SIGNAL (-1)
-#define TASK      { W_OBJ_STATIC (NULL), \
-                    NO_PID,    \
+#define TASK      { NO_PID,    \
                     A_START,   \
                     0,         \
                     NULL,      \
