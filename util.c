@@ -549,6 +549,64 @@ replace_args_shift (unsigned amount,
     *pargc = argc;
 }
 
+ssize_t
+freaduntil (int      fd,
+            w_buf_t *buffer,
+            w_buf_t *overflow,
+            int      delimiter,
+            size_t   readbytes)
+{
+    assert (fd >= 0);
+    assert (buffer);
+    assert (overflow);
+
+    if (!readbytes) {
+        static const size_t default_readbytes = 4096;
+        readbytes = default_readbytes;
+    }
+
+    for (;;) {
+        char *pos = memchr (w_buf_data (overflow),
+                            delimiter,
+                            w_buf_size (overflow));
+
+        if (pos) {
+            /*
+             * The delimiter has been found in the overflow buffer: remove
+             * it from there, and copy the data to the result buffer.
+             */
+            size_t len = pos - w_buf_data (overflow) + 1;
+            w_buf_append_mem (buffer, w_buf_data (overflow), len);
+            overflow->size -= len;
+            memmove (w_buf_data (overflow),
+                     w_buf_data (overflow) + len,
+                     w_buf_size (overflow));
+            w_buf_resize (buffer, w_buf_size (buffer) - 1);
+            return w_buf_size (buffer);
+        }
+
+        if (overflow->alloc < (w_buf_size (overflow) + readbytes)) {
+            /*
+             * XXX Calling w_buf_resize() will *both* resize the buffer
+             * data area and set overflow->bsz *and* overflow->len. But we
+             * do not want the later to be changed we save and restore it.
+             */
+            size_t oldlen = w_buf_size (overflow);
+            w_buf_resize (overflow, w_buf_size (overflow) + readbytes);
+            overflow->size = oldlen;
+        }
+
+        ssize_t r = read (fd,
+                          w_buf_data (overflow) + w_buf_size (overflow),
+                          readbytes);
+        if (r > 0) {
+            overflow->size += r;
+        } else {
+            /* Handles both EOF and errors. */
+            return r;
+        }
+    }
+}
 
 void
 die (const char *format, ...)

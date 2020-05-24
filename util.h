@@ -14,6 +14,8 @@
 
 #include "wheel/wheel.h"
 #include <sys/types.h>
+#include <sys/uio.h>
+#include <stdio.h>
 #define DMON_GID_COUNT 76
 
 #define ERRSTR (strerror (errno))
@@ -63,9 +65,45 @@ void replace_args_shift (unsigned    amount,
                          int        *pargc,
                          char     ***pargv);
 
+ssize_t freaduntil (int      fd,
+                    w_buf_t *buffer,
+                    w_buf_t *overflow,
+                    int      delimiter,
+                    size_t   readbytes);
+
+static inline ssize_t
+freadline (int      fd,
+           w_buf_t *buffer,
+           w_buf_t *overflow,
+           size_t   readbytes)
+{
+    return freaduntil (fd, buffer, overflow, '\n', readbytes);
+}
+
 void die(const char *format, ...)
     __attribute__ ((format (printf, 1, 2)))
     __attribute__ ((noreturn));
+
+static inline struct iovec
+iov_from_data (void *data, size_t size)
+{
+    return (struct iovec) { .iov_base = data, .iov_len = size };
+}
+
+static inline struct iovec
+iov_from_buffer (w_buf_t *buffer)
+{
+    return iov_from_data (buffer->data, buffer->size);
+}
+
+static inline struct iovec
+iov_from_string (char *str)
+{
+    return iov_from_data (str, strlen (str));
+}
+
+#define iov_from_literal(_s) \
+    (iov_from_data ((_s), (sizeof (_s)) - 1))
 
 #endif /* !__util_h__ */
 

@@ -1,12 +1,13 @@
 /*
  * dlog.c
- * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
 #include "wheel/wheel.h"
 #include "util.h"
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -29,12 +30,11 @@
 #endif /* !TSTAMP_LEN */
 
 
-static bool    timestamp = false;
-static bool    buffered  = false;
-static char   *prefix    = NULL;
-static w_io_t *log_io    = NULL;
-static w_io_t *in_io     = NULL;
-static int     in_fd     = -1;
+static bool  timestamp = false;
+static bool  buffered  = false;
+static char *prefix    = NULL;
+static int   log_fd    = -1;
+static int   in_fd     = STDIN_FILENO;
 
 
 static const w_opt_t dlog_options[] = {
@@ -57,15 +57,15 @@ static const w_opt_t dlog_options[] = {
 static void
 handle_signal (int signum)
 {
-    if (buffered && log_io != w_stdout) {
-        if (w_io_failed (w_io_flush (log_io)))
+    if (log_fd >= 0) {
+        if (fsync (log_fd) != 0)
             W_WARN ("Error flushing log: $E\n");
-    }
 
-    if (log_io != w_stdout && log_io != w_stderr) {
-        if (w_io_failed (w_io_close (log_io)))
-            W_WARN ("Error closing log: $E\n");
-        log_io = 0;
+        if (log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO) {
+            if (close (log_fd) != 0)
+                W_WARN ("Error closing log: $E\n");
+            log_fd = -1;
+        }
     }
 
     /*
@@ -93,15 +93,10 @@ dlog_main (int argc, char **argv)
     consumed = w_opt_parse (dlog_options, NULL, NULL, "[logfile-path]", argc, argv);
 
     if (consumed >= (unsigned) argc) {
-        log_io = w_stdout;
+        log_fd = STDOUT_FILENO;
     }
     else {
-        W_IO_NORESULT (w_io_close (w_stdout));
-    }
-
-    in_io = (in_fd >= 0) ? w_io_unix_open_fd (in_fd) : w_stdin;
-    if (in_io == NULL) {
-        die ("%s: cannot open input: %s\n", argv[0], ERRSTR);
+        close (STDOUT_FILENO);
     }
 
     sigemptyset (&sa.sa_mask);
@@ -117,70 +112,57 @@ dlog_main (int argc, char **argv)
     safe_sigaction ("TERM", SIGTERM, &sa);
 
     for (;;) {
-        w_io_result_t ret = w_io_read_line (w_stdin, &linebuf, &overflow, 0);
+        ssize_t bytes = freadline (in_fd, &linebuf, &overflow, 0);
+        if (bytes == 0)
+            break; /* EOF */
 
-        if (w_io_failed (ret))
+        if (bytes < 0)
             die ("%s: error reading input: %s\n", argv[0], ERRSTR);
 
         if (w_buf_size (&linebuf)) {
-            w_io_result_t r;
+            struct iovec iov[6];
+            int n_iov = 0;
 
+            char timebuf[TSTAMP_LEN+1];
+            size_t timebuf_len;
             if (timestamp) {
                 time_t now = time(NULL);
-                char timebuf[TSTAMP_LEN+1];
                 struct tm *time_gm = gmtime (&now);
 
-                if (strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm) == 0)
+                if ((timebuf_len = strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm)) == 0)
                     die ("%s: cannot format timestamp: %s\n", argv[0], ERRSTR);
 
-                if (!log_io) {
-                    log_io = w_io_unix_open (argv[consumed],
-                                             O_CREAT | O_APPEND | O_WRONLY,
-                                             0666);
-                    if (!log_io)
-                        die ("%s: cannot open '%s': %s\n",
-                             argv[0], argv[consumed], ERRSTR);
-                }
-
-                if (prefix) {
-                    r = w_io_format (log_io, "$s $s $B\n", timebuf, prefix, &linebuf);
-                } else {
-                    r = w_io_format (log_io, "$s $B\n", timebuf, &linebuf);
-                }
-
-            } else {
-                if (!log_io) {
-                    log_io = w_io_unix_open (argv[consumed],
-                                             O_CREAT | O_APPEND | O_WRONLY,
-                                             0666);
-                    if (!log_io)
-                        die ("%s: cannot open '%s': %s\n",
-                             argv[0], argv[consumed], ERRSTR);
-                }
-
-                if (prefix) {
-                    r = w_io_format (log_io, "$s $B\n", prefix, &linebuf);
-                } else {
-                    r = w_io_format (log_io, "$B\n", &linebuf);
-                }
+                iov[n_iov++] = iov_from_data (timebuf, timebuf_len);
+                iov[n_iov++] = iov_from_literal (" ");
             }
 
-            if (w_io_failed (r))
+            if (prefix) {
+                iov[n_iov++] = iov_from_string (prefix);
+                iov[n_iov++] = iov_from_literal (" ");
+            }
+
+            iov[n_iov++] = iov_from_buffer (&linebuf);
+            iov[n_iov++] = iov_from_literal ("\n");
+
+            assert ((unsigned) n_iov <= (sizeof (iov) / sizeof (iov[0])));
+
+            if (log_fd < 0) {
+                if ((log_fd = open (argv[consumed], O_CREAT | O_APPEND | O_WRONLY, 0666)) < 0)
+                    die ("%s: cannot open '%s': %s\n", argv[0], argv[consumed], ERRSTR);
+            }
+
+            if (writev (log_fd, iov, n_iov) < 0)
                 W_WARN ("$s: writing to log failed: $E\n", argv[0]);
 
-            if (!buffered && log_io != w_stdout) {
-                if (w_io_failed (r = w_io_flush (log_io)))
+            if (!buffered && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO) {
+                if (fsync (log_fd) != 0)
                     W_WARN ("$s: flushing log failed: $E\n", argv[0]);
             }
         }
-
         w_buf_clear (&linebuf);
-
-        if (w_io_eof (ret))
-            break;
     }
 
-    if (w_io_failed (w_io_close (log_io)))
+    if (close (log_fd) != 0)
         W_WARN ("$s: error closing log file: $E\n", argv[0]);
 
     exit (EXIT_SUCCESS);
