@@ -74,13 +74,13 @@ endif
 
 
 ifneq ($(MULTICALL),0)
-dmon: dlog.o dslog.o drlog.o multicall.o
+dmon: dlog.o dslog.o drlog.o multicall.o deps/cflag/cflag.o
 dlog drlog dslog: dmon
 	$(LN) -sf $< $@
 else
 dslog: dslog.o util.o $(libwheel)
 drlog: drlog.o util.o $(libwheel)
-dlog: dlog.o util.o $(libwheel)
+dlog: dlog.o util.o $(libwheel) deps/cflag/cflag.o
 endif
 
 man: dmon.8 dlog.8 dslog.8 drlog.8

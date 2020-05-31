@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include "deps/cflag/cflag.h"
 #include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
@@ -37,20 +38,17 @@ static int   log_fd    = -1;
 static int   in_fd     = STDIN_FILENO;
 
 
-static const w_opt_t dlog_options[] = {
-    { 1, 'p', "prefix", W_OPT_STRING, &prefix,
-        "Insert the given prefix string between timestamps and logged text." },
-
-    { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
-        "File descriptor to read input from (default: stdin)." },
-
-    { 0, 'b', "buffered", W_OPT_BOOL, &buffered,
-        "Buffered operation, do not use flush to disk after each line." },
-
-    { 0, 't', "timestamp", W_OPT_BOOL, &timestamp,
-        "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line." },
-
-    W_OPT_END
+static const CFlag dlog_options[] = {
+    CFLAG(string, "prefix", 'p', &prefix,
+        "Insert the given prefix string between timestamps and logged text."),
+    CFLAG(int, "input-fd", 'i', &in_fd,
+        "File descriptor to read input from (default: stdin)."),
+    CFLAG(bool, "buffered", 'b', &buffered,
+        "Buffered operation, do not use flush to disk after each line."),
+    CFLAG(bool, "timestamp", 't', &timestamp,
+        "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line."),
+    CFLAG_HELP,
+    CFLAG_END
 };
 
 
@@ -85,14 +83,13 @@ dlog_main (int argc, char **argv)
     w_buf_t linebuf = W_BUF;
     char *env_opts = NULL;
     struct sigaction sa;
-    unsigned consumed;
 
     if ((env_opts = getenv ("DLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
 
-    consumed = w_opt_parse (dlog_options, NULL, NULL, "[logfile-path]", argc, argv);
+    const char *argv0 = cflag_apply(dlog_options, "[options] [logfile-path]", &argc, &argv);
 
-    if (consumed >= (unsigned) argc) {
+    if (!argc) {
         log_fd = STDOUT_FILENO;
     }
     else {
@@ -117,7 +114,7 @@ dlog_main (int argc, char **argv)
             break; /* EOF */
 
         if (bytes < 0)
-            die ("%s: error reading input: %s\n", argv[0], ERRSTR);
+            die ("%s: error reading input: %s\n", argv0, ERRSTR);
 
         if (w_buf_size (&linebuf)) {
             struct iovec iov[6];
@@ -130,7 +127,7 @@ dlog_main (int argc, char **argv)
                 struct tm *time_gm = gmtime (&now);
 
                 if ((timebuf_len = strftime (timebuf, TSTAMP_LEN+1, TSTAMP_FMT, time_gm)) == 0)
-                    die ("%s: cannot format timestamp: %s\n", argv[0], ERRSTR);
+                    die ("%s: cannot format timestamp: %s\n", argv0, ERRSTR);
 
                 iov[n_iov++] = iov_from_data (timebuf, timebuf_len);
                 iov[n_iov++] = iov_from_literal (" ");
@@ -147,23 +144,23 @@ dlog_main (int argc, char **argv)
             assert ((unsigned) n_iov <= (sizeof (iov) / sizeof (iov[0])));
 
             if (log_fd < 0) {
-                if ((log_fd = open (argv[consumed], O_CREAT | O_APPEND | O_WRONLY, 0666)) < 0)
-                    die ("%s: cannot open '%s': %s\n", argv[0], argv[consumed], ERRSTR);
+                if ((log_fd = open (argv[0], O_CREAT | O_APPEND | O_WRONLY, 0666)) < 0)
+                    die ("%s: cannot open '%s': %s\n", argv0, argv[0], ERRSTR);
             }
 
             if (writev (log_fd, iov, n_iov) < 0)
-                W_WARN ("$s: writing to log failed: $E\n", argv[0]);
+                W_WARN ("$s: writing to log failed: $E\n", argv0);
 
-            if (!buffered && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO) {
+            if (!buffered && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO && !isatty(log_fd)) {
                 if (fsync (log_fd) != 0)
-                    W_WARN ("$s: flushing log failed: $E\n", argv[0]);
+                    W_WARN ("$s: flushing log failed: $E\n", argv0);
             }
         }
         w_buf_clear (&linebuf);
     }
 
     if (close (log_fd) != 0)
-        W_WARN ("$s: error closing log file: $E\n", argv[0]);
+        W_WARN ("$s: error closing log file: $E\n", argv0);
 
     exit (EXIT_SUCCESS);
 }
