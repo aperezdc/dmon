@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include "deps/cflag/cflag.h"
 #include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
@@ -112,41 +113,33 @@ name_to_priority (const char *name)
 static bool running = true;
 
 
-static w_opt_status_t
-_facility_option (const w_opt_context_t *ctx)
+static CFlagStatus
+_facility_option(const CFlag *spec, const char *arg)
 {
-    int *facility;
+    if (!spec)
+        return CFLAG_NEEDS_ARG;
 
-    assert (ctx);
-    assert (ctx->argument);
-    assert (ctx->argument[0]);
-    assert (ctx->option);
-    assert (ctx->option->extra);
+    int facility = name_to_facility(arg);
+    if (facility == -1)
+        return CFLAG_BAD_FORMAT;
 
-    facility = (int*) ctx->option->extra;
-
-    return ((*facility = name_to_facility (ctx->argument[0])) == -1)
-         ? W_OPT_BAD_ARG
-         : W_OPT_OK;
+    *((int*) spec->data) = facility;
+    return CFLAG_OK;
 }
 
 
-static w_opt_status_t
-_priority_option (const w_opt_context_t *ctx)
+static CFlagStatus
+_priority_option(const CFlag *spec, const char *arg)
 {
-    int *priority;
+    if (!spec)
+        return CFLAG_NEEDS_ARG;
 
-    assert (ctx);
-    assert (ctx->argument);
-    assert (ctx->argument[0]);
-    assert (ctx->option);
-    assert (ctx->option->extra);
+    int priority = name_to_priority(arg);
+    if (priority == -1)
+        return CFLAG_BAD_FORMAT;
 
-    priority = (int*) ctx->option->extra;
-
-    return ((*priority = name_to_priority (ctx->argument[0])) == -1)
-         ? W_OPT_BAD_ARG
-         : W_OPT_OK;
+    *((int*) spec->data) = priority;
+    return CFLAG_OK;
 }
 
 
@@ -161,25 +154,32 @@ dslog_main (int argc, char **argv)
     char *env_opts = NULL;
     w_buf_t linebuf = W_BUF;
     w_buf_t overflow = W_BUF;
-    unsigned consumed;
 
-    w_opt_t dslog_options[] = {
-        { 1, 'f', "facility", _facility_option, &facility,
-            "Log facility (default: daemon)." },
-        { 1, 'p', "priority", _priority_option, &priority,
-            "Log priority (default: warning)." },
-        { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
-            "File descriptor to read input from (default: stdin)." },
-        { 0, 'c', "console", W_OPT_BOOL, &console,
-            "Log to console if sending messages to logger fails." },
-        W_OPT_END
+    CFlag dslog_options[] = {
+        {
+            .name = "facility", .letter = 'f',
+            .help = "Log facility (default: daemon).",
+            .func = _facility_option,
+            .data = &facility,
+        },
+        {
+            .name = "priority", .letter = 'p',
+            .help = "Log priority (default: warning).",
+            .func = _priority_option,
+            .data = &priority,
+        },
+        CFLAG(int, "input-fd", 'i', &in_fd,
+              "File descriptor to read input from (default: stdin)."),
+        CFLAG(bool, "console", 'c', &console,
+              "Log to console if sending messages to logger fails."),
+        CFLAG_HELP,
+        CFLAG_END
     };
-
 
     if ((env_opts = getenv ("DSLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
 
-    consumed = w_opt_parse (dslog_options, NULL, NULL, "name", argc, argv);
+    const char *argv0 = cflag_apply(dslog_options, "[options] name", &argc, &argv);
 
     if (console)
         flags |= LOG_CONS;
@@ -187,10 +187,10 @@ dslog_main (int argc, char **argv)
     /* We will be no longer using standard output. */
     close (STDOUT_FILENO);
 
-    if (consumed >= (unsigned) argc)
-        die ("%s: process name not specified.\n", argv[0]);
+    if (!argc)
+        die ("%s: process name not specified.\n", argv0);
 
-    openlog (argv[consumed], flags, facility);
+    openlog (argv[0], flags, facility);
 
     while (running) {
         ssize_t bytes = freadline (in_fd, &linebuf, &overflow, 0);
@@ -198,7 +198,7 @@ dslog_main (int argc, char **argv)
             break; /* EOF */
 
         if (bytes < 0) {
-            fprintf (stderr, "%s: error reading input: %s\n", argv[0], ERRSTR);
+            fprintf (stderr, "%s: error reading input: %s\n", argv0, ERRSTR);
             exit (111);
         }
 
