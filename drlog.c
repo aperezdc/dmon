@@ -6,6 +6,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include "deps/cflag/cflag.h"
 #include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
@@ -73,7 +74,7 @@ static int                out_fd     = -1;
 static int                in_fd      = -1;
 static unsigned           maxfiles   = LOGFILE_DEFMAX;
 static unsigned long long maxtime    = LOGFILE_DEFTIME;
-static unsigned long long maxsize    = LOGFILE_DEFSIZE;
+static size_t             maxsize    = LOGFILE_DEFSIZE;
 static unsigned long long curtime    = 0;
 static unsigned long long cursize    = 0;
 static bool               timestamp  = false;
@@ -344,34 +345,22 @@ quit_handler (int signum)
 }
 
 
-#define HELP_MESSAGE \
-    "Usage: rotlog [OPTIONS] logdir\n"                                 \
-    "Log standard input to a directory of timestamped files\n"         \
-    "which are automatically rotated as-needed.\n"                     \
-
-
-static const w_opt_t drlog_options[] = {
-    { 1, 'm', "max-files", W_OPT_UINT, &maxfiles,
-        "Maximum number of log files to keep." },
-
-    { 1, 'T', "max-time", W_OPT_TIME_PERIOD, &maxtime,
-        "Maximum time to use a log file (suffixes: mhdwMy)." },
-
-    { 1, 's', "max-size", W_OPT_DATA_SIZE, &maxsize,
-        "Maximum size of each log file (suffixes: kmg)." },
-
-    { 1, 'i', "input-fd", W_OPT_INT, &in_fd,
-        "File descriptor to read input from (default: stdin)." },
-
-    { 0, 'b', "buffered", W_OPT_BOOL, &buffered,
-        "Buffered operation, do not flush to disk after each line." },
-
-    { 0, 't', "timestamp", W_OPT_BOOL, &timestamp,
-        "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line." },
-
-    W_OPT_END
+static const CFlag drlog_options[] = {
+    CFLAG(uint, "max-files", 'm', &maxfiles,
+          "Maximum number of log files to keep."),
+    CFLAG(timei, "max-time", 'T', &maxtime,
+          "Maximum time to use a log file (suffixes: mhdwMy)."),
+    CFLAG(bytes, "max-size", 's', &maxsize,
+          "Maximum size of each log file (suffixes: kmg)."),
+    CFLAG(int, "input-fd", 'i', &in_fd,
+          "File descriptor to read input from (default: stdin)."),
+    CFLAG(bool, "buffered", 'b', &buffered,
+          "Buffered operation, do not flush to disk after each line."),
+    CFLAG(bool, "timestamp", 't', &timestamp,
+          "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line."),
+    CFLAG_HELP,
+    CFLAG_END
 };
-
 
 int drlog_main (int argc, char **argv)
 {
@@ -383,12 +372,12 @@ int drlog_main (int argc, char **argv)
     if ((env_opts = getenv ("DRLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);
 
-    consumed = w_opt_parse (drlog_options, NULL, NULL, "logdir-path", argc, argv);
+    const char *argv0 = cflag_apply(drlog_options, "[options] logdir-path", &argc, &argv);
 
-    if (consumed >= (unsigned) argc)
-        die ("%s: No log directory path was specified.\n", argv[0]);
+    if (!argc)
+        die ("%s: No log directory path was specified.\n", argv0);
 
-    directory = argv[consumed];
+    directory = argv[0];
 
     sigemptyset (&sa.sa_mask);
     sa.sa_flags = 0;
