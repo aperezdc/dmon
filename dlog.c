@@ -55,15 +55,12 @@ static const CFlag dlog_options[] = {
 static void
 handle_signal (int signum)
 {
-    if (log_fd >= 0) {
+    if (log_fd >= 0 && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO && !isatty(log_fd)) {
         if (fsync (log_fd) != 0)
             W_WARN ("Error flushing log: $E\n");
-
-        if (log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO) {
-            if (close (log_fd) != 0)
-                W_WARN ("Error closing log: $E\n");
-            log_fd = -1;
-        }
+        if (close (log_fd) != 0)
+            W_WARN ("Error closing log: $E\n");
+        log_fd = -1;
     }
 
     /*
