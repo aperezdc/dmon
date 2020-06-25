@@ -551,15 +551,15 @@ replace_args_shift (unsigned amount,
 }
 
 ssize_t
-freaduntil (int      fd,
-            w_buf_t *buffer,
-            w_buf_t *overflow,
-            int      delimiter,
-            size_t   readbytes)
+freaduntil(int          fd,
+           struct dbuf *buffer,
+           struct dbuf *overflow,
+           int          delimiter,
+           size_t       readbytes)
 {
-    assert (fd >= 0);
-    assert (buffer);
-    assert (overflow);
+    assert(fd >= 0);
+    assert(buffer);
+    assert(overflow);
 
     if (!readbytes) {
         static const size_t default_readbytes = 4096;
@@ -567,39 +567,39 @@ freaduntil (int      fd,
     }
 
     for (;;) {
-        char *pos = memchr (w_buf_data (overflow),
-                            delimiter,
-                            w_buf_size (overflow));
+        char *pos = memchr(dbuf_cdata (overflow),
+                           delimiter,
+                           dbuf_size (overflow));
 
         if (pos) {
             /*
              * The delimiter has been found in the overflow buffer: remove
              * it from there, and copy the data to the result buffer.
              */
-            size_t len = pos - w_buf_data (overflow) + 1;
-            w_buf_append_mem (buffer, w_buf_data (overflow), len);
+            size_t len = pos - (const char*) dbuf_cdata (overflow) + 1;
+            dbuf_addmem(buffer, dbuf_cdata (overflow), len);
             overflow->size -= len;
-            memmove (w_buf_data (overflow),
-                     w_buf_data (overflow) + len,
-                     w_buf_size (overflow));
-            w_buf_resize (buffer, w_buf_size (buffer) - 1);
-            return w_buf_size (buffer);
+            memmove (dbuf_data(overflow),
+                     dbuf_data(overflow) + len,
+                     dbuf_size(overflow));
+            dbuf_resize(buffer, dbuf_size(buffer) - 1);
+            return dbuf_size(buffer);
         }
 
-        if (overflow->alloc < (w_buf_size (overflow) + readbytes)) {
+        if (overflow->alloc < (dbuf_size(overflow) + readbytes)) {
             /*
-             * XXX Calling w_buf_resize() will *both* resize the buffer
-             * data area and set overflow->bsz *and* overflow->len. But we
+             * XXX Calling dbuf_resize() will *both* resize the buffer data
+             * area and set overflow->alloc *and* overflow->size. But we
              * do not want the later to be changed we save and restore it.
              */
-            size_t oldlen = w_buf_size (overflow);
-            w_buf_resize (overflow, w_buf_size (overflow) + readbytes);
+            const size_t oldlen = dbuf_size(overflow);
+            dbuf_resize(overflow, oldlen + readbytes);
             overflow->size = oldlen;
         }
 
-        ssize_t r = read (fd,
-                          w_buf_data (overflow) + w_buf_size (overflow),
-                          readbytes);
+        ssize_t r = read(fd,
+                         dbuf_data(overflow) + dbuf_size(overflow),
+                         readbytes);
         if (r > 0) {
             overflow->size += r;
         } else {

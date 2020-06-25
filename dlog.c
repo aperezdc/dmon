@@ -6,6 +6,7 @@
  */
 
 #include "deps/cflag/cflag.h"
+#include "deps/dbuf/dbuf.h"
 #include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
@@ -76,8 +77,8 @@ handle_signal (int signum)
 int
 dlog_main (int argc, char **argv)
 {
-    w_buf_t overflow = W_BUF;
-    w_buf_t linebuf = W_BUF;
+    struct dbuf overflow = DBUF_INIT;
+    struct dbuf linebuf = DBUF_INIT;
     char *env_opts = NULL;
     struct sigaction sa;
 
@@ -113,7 +114,7 @@ dlog_main (int argc, char **argv)
         if (bytes < 0)
             die ("%s: error reading input: %s\n", argv0, ERRSTR);
 
-        if (w_buf_size (&linebuf)) {
+        if (dbuf_size(&linebuf)) {
             struct iovec iov[6];
             int n_iov = 0;
 
@@ -153,7 +154,7 @@ dlog_main (int argc, char **argv)
                     W_WARN ("$s: flushing log failed: $E\n", argv0);
             }
         }
-        w_buf_clear (&linebuf);
+        dbuf_clear(&linebuf);
     }
 
     if (close (log_fd) != 0)

@@ -6,6 +6,7 @@
  */
 
 #include "deps/cflag/cflag.h"
+#include "deps/dbuf/dbuf.h"
 #include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
@@ -152,8 +153,8 @@ dslog_main (int argc, char **argv)
     int priority = name_to_priority (DEFAULT_PRIORITY);
     bool console = false;
     char *env_opts = NULL;
-    w_buf_t linebuf = W_BUF;
-    w_buf_t overflow = W_BUF;
+    struct dbuf linebuf = DBUF_INIT;
+    struct dbuf overflow = DBUF_INIT;
 
     CFlag dslog_options[] = {
         {
@@ -202,10 +203,10 @@ dslog_main (int argc, char **argv)
             exit (111);
         }
 
-        if (w_buf_size (&linebuf))
-            syslog (priority, "%s", w_buf_str (&linebuf));
+        if (dbuf_size(&linebuf))
+            syslog(priority, "%s", dbuf_str(&linebuf));
 
-        w_buf_clear (&linebuf);
+        dbuf_clear(&linebuf);
     }
 
     closelog ();

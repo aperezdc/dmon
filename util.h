@@ -12,6 +12,7 @@
 # define __attribute__(dummy)
 #endif
 
+#include "deps/dbuf/dbuf.h"
 #include "wheel/wheel.h"
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -65,19 +66,19 @@ void replace_args_shift (unsigned    amount,
                          int        *pargc,
                          char     ***pargv);
 
-ssize_t freaduntil (int      fd,
-                    w_buf_t *buffer,
-                    w_buf_t *overflow,
-                    int      delimiter,
-                    size_t   readbytes);
+ssize_t freaduntil(int          fd,
+                   struct dbuf *buffer,
+                   struct dbuf *overflow,
+                   int          delimiter,
+                   size_t       readbytes);
 
 static inline ssize_t
-freadline (int      fd,
-           w_buf_t *buffer,
-           w_buf_t *overflow,
-           size_t   readbytes)
+freadline(int          fd,
+          struct dbuf *buffer,
+          struct dbuf *overflow,
+          size_t       readbytes)
 {
-    return freaduntil (fd, buffer, overflow, '\n', readbytes);
+    return freaduntil(fd, buffer, overflow, '\n', readbytes);
 }
 
 void die(const char *format, ...)
@@ -91,9 +92,9 @@ iov_from_data (void *data, size_t size)
 }
 
 static inline struct iovec
-iov_from_buffer (w_buf_t *buffer)
+iov_from_buffer (struct dbuf *buffer)
 {
-    return iov_from_data (buffer->data, buffer->size);
+    return iov_from_data (dbuf_data(buffer), dbuf_size(buffer));
 }
 
 static inline struct iovec

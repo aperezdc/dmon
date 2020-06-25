@@ -7,6 +7,7 @@
  */
 
 #include "deps/cflag/cflag.h"
+#include "deps/dbuf/dbuf.h"
 #include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
@@ -80,8 +81,8 @@ static unsigned long long cursize    = 0;
 static bool               timestamp  = false;
 static bool               buffered   = false;
 static int                returncode = 0;
-static w_buf_t            line       = W_BUF;
-static w_buf_t            overflow   = W_BUF;
+static struct dbuf        line       = DBUF_INIT;
+static struct dbuf        overflow   = DBUF_INIT;
 
 
 static int
@@ -203,15 +204,12 @@ recreate_ts:
         }
         else {
             unsigned long long ts_;
-            w_buf_t tsb = W_BUF;
 
             if (fscanf (ts_file, "%llu", &ts_) != 1 || ferror (ts_file)) {
                 fclose (ts_file);
-                w_buf_clear (&tsb);
                 goto recreate_ts;
             }
             ts = ts_;
-            w_buf_clear (&tsb);
         }
         fclose (ts_file);
         ts_file = NULL;
@@ -265,10 +263,8 @@ recreate_ts:
         }
     }
 
-    if (w_buf_is_empty (&line)) {
-        w_buf_clear (&line);
+    if (dbuf_empty (&line))
         return;
-    }
 
     char timebuf[TSTAMP_LEN+1];
     struct iovec iov[3];
@@ -302,7 +298,7 @@ recreate_ts:
     if (!buffered)
         fsync (out_fd);
 
-    w_buf_clear (&line);
+    dbuf_clear(&line);
 }
 
 
@@ -339,7 +335,7 @@ quit_handler (int signum)
     w_unused (signum);
 
     flush_line ();
-    w_buf_append_buf (&line, &overflow);
+    dbuf_addbuf(&line, &overflow);
     close_log ();
     exit (returncode);
 }
@@ -367,7 +363,6 @@ int drlog_main (int argc, char **argv)
     int in_fd = STDIN_FILENO;
     char *env_opts = NULL;
     struct sigaction sa;
-    unsigned consumed;
 
     if ((env_opts = getenv ("DRLOG_OPTIONS")) != NULL)
         replace_args_string (env_opts, &argc, &argv);

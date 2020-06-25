@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "aperezdc/cflag": "0.1.1"
+    "aperezdc/cflag": "0.1.1",
+    "aperezdc/dbuf": "0.1.0"
   }
 }
