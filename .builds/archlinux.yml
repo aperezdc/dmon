@@ -16,4 +16,4 @@ tasks:
       cd dmon
       clib install
   - build: |
-      make -C dmon
+      make -C dmon CFLAGS=-fcommon
