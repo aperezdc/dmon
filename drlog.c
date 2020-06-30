@@ -8,7 +8,6 @@
 
 #include "deps/cflag/cflag.h"
 #include "deps/dbuf/dbuf.h"
-#include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
 #include <time.h>
@@ -323,7 +322,7 @@ close_log (void)
 static void
 roll_handler (int signum)
 {
-    w_unused (signum);
+    (void) signum;
     close_log ();
 }
 
@@ -332,7 +331,7 @@ __attribute__((noreturn))
 static void
 quit_handler (int signum)
 {
-    w_unused (signum);
+    (void) signum;
 
     flush_line ();
     dbuf_addbuf(&line, &overflow);
