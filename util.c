@@ -25,6 +25,18 @@
 #include <grp.h>
 #include <pwd.h>
 
+#if (defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 29)) || defined(__OpenBSD__)
+#define USE_LIBC_REALLOCARRAY 1
+#else
+#define USE_LIBC_REALLOCARRAY 0
+#endif
+
+#if !USE_LIBC_REALLOCARRAY
+static void* util_reallocarray(void*, size_t, size_t);
+#define reallocarray util_reallocarray
+#define DEF_WEAK(dummy)
+#include "deps/fallbacks/reallocarray.c"
+#endif /* !LIBC_HAS_REALLOCARRAY */
 
 void
 fd_cloexec (int fd)
@@ -410,10 +422,12 @@ limit_name (int what)
 #endif /* !REPLACE_ARGS_SCHUNK */
 
 int
-replace_args_string (const char *str,
-                     int        *pargc,
-                     char     ***pargv)
+replace_args_string(const char *str, int *pargc, char ***pargv)
 {
+    assert(str);
+    assert(pargc);
+    assert(pargv);
+
     int ch;
     char *s = NULL;
     int maxarg = REPLACE_ARGS_VCHUNK;
@@ -421,11 +435,7 @@ replace_args_string (const char *str,
     int quotes = 0;
     int smax = 0;
     int slen = 0;
-    char **argv = w_alloc (char*, maxarg);
-
-    assert (str);
-    assert (pargc);
-    assert (pargv);
+    char **argv = calloc(maxarg, sizeof(char*));
 
     /* Copy argv[0] pointer */
     argv[numarg++] = (*pargv)[0];
@@ -445,13 +455,14 @@ replace_args_string (const char *str,
              */
             if (numarg >= maxarg) {
                 maxarg += REPLACE_ARGS_VCHUNK;
-                argv = w_resize (argv, char*, maxarg);
+                argv = reallocarray(argv, maxarg, sizeof(char*));
             }
 
             /* Add terminating "\0" */
             if (slen >= smax) {
                 smax += REPLACE_ARGS_SCHUNK;
-                s = w_resize (s, char, smax);
+                s = s ? calloc(smax, sizeof(char))
+                      : reallocarray(s, smax, sizeof(char));
             }
 
             /* Save string in array. */
@@ -490,7 +501,8 @@ replace_args_string (const char *str,
             }
             if (slen >= smax) {
                 smax += REPLACE_ARGS_SCHUNK;
-                s = w_resize (s, char, smax);
+                s = s ? calloc(smax, sizeof(char))
+                      : reallocarray(s, smax, sizeof(char));
             }
             s[slen++] = ch;
         }
@@ -501,7 +513,7 @@ replace_args_string (const char *str,
         /* Add terminating "\0" */
         if (slen >= smax) {
             smax += REPLACE_ARGS_SCHUNK;
-            s = w_resize (s, char, smax);
+            s = reallocarray(s, smax, sizeof(char));
         }
 
         /* Save string in array. */
@@ -512,7 +524,7 @@ replace_args_string (const char *str,
     /* Copy remaining pointers at the tail */
     if ((maxarg - numarg) <= *pargc) {
         maxarg += *pargc;
-        argv = w_resize (argv, char*, maxarg);
+        argv = reallocarray(argv, maxarg, sizeof(char*));
     }
     for (ch = 1; ch < *pargc; ch++)
         argv[numarg++] = (*pargv)[ch];
