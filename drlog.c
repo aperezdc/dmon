@@ -340,7 +340,7 @@ quit_handler (int signum)
 }
 
 
-static const CFlag drlog_options[] = {
+static const struct cflag drlog_options[] = {
     CFLAG(uint, "max-files", 'm', &maxfiles,
           "Maximum number of log files to keep."),
     CFLAG(timei, "max-time", 'T', &maxtime,

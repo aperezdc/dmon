@@ -114,8 +114,8 @@ name_to_priority (const char *name)
 static bool running = true;
 
 
-static CFlagStatus
-_facility_option(const CFlag *spec, const char *arg)
+static enum cflag_status
+_facility_option(const struct cflag *spec, const char *arg)
 {
     if (!spec)
         return CFLAG_NEEDS_ARG;
@@ -129,8 +129,8 @@ _facility_option(const CFlag *spec, const char *arg)
 }
 
 
-static CFlagStatus
-_priority_option(const CFlag *spec, const char *arg)
+static enum cflag_status
+_priority_option(const struct cflag *spec, const char *arg)
 {
     if (!spec)
         return CFLAG_NEEDS_ARG;
@@ -156,7 +156,7 @@ dslog_main (int argc, char **argv)
     struct dbuf linebuf = DBUF_INIT;
     struct dbuf overflow = DBUF_INIT;
 
-    CFlag dslog_options[] = {
+    struct cflag dslog_options[] = {
         {
             .name = "facility", .letter = 'f',
             .help = "Log facility (default: daemon).",

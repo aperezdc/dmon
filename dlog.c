@@ -39,7 +39,7 @@ static int   log_fd    = -1;
 static int   in_fd     = STDIN_FILENO;
 
 
-static const CFlag dlog_options[] = {
+static const struct cflag dlog_options[] = {
     CFLAG(string, "prefix", 'p', &prefix,
         "Insert the given prefix string between timestamps and logged text."),
     CFLAG(int, "input-fd", 'i', &in_fd,
