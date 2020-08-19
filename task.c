@@ -6,7 +6,7 @@
  */
 
 #include "task.h"
-#include "wheel/wheel.h"
+#include "deps/clog/clog.h"
 #include <assert.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -26,8 +26,8 @@ task_start (task_t *task)
     time_t now = time (NULL);
     unsigned sleep_time = (difftime (now, task->started) > 1) ? 0 : 1;
 
-    W_DEBUG ("Last start $Is ago, will wait for $Is\n",
-             (unsigned) difftime (now, task->started), sleep_time);
+    clog_debug("Last start %us ago, will wait for %us",
+               (unsigned) difftime(now, task->started), sleep_time);
     memcpy (&task->started, &now, sizeof (time_t));
 
     if ((task->pid = fork ()) < 0)
@@ -37,7 +37,7 @@ task_start (task_t *task)
 
     /* We got a valid PID, return */
     if (task->pid > 0) {
-        W_DEBUGC ("  child pid = $I\n", (unsigned) task->pid);
+        clog_debug("Child pid = %i", task->pid);
         return;
     }
 
@@ -50,14 +50,14 @@ task_start (task_t *task)
 
     /* Execute child */
     if (task->write_fd >= 0) {
-        W_DEBUGC ("  redirecting write_fd = $i -> $i\n", task->write_fd, STDOUT_FILENO);
+        clog_debug("Redirecting write_fd = %i -> %i", task->write_fd, STDOUT_FILENO);
         if (dup2 (task->write_fd, STDOUT_FILENO) < 0) {
             fprintf (stderr, "dup2() redirection failed: %s\n", ERRSTR);
             _exit (111);
         }
     }
     if (task->read_fd >= 0) {
-        W_DEBUGC ("  redirecting read_fd = $i -> $i\n", task->read_fd, STDIN_FILENO);
+        clog_debug("Redirecting read_fd = %i -> %i", task->read_fd, STDIN_FILENO);
         if (dup2 (task->read_fd, STDIN_FILENO) < 0) {
             fprintf (stderr, "dup2() redirection failed: %s\n", ERRSTR);
             _exit (111);
@@ -65,7 +65,7 @@ task_start (task_t *task)
     }
 
     if (task->redir_errfd) {
-        W_DEBUG ("  redirecting stderr -> stdout\n");
+        clog_debug("Redirecting stderr -> stdout\n");
         if (dup2 (STDOUT_FILENO, STDERR_FILENO) < 0) {
             fprintf (stderr, "dup2() failed for stderr: %s\n", ERRSTR);
             _exit (111);
@@ -74,20 +74,20 @@ task_start (task_t *task)
 
     /* Groups must be changed first, while we have privileges */
     if (task->user.gid > 0) {
-        W_DEBUG ("  set group id $I\n", (unsigned) task->pid);
+        clog_debug("Set group id %i", task->pid);
         if (setgid (task->user.gid))
             die ("could not set group id: %s\n", ERRSTR);
     }
 
     if (task->user.ngid > 0) {
-        W_DEBUG ("  calling setgroups ($I groups)\n", task->user.ngid);
+        clog_debug("Calling setgroups (%u groups)\n", task->user.ngid);
         if (setgroups (task->user.ngid, task->user.gids))
             die ("could not set additional groups: %s\n", ERRSTR);
     }
 
     /* Now drop privileges */
     if (task->user.uid > 0) {
-        W_DEBUG ("  set user id $I\n", (unsigned) task->user.uid);
+        clog_debug("Set user id %u", (unsigned) task->user.uid);
         if (setuid (task->user.uid))
             die ("could not set user id: %s\n", ERRSTR);
     }
@@ -105,8 +105,7 @@ task_signal_dispatch (task_t *task)
     if (task->signal == NO_SIGNAL) /* Invalid signal, nothing to do */
         return;
 
-    W_DEBUG ("signal $i to process $I\n",
-             task->signal, (unsigned) task->pid);
+    clog_debug("Signal %i to process %i", task->signal, task->pid);
 
     if (kill (task->pid, task->signal) < 0) {
         die ("cannot send signal %i to process %lu: %s\n",
