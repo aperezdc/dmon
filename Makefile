@@ -48,17 +48,16 @@ LIBNOFORK ?= 0
 
 MULTICALL := $(strip $(MULTICALL))
 LIBNOFORK := $(strip $(LIBNOFORK))
-ROTLOG    := $(strip $(ROTLOG))
 
 ifeq ($(MULTICALL),0)
   CPPFLAGS += -DNO_MULTICALL
 endif
 
+DEPS := util.o $(patsubst %.c,%.o,$(wildcard deps/*/*.c))
+
 all: dmon dlog dslog drlog
 
-
-dmon: dmon.o util.o task.o deps/cflag/cflag.o deps/clog/clog.o
-
+dmon: dmon.o task.o $(DEPS)
 
 ifneq ($(LIBNOFORK),0)
 all: libnofork.so
@@ -69,13 +68,13 @@ endif
 
 
 ifneq ($(MULTICALL),0)
-dmon: dlog.o dslog.o drlog.o multicall.o deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o
+dmon: dlog.o dslog.o drlog.o multicall.o
 dlog drlog dslog: dmon
 	$(LN) -sf $< $@
 else
-dslog: dslog.o util.o
-drlog: drlog.o util.o
-dlog: dlog.o util.o deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o
+dslog: dslog.o $(DEPS)
+drlog: drlog.o $(DEPS)
+dlog: dlog.o $(DEPS)
 endif
 
 man: dmon.8 dlog.8 dslog.8 drlog.8
@@ -93,7 +92,7 @@ endif
 
 clean:
 	$(cmd_print) CLEAN
-	$(RM) dmon.o dlog.o dslog.o util.o multicall.o task.o drlog.o
+	$(RM) dmon.o dlog.o dslog.o multicall.o task.o drlog.o $(DEPS)
 	$(RM) dmon dlog dslog drlog
 ifneq ($(LIBNOFORK),0)
 	$(RM) libnofork.so nofork.o

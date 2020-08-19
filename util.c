@@ -40,7 +40,7 @@
 static void* util_reallocarray(void*, size_t, size_t);
 #define reallocarray util_reallocarray
 #define DEF_WEAK(dummy)
-#include "deps/fallbacks/reallocarray.c"
+#include "fallback/reallocarray.c"
 #endif /* !LIBC_HAS_REALLOCARRAY */
 
 void
