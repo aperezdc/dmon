@@ -1,6 +1,6 @@
 # DMon - Process Monitoring With Style
 
-[![Build Status](https://api.cirrus-ci.com/github/aperezdc/dmon.svg)](https://cirrus-ci.com/github/aperezdc/dmon)
+[![builds.sr.ht status](https://builds.sr.ht/~aperezdc/dmon/commits.svg)](https://builds.sr.ht/~aperezdc/dmon/commits?)
 
 This README contains only some random bits. For more in-depth writing, you
 may want to read the articles on DMon:
