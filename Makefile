@@ -57,7 +57,7 @@ DEPS := util.o $(patsubst %.c,%.o,$(wildcard deps/*/*.c))
 
 all: dmon dlog dslog drlog
 
-dmon: dmon.o task.o $(DEPS)
+dmon: dmon.o conf.o task.o $(DEPS)
 
 ifneq ($(LIBNOFORK),0)
 all: libnofork.so
@@ -92,7 +92,7 @@ endif
 
 clean:
 	$(cmd_print) CLEAN
-	$(RM) dmon.o dlog.o dslog.o multicall.o task.o drlog.o $(DEPS)
+	$(RM) dmon.o dlog.o dslog.o multicall.o task.o drlog.o conf.o $(DEPS)
 	$(RM) dmon dlog dslog drlog
 ifneq ($(LIBNOFORK),0)
 	$(RM) libnofork.so nofork.o

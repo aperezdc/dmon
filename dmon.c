@@ -9,6 +9,7 @@
 
 #include "deps/cflag/cflag.h"
 #include "deps/clog/clog.h"
+#include "conf.h"
 #include "task.h"
 #include "util.h"
 #include <assert.h>
@@ -312,8 +313,27 @@ _store_uidgids_option (const struct cflag *spec, const char *arg)
     return status ? CFLAG_BAD_FORMAT : CFLAG_OK;
 }
 
+static enum cflag_status
+_config_option(const struct cflag *spec, const char *arg)
+{
+    (void) arg;
+
+    if (!spec)
+        return CFLAG_NEEDS_ARG;
+
+    assert(!"Unreachable");
+    clog_error("Option --config/-C must be the first one specified");
+    return CFLAG_BAD_FORMAT;
+}
 
 static const struct cflag dmon_options[] = {
+    {
+        .name = "config", .letter = 'C',
+        .func = _config_option,
+        .help =
+            "Read options from the specified configuration file. If given, "
+            "this option must be the first one in the command line.",
+    },
     CFLAG(bool, "no-daemon", 'n', &nodaemon,
           "Do not daemonize, stay in foreground."),
     CFLAG(bool, "stderr-redir", 'e', &cmd_task.redir_errfd,
@@ -389,6 +409,22 @@ dmon_main (int argc, char **argv)
 
     FILE *pid_file = NULL;
     char *opts_env = NULL;
+
+    /* Check for -C/--config given as first command line argument. */
+    if (argc > 2 && ((argv[1][0] == '-' &&
+                      argv[1][1] == 'C' &&
+                      argv[1][2] == '\0') ||
+                     !strcmp("--config", argv[1]))) {
+        FILE *input = fopen(argv[2], "r");
+        if (!input)
+            die("%s: Cannot open file '%s', %s\n", argv[0], argv[2], ERRSTR);
+
+        struct dbuf errmsg = DBUF_INIT;
+        if (!conf_parse(input, dmon_options + 1, &errmsg))
+            die("%s: Error parsing %s:%s\n", argv[0], argv[2], dbuf_str(&errmsg));
+
+        replace_args_shift(2, &argc, &argv);
+    }
 
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
         replace_args_string (opts_env, &argc, &argv);

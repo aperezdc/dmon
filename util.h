@@ -59,6 +59,10 @@ int replace_args_string (const char *str,
                          int        *argc,
                          char     ***argv);
 
+void replace_args_shift(unsigned amount,
+                        int     *pargc,
+                        char  ***pargv);
+
 ssize_t freaduntil(int          fd,
                    struct dbuf *buffer,
                    struct dbuf *overflow,

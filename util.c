@@ -548,6 +548,28 @@ replace_args_string(const char *str, int *pargc, char ***pargv)
     return 0;
 }
 
+void
+replace_args_shift(unsigned amount,
+                   int     *pargc,
+                   char  ***pargv)
+{
+    assert(pargc);
+    assert(pargv);
+    assert(amount > 0);
+    assert(*pargc > (int) amount);
+
+    int    argc = *pargc;
+    char **argv = *pargv;
+    int    i;
+
+    while (amount--) {
+        argc--;
+        for (i = 1; i < argc; i++) {
+            argv[i] = argv[i+1];
+        }
+    }
+    *pargc = argc;
+}
 
 ssize_t
 freaduntil(int          fd,
