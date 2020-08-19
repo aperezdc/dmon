@@ -26,10 +26,14 @@
 #include <grp.h>
 #include <pwd.h>
 
-#if (defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 29)) || defined(__OpenBSD__)
-#define USE_LIBC_REALLOCARRAY 1
-#else
-#define USE_LIBC_REALLOCARRAY 0
+#ifdef __GLIBC_PREREQ
+# if __GLIBC_PREREQ(2, 29)
+#  define USE_LIBC_REALLOCARRAY 1
+# endif
+#endif
+
+#ifndef USE_LIBC_REALLOCARRAY
+# define USE_LIBC_REALLOCARRAY 0
 #endif
 
 #if !USE_LIBC_REALLOCARRAY
