@@ -1,0 +1,26 @@
+{
+  "name": "dmon",
+  "repo": "aperezdc/dmon",
+  "version": "0.4.5",
+  "license": "MIT",
+  "description": "Small process daemonization and monitoring tool",
+  "keywords": ["monitor", "process", "daemonization", "logging"],
+  "makefile": "Makefile",
+  "install": "make install",
+  "dependencies": {
+    "aperezdc/cflag": "1.1.0",
+    "aperezdc/clog": "0.1.0",
+    "aperezdc/dbuf": "0.1.0"
+  },
+  "src": [
+    "dlog.c",
+    "dmon.c",
+    "drlog.c",
+    "dslog.c",
+    "multicall.c",
+    "task.c",
+    "task.h",
+    "util.c",
+    "util.h"
+  ]
+}
