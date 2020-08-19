@@ -65,7 +65,7 @@ task_start (task_t *task)
     }
 
     if (task->redir_errfd) {
-        clog_debug("Redirecting stderr -> stdout\n");
+        clog_debug("Redirecting stderr -> stdout");
         if (dup2 (STDOUT_FILENO, STDERR_FILENO) < 0) {
             fprintf (stderr, "dup2() failed for stderr: %s\n", ERRSTR);
             _exit (111);
