@@ -1,3 +1,0 @@
-[submodule "wheel"]
-	path = wheel
-	url = git://github.com/aperezdc/wheel.git

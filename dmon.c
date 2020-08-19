@@ -7,7 +7,8 @@
 
 #define _GNU_SOURCE 1
 
-#include "wheel/wheel.h"
+#include "deps/cflag/cflag.h"
+#include "deps/clog/clog.h"
 #include "task.h"
 #include "util.h"
 #include <assert.h>
@@ -84,7 +85,7 @@ _write_status (const char *fmt, ...)
     va_end (arg);
 
     if (r < 0)
-        W_WARN ("I/O error writing to status file: %s.\n", ERRSTR);
+        clog_warning("Writing to status file: %s.", ERRSTR);
 }
 
 #define write_status(...) \
@@ -120,7 +121,6 @@ _write_status (const char *fmt, ...)
     } while (0)
 
 
-#ifdef _DEBUG_PRINT
 const char*
 signal_to_name (int signum)
 {
@@ -134,19 +134,18 @@ signal_to_name (int signum)
     }
     return unknown;
 }
-#endif /* _DEBUG_PRINT */
 
 
 static int
 reap_and_check (void)
 {
-    W_DEBUG ("waiting for a children to reap...\n");
+    clog_debug("Waiting for a children to reap...");
 
     int status;
     pid_t pid = waitpid (-1, &status, WNOHANG);
 
     if (pid == cmd_task.pid) {
-        W_DEBUGC ("  reaped cmd process $I\n", (unsigned) pid);
+        clog_debug("Reaped cmd process %d", pid);
 
         write_status ("cmd exit %li %i\n", (long) pid, status);
 
@@ -157,7 +156,7 @@ reap_and_check (void)
          * then we do not want to respawn, but to gracefully shutdown.
          */
         if (success_exit && WIFEXITED (status) && WEXITSTATUS (status) == 0) {
-            W_DEBUGC ("  cmd process ended successfully, will exit\n");
+            clog_debug("cmd process ended successfully, will exit");
             running = 0;
         }
         else {
@@ -166,7 +165,7 @@ reap_and_check (void)
         return status;
     }
     else if (log_enabled && pid == log_task.pid) {
-        W_DEBUGC ("  reaped log process $I\n", (unsigned) pid);
+        clog_debug("Reaped log process %i", pid);
 
         write_status ("log exit %li %i\n", (long) pid, status);
 
@@ -174,7 +173,7 @@ reap_and_check (void)
         task_action_queue (&log_task, A_START);
     }
     else { 
-        W_DEBUGC ("  reaped unknown process $I", (unsigned) pid);
+        clog_debug("Reaped unknown process %i", pid);
     }
 
     /*
@@ -189,7 +188,7 @@ reap_and_check (void)
 static void
 handle_signal (int signum)
 {
-    W_DEBUG ("handle signal $i ($s)\n", signum, signal_to_name (signum));
+    clog_debug("Got signal %i, %s", signum, signal_to_name(signum));
 
     /* Receiving INT/TERM signal will stop gracefully */
     if (signum == SIGINT || signum == SIGTERM) {
@@ -226,12 +225,12 @@ handle_signal (int signum)
     if (signum != NO_SIGNAL) {
         /* Try to forward signals */
         if (cmd_signals) {
-            W_DEBUGC ("  delayed signal $i for cmd process\n", signum);
+            clog_debug("Delayed signal %i for cmd process", signum);
             task_action_queue (&cmd_task, A_SIGNAL);
             task_signal_queue (&cmd_task, signum);
         }
         if (log_signals && log_enabled) {
-            W_DEBUGC ("  delayed signal $i for log process\n", signum);
+            clog_debug("Delayed signal %i for log process", signum);
             task_action_queue (&log_task, A_SIGNAL);
             task_signal_queue (&log_task, signum);
         }
@@ -262,210 +261,166 @@ setup_signals (void)
 }
 
 
-static w_opt_status_t
-_environ_option (const w_opt_context_t *ctx)
+static enum cflag_status
+_environ_option(const struct cflag *spec, const char *arg)
 {
-    char *equalsign;
-    char *varname;
+    if (!spec)
+        return CFLAG_NEEDS_ARG;
 
-    assert (ctx);
-    assert (ctx->argument);
-    assert (ctx->argument[0]);
-
-    if ((equalsign = strchr (ctx->argument[0], '=')) == NULL) {
-        unsetenv (ctx->argument[0]);
+    const char *equalsign;
+    if ((equalsign = strchr(arg, '=')) == NULL) {
+        unsetenv(arg);
+    } else {
+        char *varname = strndup(arg, equalsign - arg);
+        setenv(varname, equalsign + 1, 1);
+        free(varname);
     }
-    else {
-        varname = w_str_dupl (ctx->argument[0],
-                              equalsign - ctx->argument[0]);
-        setenv (varname, equalsign + 1, 1);
-    }
-    return W_OPT_OK;
+    return CFLAG_OK;
 }
 
 
-static w_opt_status_t
-_rlimit_option (const w_opt_context_t *ctx)
+static enum cflag_status
+_rlimit_option(const struct cflag *spec, const char *arg)
 {
+    if (!spec)
+        return CFLAG_NEEDS_ARG;
+
     long value;
-    int status;
     int limit;
+    int status = parse_limit_arg(arg, &limit, &value);
 
-    assert (ctx);
-    assert (ctx->argument);
-    assert (ctx->argument[0]);
-
-    status = parse_limit_arg (ctx->argument[0], &limit, &value);
     if (status < 0)
-        return W_OPT_EXIT_OK;
+        return CFLAG_OK;
     if (status)
-        return W_OPT_BAD_ARG;
+        return CFLAG_BAD_FORMAT;
 
-    safe_setrlimit (limit, value);
-    return W_OPT_OK;
+    safe_setrlimit(limit, value);
+    return CFLAG_OK;
 }
 
 
-static w_opt_status_t
-_store_uidgids_option (const w_opt_context_t *ctx)
+static enum cflag_status
+_store_uidgids_option (const struct cflag *spec, const char *arg)
 {
-    assert (ctx);
-    assert (ctx->userdata);
-    assert (ctx->argument);
-    assert (ctx->argument[0]);
+    if (!spec)
+        return CFLAG_NEEDS_ARG;
 
-    return (parse_uidgids (ctx->argument[0], ctx->option->extra))
-            ? W_OPT_BAD_ARG
-            : W_OPT_OK;
+    char *arg_copy = strdup(arg);
+    int status = parse_uidgids(arg_copy, spec->data);
+    free(arg_copy);
+
+    return status ? CFLAG_BAD_FORMAT : CFLAG_OK;
 }
 
 
-static w_opt_status_t
-_config_option (const w_opt_context_t *ctx)
-{
-    assert (ctx);
-    assert (ctx->argv);
-    assert (ctx->argv[0]);
-
-    fprintf (stderr,
-             "%s: Option --config/-C must be the first one specified\n",
-             ctx->argv[0]);
-
-    return W_OPT_EXIT_FAIL;
-}
-
-
-static const w_opt_t dmon_options[] = {
-    { 1, 'C' | W_OPT_CLI_ONLY, "config", _config_option, NULL,
-        "Read options from the specified configuration file. If given, this option "
-        "must be the first one in the command line." },
-
-    { 1, 'I', "write-info", W_OPT_STRING, &status_path,
-        "Write information on process status to the given file. "
-        "Sockets and FIFOs may be used." },
-
-    { 1, 'p', "pid-file", W_OPT_STRING, &pidfile_path,
-        "Write PID to a file in the given path." },
-
-    { 1, 'W', "work-dir", W_OPT_STRING, &workdir_path,
-        "Specify a working directory. All other specified relative paths have "
-        "to be specified in relation with this directory." },
-
-    { 0, 'n', "no-daemon", W_OPT_BOOL, &nodaemon,
-        "Do not daemonize, stay in foreground." },
-
-    { 0, 'e', "stderr-redir", W_OPT_BOOL, &cmd_task.redir_errfd,
-        "Redirect command's standard error stream to its standard "
-        "output stream." },
-
-    { 0, 's', "cmd-sigs", W_OPT_BOOL, &cmd_signals,
-        "Forward signals to command process." },
-
-    { 0, 'S', "log-sigs", W_OPT_BOOL, &log_signals,
-        "Forward signals to log process." },
-
-    { 1, 'E', "environ", _environ_option, NULL,
-        "Define an environment variable, or if no value is given, "
-        "delete it. This option can be specified multiple times." },
-
-    { 1, 'r', "limit", _rlimit_option, NULL,
-        "Sets a resource limit, given as 'name=value'. This option "
-        "can be specified multiple times. Use '-r help' for a list." },
-
-    { 1, 'u', "cmd-user", _store_uidgids_option, &cmd_task.user,
-        "User and (optionally) groups to run the command as. Format "
-        "is 'user[:group1[:group2[:...groupN]]]'." },
-
-    { 1, 'U', "log-user", _store_uidgids_option, &log_task.user,
-        "User and (optionally) groups to run the log process as. "
-        "Format is 'user[:group1[:group2[:...groupN]]]'." },
-
-    { 0, '1', "once", W_OPT_BOOL, &success_exit,
-        "Exit if command exits with a zero return code. The process "
-        "will be still respawned when it exits with a non-zero code." },
-
-    { 1, 't', "timeout", W_OPT_TIME_PERIOD, &cmd_timeout,
-        "If command execution takes longer than the time specified "
-        "the process will be killed and started again." },
-
-    { 1, 'i', "interval", W_OPT_TIME_PERIOD, &cmd_interval,
-        "Time to wait between successful command executions. When "
-        "exit code is non-zero, the interval is ignored and the "
-        "command is executed again as soon as possible." },
-
-    { 1, 'L', "load-high", W_OPT_FLOAT, &load_high,
-        "Stop process when system load surpasses the given value." },
-
-    { 1, 'l', "load-low", W_OPT_FLOAT, &load_low,
-        "Resume process execution when system load drops below the "
-        "given value. If not given, defaults to half the value passed "
-        "to '-l'." },
-
-    W_OPT_END
+static const struct cflag dmon_options[] = {
+    CFLAG(bool, "no-daemon", 'n', &nodaemon,
+          "Do not daemonize, stay in foreground."),
+    CFLAG(bool, "stderr-redir", 'e', &cmd_task.redir_errfd,
+          "Redirect command's standard error stream to its standard "
+          "output stream."),
+    CFLAG(bool, "cmd-sigs", 's', &cmd_signals,
+          "Forward signals to command process."),
+    CFLAG(bool, "log-sigs", 'S', &log_signals,
+          "Forward signals to log process."),
+    CFLAG(bool, "once", '1', &success_exit,
+          "Exit if command exits with a zero return code. The process "
+          "will be still respawned when it exits with a non-zero code."),
+    CFLAG(string, "write-info", 'I', &status_path,
+          "Write information on process status to the given file. "
+          "Sockets and FIFOs may be used."),
+    CFLAG(string, "pid-file", 'p', &pidfile_path,
+          "Write PID to a file in the given path."),
+    CFLAG(string, "work-dir", 'W', &workdir_path,
+          "Specify a working directory. All other specified relative paths "
+          "have to be specified in relation with this directory."),
+    CFLAG(float, "load-high", 'L', &load_high,
+          "Stop process when system load surpasses the given value."),
+    CFLAG(float, "load-low", 'l', &load_low,
+          "Resume process execution when system load drops below the "
+          "given value. If not given, defaults to half the value passed "
+          "to '-L'."),
+    CFLAG(timei, "timeout", 't', &cmd_timeout,
+          "If command execution takes longer than the time specified "
+          "the process will be killed and started again."),
+    CFLAG(timei, "interval", 'i', &cmd_interval,
+          "Time to wait between successful command executions. When "
+          "exit code is non-zero, the interval is ignored and the "
+          "command is executed again as soon as possible."),
+    {
+        .name = "environ", .letter = 'E',
+        .func = _environ_option,
+        .help =
+            "Define an environment variable, or if no value is given, "
+            "delete it. This option can be specified multiple times.",
+    },
+    {
+        .name = "limit", .letter = 'r',
+        .func = _rlimit_option,
+        .help =
+            "Sets a resource limit, given as 'name=value'. This option "
+            "can be specified multiple times. Use '-r help' for a list.",
+    },
+    {
+        .name = "cmd-user", .letter = 'u',
+        .func = _store_uidgids_option,
+        .data = &cmd_task.user,
+        .help =
+            "User and (optionally) groups to run the command as. Format "
+            "is 'user[:group1[:group2[:...groupN]]]'.",
+    },
+    {
+        .name = "log-user", .letter = 'U',
+        .func = _store_uidgids_option,
+        .data = &log_task.user,
+        .help =
+            "User and (optionally) groups to run the log process as. "
+            "Format is 'user[:group1[:group2[:...groupN]]]'.",
+    },
+    CFLAG_HELP,
+    CFLAG_END
 };
 
 
 int
 dmon_main (int argc, char **argv)
 {
+    clog_init(NULL);
+
     FILE *pid_file = NULL;
     char *opts_env = NULL;
-    bool success;
-    unsigned i, consumed;
-
-    /* Check for "-C configfile" given in the command line. */
-    if (argc > 2 && ((argv[1][0] == '-' &&
-                      argv[1][1] == 'C' &&
-                      argv[1][2] == '\0') ||
-                     !strcmp ("--config", argv[1])))
-
-    {
-        w_lobj w_io_t *cfg_io = NULL;
-        char *err_msg = NULL;
-
-        if ((cfg_io = w_io_unix_open (argv[2], O_RDONLY, 0)) == NULL)
-            die ("%s: Could not open file '%s', %s\n", argv[0], argv[2], ERRSTR);
-
-        success = w_opt_parse_io (dmon_options, cfg_io, &err_msg);
-
-        if (!success || err_msg)
-            die ("%s: Error parsing '%s', %s\n", argv[0], argv[2], err_msg);
-
-        replace_args_shift (2, &argc, &argv);
-    }
 
     if ((opts_env = getenv ("DMON_OPTIONS")) != NULL)
         replace_args_string (opts_env, &argc, &argv);
 
-    i = consumed = w_opt_parse (dmon_options, NULL, NULL,
-                                "cmd [cmd-options] [ -- "
-                                "log-cmd [log-cmd-options]]",
-                                argc, argv);
-
-    W_DEBUG ("w_opt_parse consumed $I arguments\n", consumed);
+    const char *argv0 = cflag_apply(dmon_options,
+                                    "cmd [cmd-options] [ -- "
+                                    "log-cmd [log-cmd-options]]",
+                                    &argc, &argv);
 
     if (workdir_path) {
         if (chdir (workdir_path) != 0)
-            die ("%s: Cannot use '%s' as work directory, %s\n", argv[0], workdir_path, ERRSTR);
+            die ("%s: Cannot use '%s' as work directory, %s\n", argv0, workdir_path, ERRSTR);
     }
 
     if (status_path) {
         int fd = open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
         if (fd < 0)
-            die ("%s: Cannot open '%s' for writing, %s\n", argv[0], status_path, ERRSTR);
+            die ("%s: Cannot open '%s' for writing, %s\n", argv0, status_path, ERRSTR);
         status_file = fdopen (fd, "w");
         setvbuf (status_file, NULL, _IOLBF, 0);
     }
 
     if (cmd_interval && success_exit)
-        die ("%s: Options '-i' and '-1' cannot be used together.\n", argv[0]);
+        die ("%s: Options '-i' and '-1' cannot be used together.\n", argv0);
 
     if (load_enabled && almost_zerof (load_low))
         load_low = load_high / 2.0f;
 
-    cmd_task.argv = argv + consumed;
+    cmd_task.argv = argv;
 
     /* Skip over until "--" is found */
+    unsigned i = 0;
     while (i < (unsigned) argc && strcmp (argv[i], "--") != 0) {
         cmd_task.argc++;
         i++;
@@ -473,7 +428,7 @@ dmon_main (int argc, char **argv)
 
     /* There is a log command */
     if (i < (unsigned) argc && strcmp (argv[i], "--") == 0) {
-        log_task.argc = argc - cmd_task.argc - consumed - 1;
+        log_task.argc = argc - cmd_task.argc - 1;
         log_task.argv = argv + argc - log_task.argc;
         log_task.argv[log_task.argc] = NULL;
     }
@@ -482,36 +437,40 @@ dmon_main (int argc, char **argv)
 
     if (log_task.argc > 0) {
         if (pipe (log_fds) != 0) {
-            die ("%s: Cannot create pipe: %s\n", argv[0], ERRSTR);
+            die ("%s: Cannot create pipe: %s\n", argv0, ERRSTR);
         }
-        W_DEBUG ("pipe_read = $i, pipe_write = $i\n", log_fds[0], log_fds[1]);
+        clog_debug("pipe_read = %i, pipe_write = %i\n", log_fds[0], log_fds[1]);
         fd_cloexec (log_fds[0]);
         fd_cloexec (log_fds[1]);
     }
 
-#ifdef _DEBUG_PRINT
-    {
+    if (clog_debug_enabled) {
         char **xxargv = cmd_task.argv;
-        w_io_format (w_stderr, "cmd:");
-        while (*xxargv) w_io_format (w_stderr, " $s", *xxargv++);
-        w_io_format (w_stderr, "\n");
+        fputs("cmd:", stderr);
+        while (*xxargv) {
+            fputc(' ', stderr);
+            fputs(*xxargv++, stderr);
+        }
+        fputc('\n', stderr);
         if (log_enabled) {
             char **xxargv = log_task.argv;
-            w_io_format (w_stderr, "log:");
-            while (*xxargv) w_io_format (w_stderr, " $c", *xxargv++);
-            w_io_format (w_stderr, "\n");
+            fputs("log:", stderr);
+            while (*xxargv) {
+                fputc(' ', stderr);
+                fputs(*xxargv++, stderr);
+            }
+            fputc('\n', stderr);
         }
     }
-#endif /* _DEBUG_PRINT */
 
     if (cmd_task.argc == 0)
-        die ("%s: No command to run given.\n", argv[0]);
+        die ("%s: No command to run given.\n", argv0);
 
     if (pidfile_path) {
         int fd = open (pidfile_path, O_TRUNC | O_CREAT | O_WRONLY, 0666);
         if (fd < 0) {
             die ("%s: cannot open '%s' for writing, %s\n",
-                 argv[0], pidfile_path, ERRSTR);
+                 argv0, pidfile_path, ERRSTR);
         }
         pid_file = fdopen (fd, "w");
     }
@@ -522,7 +481,7 @@ dmon_main (int argc, char **argv)
     /* We have a valid file descriptor: write PID */
     if (pid_file) {
         if (fprintf (pid_file, "%li\n", (long) getpid ()) < 0)
-            W_WARN ("I/O error writing to PID file: $E\n");
+            clog_warning("Writing to PID file: %s", ERRSTR);
         fclose (pid_file);
         pid_file = NULL;
     }
@@ -534,7 +493,7 @@ dmon_main (int argc, char **argv)
     log_task.read_fd  = log_fds[0];
 
     while (running) {
-        W_DEBUG (">>> loop iteration\n");
+        clog_debug(">>> loop iteration");
         if (check_child) {
             int retcode = reap_and_check ();
 
@@ -551,7 +510,7 @@ dmon_main (int argc, char **argv)
 
                 do {
                     retval = nanosleep (&ts, &ts);
-                    W_DEBUGC ("  nanosleep -> $i\n", retval);
+                    clog_debug("nanosleep -> %i\n", retval);
                 } while (retval == -1 && errno == EINTR && running);
             }
 
@@ -572,16 +531,16 @@ dmon_main (int argc, char **argv)
         if (load_enabled) {
             double load_cur;
 
-            W_DEBUGC ("  checking load after sleeping 1s\n");
+            clog_debug("Checking load after sleeping 1s");
             interruptible_sleep (1);
 
             if (getloadavg (&load_cur, 1) == -1)
-                W_WARN ("getloadavg() failed: $E\n");
+                clog_debug("getloadavg() failed: %s", ERRSTR);
 
             if (paused) {
                 /* If the current load dropped below load_low -> resume */
                 if (load_cur <= load_low) {
-                    W_DEBUGC ("  resuming...\n");
+                    clog_debug("Resuming...");
                     task_signal (&cmd_task, SIGCONT);
                     write_status ("cmd resume %li\n", (long) cmd_task.pid);
                     paused = 0;
@@ -590,7 +549,7 @@ dmon_main (int argc, char **argv)
             else {
                 /* If the load went above load_high -> pause */
                 if (load_cur > load_high) {
-                    W_DEBUGC ("  pausing...\n");
+                    clog_debug("Pausing...");
                     task_signal (&cmd_task, SIGSTOP);
                     write_status ("cmd pause %li\n", (long) cmd_task.pid);
                     paused = 1;
@@ -599,12 +558,12 @@ dmon_main (int argc, char **argv)
         }
         else {
             /* Wait for signals to arrive. */
-            W_DEBUGC ("  waiting for signals to come...\n");
+            clog_debug("Waiting for signals to come...");
             pause ();
         }
     }
 
-    W_DEBUG ("exiting gracefully...\n");
+    clog_debug("Exiting gracefully...");
 
     if (cmd_task.pid != NO_PID) {
         write_status ("cmd stop %li\n", (long) cmd_task.pid);

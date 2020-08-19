@@ -13,7 +13,7 @@
 #endif
 
 #include "deps/dbuf/dbuf.h"
-#include "wheel/wheel.h"
+#include <string.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <stdio.h>
@@ -55,16 +55,9 @@ bool time_period_to_seconds (const char         *str,
 bool storage_size_to_bytes  (const char         *str,
                              unsigned long long *result);
 
-w_opt_status_t time_period_option  (const w_opt_context_t *ctx);
-w_opt_status_t storage_size_option (const w_opt_context_t *ctx);
-
 int replace_args_string (const char *str,
                          int        *argc,
                          char     ***argv);
-
-void replace_args_shift (unsigned    amount,
-                         int        *pargc,
-                         char     ***pargv);
 
 ssize_t freaduntil(int          fd,
                    struct dbuf *buffer,

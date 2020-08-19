@@ -7,7 +7,6 @@
 
 #include "deps/cflag/cflag.h"
 #include "deps/dbuf/dbuf.h"
-#include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
 #include <stdlib.h>

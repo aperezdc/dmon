@@ -1,12 +1,13 @@
 /*
  * util.c
- * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
 #define _GNU_SOURCE 1
 
+#include "deps/cflag/cflag.h"
 #include "util.h"
 #include <assert.h>
 #include <sys/time.h>
@@ -261,35 +262,37 @@ become_daemon (void)
 
 
 static bool
-_parse_limit_time (const char *sval, long *rval)
+_parse_limit_time(const char *sval, long *rval)
 {
-    assert (sval != NULL);
-    assert (rval != NULL);
+    assert(sval != NULL);
+    assert(rval != NULL);
 
     unsigned long long val;
-    bool failed = w_str_time_period (sval, &val);
+    const struct cflag spec = { .data = &val };
+    const bool failed = cflag_timei(&spec, sval) != CFLAG_OK;
     *rval = val;
     return failed || (val > LONG_MAX);
 }
 
 
 static bool
-_parse_limit_number (const char *sval, long *rval)
+_parse_limit_number(const char *sval, long *rval)
 {
-    assert (sval != NULL);
-    assert (rval != NULL);
-    return !(sscanf (sval, "%li", rval) == 1);
+    assert(sval != NULL);
+    assert(rval != NULL);
+    return !(sscanf(sval, "%li", rval) == 1);
 }
 
 
 static bool
 _parse_limit_bytes (const char *sval, long *rval)
 {
-    assert (sval != NULL);
-    assert (rval != NULL);
+    assert(sval != NULL);
+    assert(rval != NULL);
 
     unsigned long long val;
-    bool failed = w_str_size_bytes (sval, &val);
+    const struct cflag spec = { .data = &val };
+    const bool failed = cflag_bytes(&spec, sval) != CFLAG_OK;
     *rval = val;
     return failed || (val > LONG_MAX);
 }
@@ -370,28 +373,25 @@ static const struct {
 
 
 int
-parse_limit_arg (const char *str, int *what, long *value)
+parse_limit_arg(const char *str, int *what, long *value)
 {
-    unsigned i;
+    assert(str != NULL);
+    assert(what != NULL);
+    assert(value != NULL);
 
-    assert (str != NULL);
-    assert (what != NULL);
-    assert (value != NULL);
+    const unsigned n_rlimit_specs = sizeof(rlimit_specs) / sizeof(rlimit_specs[0]);
 
-    if (!strcmp (str, "help")) {
-        for (i = 0; i < w_lengthof (rlimit_specs); i++) {
-            w_print ("$s -- $s\n",
-                     rlimit_specs[i].name,
-                     rlimit_specs[i].desc);
-        }
+    if (!strcmp(str, "help")) {
+        for (unsigned i = 0; i < n_rlimit_specs; i++)
+            printf("%s -- %s\n", rlimit_specs[i].name, rlimit_specs[i].desc);
         return -1;
     }
 
-    for (i = 0; i < w_lengthof (rlimit_specs); i++) {
-        unsigned nlen = strlen (rlimit_specs[i].name);
-        if (!strncmp (str, rlimit_specs[i].name, nlen) && str[nlen] == '=') {
+    for (unsigned i = 0; i < n_rlimit_specs; i++) {
+        unsigned nlen = strlen(rlimit_specs[i].name);
+        if (!strncmp(str, rlimit_specs[i].name, nlen) && str[nlen] == '=') {
             *what = rlimit_specs[i].what;
-            return ((*rlimit_specs[i].parse) (str + nlen + 1, value));
+            return ((*rlimit_specs[i].parse)(str + nlen + 1, value));
         }
     }
 
@@ -399,13 +399,12 @@ parse_limit_arg (const char *str, int *what, long *value)
 }
 
 
-
 const char*
-limit_name (int what)
+limit_name(int what)
 {
-    unsigned i;
+    const unsigned n_rlimit_specs = sizeof(rlimit_specs) / sizeof(rlimit_specs[0]);
 
-    for (i = 0; i < w_lengthof (rlimit_specs); i++) {
+    for (unsigned i = 0; i < n_rlimit_specs; i++) {
         if (what == rlimit_specs[i].what)
             return rlimit_specs[i].name;
     }
@@ -489,6 +488,13 @@ replace_args_string(const char *str, int *pargc, char ***pargv)
         }
         else {
             if (!isprint (ch)) {
+                for (unsigned i = 0; argv[i]; i++)
+                    free(argv[i]);
+                free(argv);
+                if (s) {
+                    free(s);
+                    s = NULL;
+                }
 #if   defined(EINVAL)
                 errno = EINVAL;
 #elif defined(EILSEQ)
@@ -538,29 +544,6 @@ replace_args_string(const char *str, int *pargc, char ***pargv)
     return 0;
 }
 
-
-void
-replace_args_shift (unsigned amount,
-                    int     *pargc,
-                    char  ***pargv)
-{
-    int    argc = *pargc;
-    char **argv = *pargv;
-    int    i;
-
-    assert (pargc);
-    assert (pargv);
-    assert (amount > 0);
-    assert (*pargc > (int) amount);
-
-    while (amount--) {
-        argc--;
-        for (i = 1; i < argc; i++) {
-            argv[i] = argv[i+1];
-        }
-    }
-    *pargc = argc;
-}
 
 ssize_t
 freaduntil(int          fd,

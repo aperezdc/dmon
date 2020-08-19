@@ -43,8 +43,6 @@ CFLAGS  ?= -Os -g -Wall -W
 DESTDIR ?=
 prefix  ?= /usr/local
 
-libwheel_PATH := wheel
-
 MULTICALL ?= 1
 LIBNOFORK ?= 0
 
@@ -58,11 +56,8 @@ endif
 
 all: dmon dlog dslog drlog
 
-libwheel_STDIO   := 0
-libwheel_PTHREAD := 0
-include $(libwheel_PATH)/Makefile.libwheel
 
-dmon: dmon.o util.o task.o $(libwheel)
+dmon: dmon.o util.o task.o deps/cflag/cflag.o deps/clog/clog.o
 
 
 ifneq ($(LIBNOFORK),0)
@@ -74,13 +69,13 @@ endif
 
 
 ifneq ($(MULTICALL),0)
-dmon: dlog.o dslog.o drlog.o multicall.o deps/cflag/cflag.o deps/dbuf/dbuf.o
+dmon: dlog.o dslog.o drlog.o multicall.o deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o
 dlog drlog dslog: dmon
 	$(LN) -sf $< $@
 else
-dslog: dslog.o util.o $(libwheel)
-drlog: drlog.o util.o $(libwheel)
-dlog: dlog.o util.o $(libwheel) deps/cflag/cflag.o deps/dbuf/dbuf.o
+dslog: dslog.o util.o
+drlog: drlog.o util.o
+dlog: dlog.o util.o deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o
 endif
 
 man: dmon.8 dlog.8 dslog.8 drlog.8

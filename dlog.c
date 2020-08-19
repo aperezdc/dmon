@@ -6,8 +6,8 @@
  */
 
 #include "deps/cflag/cflag.h"
+#include "deps/clog/clog.h"
 #include "deps/dbuf/dbuf.h"
-#include "wheel/wheel.h"
 #include "util.h"
 #include <assert.h>
 #include <errno.h>
@@ -58,9 +58,9 @@ handle_signal (int signum)
 {
     if (log_fd >= 0 && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO && !isatty(log_fd)) {
         if (fsync (log_fd) != 0)
-            W_WARN ("Error flushing log: $E\n");
+            clog_warning("Flushing log: %s", strerror(errno));
         if (close (log_fd) != 0)
-            W_WARN ("Error closing log: $E\n");
+            clog_warning("Closing log: %s", strerror(errno));
         log_fd = -1;
     }
 
@@ -77,6 +77,8 @@ handle_signal (int signum)
 int
 dlog_main (int argc, char **argv)
 {
+    clog_init(NULL);
+
     struct dbuf overflow = DBUF_INIT;
     struct dbuf linebuf = DBUF_INIT;
     char *env_opts = NULL;
@@ -147,18 +149,18 @@ dlog_main (int argc, char **argv)
             }
 
             if (writev (log_fd, iov, n_iov) < 0)
-                W_WARN ("$s: writing to log failed: $E\n", argv0);
+                clog_warning("Writing to log: %s", strerror(errno));
 
             if (!buffered && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO && !isatty(log_fd)) {
                 if (fsync (log_fd) != 0)
-                    W_WARN ("$s: flushing log failed: $E\n", argv0);
+                    clog_warning("Flushing log: %s", strerror(errno));
             }
         }
         dbuf_clear(&linebuf);
     }
 
     if (close (log_fd) != 0)
-        W_WARN ("$s: error closing log file: $E\n", argv0);
+        clog_warning("Closing log: %s", strerror(errno));
 
     exit (EXIT_SUCCESS);
 }
