@@ -1,19 +1,6 @@
 image: archlinux
-packages:
-  - curl
-  - make
-  - gcc
 sources:
-  - https://github.com/clibs/clib
   - https://git.sr.ht/~aperezdc/dmon
 tasks:
-  - clib: |
-      cd clib
-      git checkout 1.11.3
-      make
-  - deps: |
-      PATH="$(pwd)/clib:$PATH"
-      cd dmon
-      clib install
   - build: |
-      make -C dmon CFLAGS=-fcommon
+      make -C dmon
