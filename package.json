@@ -8,7 +8,7 @@
   "makefile": "Makefile",
   "install": "make install",
   "dependencies": {
-    "aperezdc/cflag": "1.1.0",
+    "aperezdc/cflag": "1.1.1",
     "aperezdc/clog": "0.1.0",
     "aperezdc/dbuf": "0.1.0"
   },

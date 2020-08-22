@@ -1,0 +1,9 @@
+{
+	"name": "clog",
+	"version": "0.1.0",
+	"repo": "aperezdc/clog",
+	"description": "Non-allocating runtime configurable logger",
+	"license": "MIT",
+	"keywords": ["log", "logging", "debug"],
+	"src": ["clog.h", "clog.c"]
+}

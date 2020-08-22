@@ -1,0 +1,16 @@
+{
+  "name": "dbuf",
+  "version": "0.1.0",
+  "repo": "aperezdc/dbuf",
+  "description": "Resizable data buffers",
+  "license": "MIT",
+  "keywords": [
+    "dynamic",
+    "data",
+    "buffer"
+  ],
+  "src": [
+    "dbuf.h",
+    "dbuf.c"
+  ]
+}
