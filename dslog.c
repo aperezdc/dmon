@@ -16,9 +16,9 @@
 #include <errno.h>
 
 
-#ifdef NO_MULTICALL
+#if !(defined(MULTICALL) && MULTICALL)
 # define dslog_main main
-#endif /* NO_MULTICALL */
+#endif /* MULTICALL */
 
 
 #ifndef DEFAULT_FACILITY

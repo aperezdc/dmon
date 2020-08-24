@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Changed
+- GNU Make is not required anymore, the included `Makefile` now works with
+  the BSD variant as well, and probably others.
 
 ## [v0.4.5] - 2018-08-05
 ### Fixed

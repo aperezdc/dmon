@@ -19,9 +19,9 @@
 #include <fcntl.h>
 #include <time.h>
 
-#ifdef NO_MULTICALL
+#if !(defined(MULTICALL) && MULTICALL)
 # define dlog_main main
-#endif /* NO_MULTICALL */
+#endif /* MULTICALL */
 
 #ifndef TSTAMP_FMT
 #define TSTAMP_FMT "%Y-%m-%d/%H:%M:%S"

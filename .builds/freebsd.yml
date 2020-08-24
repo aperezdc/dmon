@@ -1,8 +1,6 @@
 image: freebsd/latest
-packages:
-  - gmake
 sources:
   - https://git.sr.ht/~aperezdc/dmon
 tasks:
   - build: |
-      gmake -C dmon
+      make -C dmon

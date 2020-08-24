@@ -1,126 +1,76 @@
-#
-# Makefile
-# Adrian Perez, 2010-07-28 00:44
-#
-
-__verbose := 0
-
-ifeq ($(origin V),command line)
-  ifneq ($V,0)
-    __verbose := 1
-  endif
-endif
-
-ifeq ($(__verbose),0)
-  define cmd_print
-    printf " %-10s %s\n"
-  endef
-  saved_CC := $(CC)
-  saved_LD := $(LD)
-  saved_AR := $(AR)
-  LN        = $(cmd_print) SYMLINK "$@ -> $<" ; ln
-  RST2MAN   = $(cmd_print) RST2MAN "$< -> $@"
-  STRIP     = $(cmd_print) STRIP   "$@" ; strip
-  override CC = $(cmd_print) CC "$@" ; $(saved_CC)
-  override LD = $(cmd_print) LD "$@" ; $(saved_LD)
-  override AR = $(cmd_print) AR "$@" ; $(saved_AR)
-  ifeq ($(findstring clean,$(MAKECMDGOALS)),clean)
-    MAKEFLAGS += s
-  endif
-  ifeq ($(findstring install,$(MAKECMDGOALS)),install)
-    MAKEFLAGS += s
-  endif
-.SILENT:
-else
-  define cmd_print
-    :
-  endef
-  STRIP   = strip
-  LN      = ln
-endif
-
-CFLAGS  ?= -Os -g -Wall -W
-DESTDIR ?=
-prefix  ?= /usr/local
-
 MULTICALL ?= 1
-LIBNOFORK ?= 0
+CFLAGS    ?= -Os -g -Wall -W
+DESTDIR   ?=
+PREFIX    ?= /usr/local
+RST2MAN   ?= rst2man
+RM        ?= rm -f
+LN        ?= ln
 
-MULTICALL := $(strip $(MULTICALL))
-LIBNOFORK := $(strip $(LIBNOFORK))
+CPPFLAGS += -DMULTICALL=$(MULTICALL)
 
-ifeq ($(MULTICALL),0)
-  CPPFLAGS += -DNO_MULTICALL
-endif
+O := deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o \
+	conf.o task.o multicall.o util.o $X
+D := $(O:.o=.d) dmon.d dlog.d drlog.d dslog.d nofork.d
 
-DEPS := util.o $(patsubst %.c,%.o,$(wildcard deps/*/*.c))
+all: multicall
 
-all: dmon dlog dslog drlog
+multicall:
+	@$(MAKE) dmon symlinks MULTICALL=1 X='dlog.o dslog.o drlog.o'
 
-dmon: dmon.o conf.o task.o $(DEPS)
+standalone:
+	@$(MAKE) dmon dlog drlog dslog MULTICALL=0
 
-ifneq ($(LIBNOFORK),0)
-all: libnofork.so
-libnofork.so: CFLAGS += -fPIC
-libnofork.so: nofork.o -lc
-	$(LD) $(LDFLAGS) -shared -o $@ $^
-endif
+.PHONY: multicall standalone
 
+.c.o:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MF $(@:.o=.d) -c -o $@ $<
 
-ifneq ($(MULTICALL),0)
-dmon: dlog.o dslog.o drlog.o multicall.o
-dlog drlog dslog: dmon
-	$(LN) -sf $< $@
-else
-dslog: dslog.o $(DEPS)
-drlog: drlog.o $(DEPS)
-dlog: dlog.o $(DEPS)
-endif
+-include $D
+
+libdmon.a: $O
+	$(AR) rcs $@ $?
+
+dmon: dmon.o libdmon.a
+	$(CC) $(LDFLAGS) -o $@ dmon.o libdmon.a
+
+dlog: dlog.o libdmon.a
+	$(CC) $(LDFLAGS) -o $@ dlog.o libdmon.a
+
+dslog: dslog.o libdmon.a
+	$(CC) $(LDFLAGS) -o $@ dslog.o libdmon.a
+
+drlog: drlog.o libdmon.a
+	$(CC) $(LDFLAGS) -o $@ drlog.o libdmon.a
+
+nofork: libnofork.so
+
+libnofork.so: nofork.o
+	$(CC) $(LDFLAGS) -shared -o $@ nofork.o
+
+.PHONY: nofork
+
+symlinks: dmon
+	for i in dlog drlog dslog ; do $(LN) -sf dmon $$i ; done
 
 man: dmon.8 dlog.8 dslog.8 drlog.8
 
-%.8: %.rst
+.SUFFIXES: .rst .8
+
+.rst.8:
 	$(RST2MAN) $< $@
 
-ifneq ($(MULTICALL),0)
-strip: dmon
-else
-strip: dmon dslog drlog dlog
-endif
-	$(STRIP) -x --strip-unneeded $^
-
-
 clean:
-	$(cmd_print) CLEAN
-	$(RM) dmon.o dlog.o dslog.o multicall.o task.o drlog.o conf.o $(DEPS)
-	$(RM) dmon dlog dslog drlog
-ifneq ($(LIBNOFORK),0)
-	$(RM) libnofork.so nofork.o
-endif
+	$(RM) dmon dlog dslog drlog libdmon.a dmon.o dlog.o dslog.o drlog.o nofork.o libnofork.so $O
 
-install: all
-	$(cmd_print) INSTALL
-	install -d $(DESTDIR)$(prefix)/share/man/man8
+mrproper: clean
+	$(RM) $D
+
+install:
+	install -d $(DESTDIR)$(PREFIX)/share/man/man8
 	install -m 644 dmon.8 dlog.8 dslog.8 drlog.8 \
-		$(DESTDIR)$(prefix)/share/man/man8
-	install -d $(DESTDIR)$(prefix)/bin
-ifneq ($(LIBNOFORK),0)
-	install -d $(DESTDIR)$(prefix)/lib
-	install -m 644 libnofork.so \
-		$(DESTDIR)$(prefix)/lib
-endif
-ifneq ($(MULTICALL),0)
-	install -m 755 dmon $(DESTDIR)$(prefix)/bin
-	ln -fs dmon $(DESTDIR)$(prefix)/bin/drlog
-	ln -fs dmon $(DESTDIR)$(prefix)/bin/dslog
-	ln -fs dmon $(DESTDIR)$(prefix)/bin/dlog
-else
+		$(DESTDIR)$(PREFIX)/share/man/man8
+	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 dmon dlog dslog drlog \
-		$(DESTDIR)$(prefix)/bin
-endif
+		$(DESTDIR)$(PREFIX)/bin
 
-.PHONY: man install strip
-
-# vim:ft=make
-#
-
+.PHONY: man install mrproper nofork

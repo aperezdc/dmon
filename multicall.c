@@ -1,14 +1,11 @@
 /*
  * multicall.c
- * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
-#ifdef NO_MULTICALL
-# error Cannot build __FILE__ with -DNO_MULTICALL
-#endif /* NO_MULTICALL */
-
+#if defined(MULTICALL) && MULTICALL
 
 #include "util.h"
 #include <string.h>
@@ -53,4 +50,4 @@ main (int argc, char **argv)
     return (*mainfunc)(argc, argv);
 }
 
-
+#endif /* !MULTICALL */
