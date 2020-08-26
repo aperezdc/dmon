@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- Support listing applets compiled into a multicall `dmon` binary when the
+  `DMON_LIST_MULTICALL_APPLETS` environment variable is set and non-zero.
+
 ### Changed
 - GNU Make is not required anymore, the included `Makefile` now works with
   the BSD variant as well, and probably others.

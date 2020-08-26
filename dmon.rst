@@ -281,6 +281,10 @@ variable, if defined. Any command line option can be specified this way.
 Arguments read from the environment variable will be prepended to the ones
 given in the command line, so they may still be overriden.
 
+If the ``DMON_LIST_MULTICALL_APPLETS`` is defined and has a non-zero value,
+the list of applets compiled into a multicall binary will be printed out,
+and the program will exit immediately.
+
 
 SEE ALSO
 ========
