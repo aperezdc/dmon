@@ -1,0 +1,4 @@
+/.builds/             export-ignore
+/.git*                export-ignore
+/deps/*/clib.json     export-ignore
+/deps/*/package.json  export-ignore
