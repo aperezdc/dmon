@@ -33,12 +33,12 @@ libdmon.a: $O $(A:=.o)
 	$(AR) rcs $@ $?
 
 dmon $P: dmon.o $(P:=.o) libdmon.a
-	$(CC) $(LDFLAGS) -o $@ $@.o libdmon.a
+	$(CC) $(LDFLAGS) -o $@ $@.o libdmon.a $(LDLIBS)
 
 nofork: libnofork.so
 
 libnofork.so: nofork.o
-	$(CC) $(LDFLAGS) -shared -o $@ nofork.o
+	$(CC) $(LDFLAGS) -shared -o $@ nofork.o $(LDLIBS)
 
 .PHONY: nofork
 
