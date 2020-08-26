@@ -19,11 +19,17 @@ By default all tools are built into a single binary which can be symlinked
 with different names to switch between them (àla BusyBox). This is useful
 to save space and (to some degree) system memory.
 
-You can build all DMon tools as separate binaries using the `standalone`
-target when invoking Make:
+You can build all the DMon tools as separate binaries passing `MULTICALL=0`
+when invoking Make:
 
 ```sh
-make standalone
+make MULTICALL=0
+```
+
+Remember to pass the option when doing `make install` as well:
+
+```sh
+make MULTICALL=0 install
 ```
 
 
