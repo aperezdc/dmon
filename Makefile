@@ -93,3 +93,23 @@ install-multicall-0: all-multicall-0
 	@$(MAKE) install-all P='$(APPLETS)'
 
 .PHONY: install install-multicall-0 install-multicall-1
+
+dist:
+	@$(MAKE) dist-files VERSION=$$(jq -r .version package.json)
+
+dist-files: \
+	dmon-$(VERSION).tar.xz \
+	dmon-$(VERSION).tar.xz.asc \
+	dmon-$(VERSION).tar.xz.sha512
+
+dmon-$(VERSION).tar.xz:
+	git archive --format=tar --prefix=dmon-$(VERSION)/ v$(VERSION) | xz -9c > $@
+
+dmon-$(VERSION).tar.xz.asc: dmon-$(VERSION).tar.xz
+	$(RM) $@
+	gpg --armor --detach-sign --output=$@ dmon-$(VERSION).tar.xz
+
+dmon-$(VERSION).tar.xz.sha512: dmon-$(VERSION).tar.xz
+	sha512sum --tag dmon-$(VERSION).tar.xz > $@
+
+.PHONY: dist dist-files
