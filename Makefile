@@ -1,46 +1,39 @@
-MULTICALL ?= 1
-CFLAGS    ?= -Os -g -Wall -W
-DESTDIR   ?=
-PREFIX    ?= /usr/local
-RST2MAN   ?= rst2man
-RM        ?= rm -f
-LN        ?= ln
+MULTICALL = 1
+CFLAGS    = -Os -g -Wall -W
+PREFIX    = /usr/local
+RST2MAN   = rst2man
+RM        = rm -f
 
-CPPFLAGS += -DMULTICALL=$(MULTICALL)
+APPLETS   = dlog drlog dslog
 
-O := deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o \
-	conf.o task.o multicall.o util.o $X
-D := $(O:.o=.d) dmon.d dlog.d drlog.d dslog.d nofork.d
+O = deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o \
+	conf.o task.o multicall.o util.o
+D = $(O:.o=.d) dmon.d nofork.d $(APPLETS:=.d)
 
-all: multicall
+all: all-multicall-$(MULTICALL)
 
-multicall:
-	@$(MAKE) dmon symlinks MULTICALL=1 X='dlog.o dslog.o drlog.o'
+all-multicall-1:
+	@$(MAKE) programs A='$(APPLETS)'
 
-standalone:
-	@$(MAKE) dmon dlog drlog dslog MULTICALL=0
+all-multicall-0:
+	@$(MAKE) programs P='$(APPLETS)'
 
-.PHONY: multicall standalone
+programs: dmon $(APPLETS)
+
+.PHONY: all-multicall-0 all-multicall-1 programs
 
 .c.o:
-	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MF $(@:.o=.d) -c -o $@ $<
+	$(CC) -DMULTICALL=$(MULTICALL) $(CFLAGS) -MMD -MF $(@:.o=.d) -c -o $@ $<
+
+.SUFFIXES: .c .o
 
 -include $D
 
-libdmon.a: $O
+libdmon.a: $O $(A:=.o)
 	$(AR) rcs $@ $?
 
-dmon: dmon.o libdmon.a
-	$(CC) $(LDFLAGS) -o $@ dmon.o libdmon.a
-
-dlog: dlog.o libdmon.a
-	$(CC) $(LDFLAGS) -o $@ dlog.o libdmon.a
-
-dslog: dslog.o libdmon.a
-	$(CC) $(LDFLAGS) -o $@ dslog.o libdmon.a
-
-drlog: drlog.o libdmon.a
-	$(CC) $(LDFLAGS) -o $@ drlog.o libdmon.a
+dmon $P: dmon.o $(P:=.o) libdmon.a
+	$(CC) $(LDFLAGS) -o $@ $@.o libdmon.a
 
 nofork: libnofork.so
 
@@ -49,15 +42,20 @@ libnofork.so: nofork.o
 
 .PHONY: nofork
 
-symlinks: dmon
-	for i in dlog drlog dslog ; do $(LN) -sf dmon $$i ; done
+$(A:=-symlink): $A
+
+$A: dmon
+	ln -sf dmon $@
+
+.PHONY: $(A:=-symlink)
 
 man: dmon.8 dlog.8 dslog.8 drlog.8
 
-.SUFFIXES: .rst .8
-
 .rst.8:
 	$(RST2MAN) $< $@
+
+.PHONY: man
+.SUFFIXES: .rst .8
 
 clean:
 	$(RM) dmon dlog dslog drlog libdmon.a dmon.o dlog.o dslog.o drlog.o nofork.o libnofork.so $O
@@ -65,12 +63,33 @@ clean:
 mrproper: clean
 	$(RM) $D
 
-install:
+.PHONY: clean mrproper
+
+install-all: install-all-multicall-$(MULTICALL)
+
+install-all-multicall-1: install-common
+	ln -sf dmon $(DESTDIR)$(PREFIX)/bin/dlog
+	ln -sf dmon $(DESTDIR)$(PREFIX)/bin/drlog
+	ln -sf dmon $(DESTDIR)$(PREFIX)/bin/dslog
+
+install-all-multicall-0: install-common
+	install -m 755 $(APPLETS) $(DESTDIR)$(PREFIX)/bin
+
+install-common:
 	install -d $(DESTDIR)$(PREFIX)/share/man/man8
 	install -m 644 dmon.8 dlog.8 dslog.8 drlog.8 \
 		$(DESTDIR)$(PREFIX)/share/man/man8
 	install -d $(DESTDIR)$(PREFIX)/bin
-	install -m 755 dmon dlog dslog drlog \
-		$(DESTDIR)$(PREFIX)/bin
+	install -m 755 dmon $(DESTDIR)$(PREFIX)/bin
 
-.PHONY: man install mrproper nofork
+.PHONY: install-common install-all-multicall-0 install-all-multicall-0
+
+install: install-multicall-$(MULTICALL)
+
+install-multicall-1: all-multicall-1
+	@$(MAKE) install-all A='$(APPLETS)'
+
+install-multicall-0: all-multicall-0
+	@$(MAKE) install-all P='$(APPLETS)'
+
+.PHONY: install install-multicall-0 install-multicall-1
