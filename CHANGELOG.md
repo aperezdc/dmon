@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [v0.5.0] - 2020-08-27
 ### Added
 - Support listing applets compiled into a multicall `dmon` binary when the
   `DMON_LIST_MULTICALL_APPLETS` environment variable is set and non-zero.
@@ -38,7 +40,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - `dlog` and `drlog` now handle the `INT`, `TERM`, and `HUP` signals gracefully.
 
-[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/aperezdc/dmon/compare/v0.4.5...v0.5.0
 [v0.4.5]: https://github.com/aperezdc/dmon/compare/v0.4.4...v0.4.5
 [v0.4.4]: https://github.com/aperezdc/dmon/compare/v0.4.3...v0.4.4
 [v0.4.3]: https://github.com/aperezdc/dmon/compare/v0.4.2...v0.4.3
