@@ -40,13 +40,13 @@ struct cflag {
 
 
 #define CFLAG(_t, _name, _letter, _data, _help) \
-    ((struct cflag) {                           \
+    {                                           \
         .func = cflag_ ## _t,                   \
         .name = (_name),                        \
         .letter = (_letter),                    \
         .data = (_data),                        \
         .help = (_help),                        \
-    })
+    }
 #define CFLAG_HELP \
     CFLAG(help, "help", 'h', NULL, "Prints command line usage help.")
 #define CFLAG_END \
