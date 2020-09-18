@@ -41,3 +41,10 @@ functions from the system libraries, in such a way that the process under
 effect will not be able of forking. This is interesting for running DMon
 with programs that have no option to instruct them not to fork.
 
+## Building libsetunbuf.so
+
+A tiny `LD_PRELOAD`-able "`libsetunbuf.so`" library can be built by using the
+`setunbuf` Make target. This library uses the `__attribute__((constructor))`
+attribute in order to call `setbuf(stdout, NULL);` which turns off the
+buffering of stdout on the process running under DMon. This is useful for
+viewing the output of your process through DLog in real time.

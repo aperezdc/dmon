@@ -8,7 +8,7 @@ APPLETS   = dlog drlog dslog
 
 O = deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o \
 	conf.o task.o multicall.o util.o
-D = $(O:.o=.d) dmon.d nofork.d $(APPLETS:=.d)
+D = $(O:.o=.d) dmon.d nofork.d setunbuf.d $(APPLETS:=.d)
 
 all: all-multicall-$(MULTICALL)
 
@@ -21,6 +21,9 @@ all-multicall-0:
 programs: dmon $(APPLETS)
 
 .PHONY: all-multicall-0 all-multicall-1 programs
+
+.c.o: CFLAGS := $(CFLAGS)
+setunbuf.o: CFLAGS := $(CFLAGS) -fPIC
 
 .c.o:
 	$(CC) -DMULTICALL=$(MULTICALL) $(CFLAGS) -MMD -MF $(@:.o=.d) -c -o $@ $<
@@ -40,7 +43,12 @@ nofork: libnofork.so
 libnofork.so: nofork.o
 	$(CC) $(LDFLAGS) -shared -o $@ nofork.o $(LDLIBS)
 
-.PHONY: nofork
+setunbuf: libsetunbuf.so
+
+libsetunbuf.so: setunbuf.o
+	$(CC) $(LDFLAGS) -shared -o $@ setunbuf.o $(LDLIBS)
+
+.PHONY: nofork setunbuf
 
 $(A:=-symlink): $A
 
@@ -58,7 +66,7 @@ man: dmon.8 dlog.8 dslog.8 drlog.8
 .SUFFIXES: .rst .8
 
 clean:
-	$(RM) dmon dlog dslog drlog libdmon.a dmon.o dlog.o dslog.o drlog.o nofork.o libnofork.so $O
+	$(RM) dmon dlog dslog drlog libdmon.a dmon.o dlog.o dslog.o drlog.o nofork.o libnofork.so setunbuf.o libsetunbuf.so $O
 
 mrproper: clean
 	$(RM) $D
