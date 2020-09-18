@@ -24,7 +24,7 @@ struct dbuf {
     size_t   alloc;
 };
 
-#define DBUF_INIT  ((struct dbuf) { .data = NULL, .size = 0, .alloc = 0 })
+#define DBUF_INIT  { .data = NULL, .size = 0, .alloc = 0 }
 
 struct dbuf* dbuf_new(size_t prealloc)
     __attribute__((warn_unused_result));

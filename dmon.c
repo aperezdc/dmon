@@ -13,6 +13,7 @@
 #include "task.h"
 #include "util.h"
 #include <assert.h>
+#include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdarg.h>
@@ -138,6 +139,22 @@ signal_to_name (int signum)
     return unknown;
 }
 
+#if defined(__UCLIBC__)
+static int getloadavg(double *a, int n)
+{
+    struct sysinfo si;
+    if (n <= 0) return n ? -1 : 0;
+    if (n > 3) n = 3;
+
+    if (sysinfo(&si) != 0) return -1;
+
+    int i = 0;
+    for (i=0; i<n; i++)
+        a[i] = 1.0/(1<<SI_LOAD_SHIFT) * si.loads[i];
+
+    return n;
+}
+#endif
 
 static int
 reap_and_check (void)
