@@ -119,6 +119,13 @@ Command line options:
               tends to be used in conjunction with ``-n``, and cannot be
               used with ``-i``.
 
+-m, --max-respawns
+              Respawn command m number of times. ``dmon`` does not check the
+              exit status on each respawn. For example, if you want the
+              command to never respawn, set ``-m 0``. After the set number of
+              respawns have passed ``dmon`` will NOT respawn the cmd.
+              Instead, ``dmon`` will exit and stop the logging process.
+
 -e, --stderr-redir
               Redirect both the standard error and standard output streams
               to the log command. If not specified, only the standard output
