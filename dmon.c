@@ -37,6 +37,7 @@ static task_t        log_task     = TASK;
 static float         load_low     = 0.0f;
 static float         load_high    = 0.0f;
 static bool          success_exit = false;
+static int           num_respawns = -1;
 static bool          log_signals  = false;
 static bool          cmd_signals  = false;
 static unsigned long cmd_timeout  = 0;
@@ -161,7 +162,13 @@ reap_and_check (void)
             clog_debug("cmd process ended successfully, will exit");
             running = 0;
         }
-        else {
+        else if (num_respawns == 0) {
+            clog_debug("cmd process respawned max number of times, will exit");
+            running = 0;
+        } else {
+            if (num_respawns > 0) {
+                num_respawns -= 1;
+            }
             task_action_queue (&cmd_task, A_START);
         }
         return status;
@@ -347,6 +354,8 @@ static const struct cflag dmon_options[] = {
     CFLAG(bool, "once", '1', &success_exit,
           "Exit if command exits with a zero return code. The process "
           "will be still respawned when it exits with a non-zero code."),
+    CFLAG(int, "max-respawns", 'm', &num_respawns,
+          "Exit after max number of respawns no matter the exit code."),
     CFLAG(string, "write-info", 'I', &status_path,
           "Write information on process status to the given file. "
           "Sockets and FIFOs may be used."),
@@ -539,7 +548,7 @@ dmon_main (int argc, char **argv)
              * we want an interruptible sleep-wait so reaction to signals is
              * quick, which we definitely want for SIGINT/SIGTERM.
              */
-            if (cmd_interval && !success_exit && retcode == 0) {
+            if (cmd_interval && !success_exit && retcode == 0 && num_respawns != 0) {
                 int retval;
                 struct timespec ts;
                 ts.tv_sec = cmd_interval;
