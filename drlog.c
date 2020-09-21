@@ -11,6 +11,7 @@
 #include "util.h"
 #include <assert.h>
 #include <time.h>
+#include <errno.h>
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
@@ -339,6 +340,37 @@ quit_handler (int signum)
     exit (returncode);
 }
 
+static void
+create_log_directory_if_needed(const char* directory)
+{
+    struct stat info;
+    int stat_res = lstat(directory, &info);
+
+    // Path exists
+    if (stat_res == 0)
+    {
+        if ((info.st_mode & S_IFDIR) != S_IFDIR)
+            die("log directory '%s' exists and is not a directory\n", directory);
+        return;
+    }
+
+    // Path does NOT exist
+    int err = errno;
+    if (err == ENOENT)
+    {
+        if (mkdir(directory, 0777) != 0)
+        {
+            perror("mkdir");
+            die("failed to create directory: %s\n", directory);
+        }
+    }
+    else
+    {
+        perror("stat");
+        die("stat of %s failed\n", directory);
+    }
+}
+
 
 static const struct cflag drlog_options[] = {
     CFLAG(uint, "max-files", 'm', &maxfiles,
@@ -372,6 +404,7 @@ int drlog_main (int argc, char **argv)
         die ("%s: No log directory path was specified.\n", argv0);
 
     directory = argv[0];
+    create_log_directory_if_needed(directory);
 
     sigemptyset (&sa.sa_mask);
     sa.sa_flags = 0;
