@@ -13,7 +13,6 @@
 #include "task.h"
 #include "util.h"
 #include <assert.h>
-#include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdarg.h>
@@ -140,6 +139,7 @@ signal_to_name (int signum)
 }
 
 #if defined(__UCLIBC__)
+#include <sys/sysinfo.h>
 static int getloadavg(double *a, int n)
 {
     struct sysinfo si;
