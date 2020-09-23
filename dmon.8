@@ -45,37 +45,37 @@ monitored and re\-launched when it dies.
 Command line options:
 .INDENT 0.0
 .TP
-.BI \-C \ PATH\fP,\fB \ \-\-config \ PATH
+.BI \-C \ PATH\fR,\fB \ \-\-config \ PATH
 Read contents from \fIPATH\fP as if they were command line options.
 Those will be parsed after the options picked from the
 \fBDMON_OPTIONS\fP environment variable and before the options
 given in the command line. If given, this option \fBmust\fP be
 the first one passed to to \fBdmon\fP\&.
 .TP
-.BI \-I \ PATH\fP,\fB \ \-\-write\-info \ PATH
+.BI \-I \ PATH\fR,\fB \ \-\-write\-info \ PATH
 Write status changes of monitored processes to \fIPATH\fP, one
 status message per line. See the \fI\%status file format\fP section
 for details on the format.
 .TP
-.BI \-p \ PATH\fP,\fB \ \-\-pid\-file \ PATH
+.BI \-p \ PATH\fR,\fB \ \-\-pid\-file \ PATH
 Write the PID of the master \fBdmon\fP process to a file in the
 specified \fIPATH\fP\&. You can signal the process to interact with
 it. (See \fI\%SIGNALS\fP below.)
 .TP
-.BI \-W \ PATH\fP,\fB \ \-\-work\-dir \ PATH
+.BI \-W \ PATH\fR,\fB \ \-\-work\-dir \ PATH
 Change to the directory located at \fIPATH\fP and use it as working
 directory. Note that all other paths passed to \fBdmon\fP (except
 the configuration file) will be interpreted as relative to the
 working directory.
 .TP
-.BI \-i \ TIME\fP,\fB \ \-\-interval \ TIME
+.BI \-i \ TIME\fR,\fB \ \-\-interval \ TIME
 When execution of the process ends with a successful (zero)
 exit status, wait for \fITIME\fP seconds before respawning the
 process instead of doing it immediately. This can be used to
 make \fBdmon\fP behave as el\-cheapo \fIcron(8)\fP replacement. This
 option cannot be used along with \fB\-1\fP\&.
 .TP
-.BI \-t \ TIME\fP,\fB \ \-\-timeout \ TIME
+.BI \-t \ TIME\fR,\fB \ \-\-timeout \ TIME
 If the process takes longer than \fITIME\fP seconds to complete,
 terminate it by sending the \fITERM\fP/\fICONT\fP signal combo. Then
 the process will be respawned again. This is useful to ensure
@@ -84,7 +84,7 @@ some known time limit do not hog the computer. Most likely,
 this flag is useful in conjunction with \fB\-1\fP, and with
 \fB\-n\fP e.g. when using it in a \fIcron(8)\fP job.
 .TP
-.BI \-L \ NUMBER\fP,\fB \ \-\-load\-high \ NUMBER
+.BI \-L \ NUMBER\fR,\fB \ \-\-load\-high \ NUMBER
 Enable tracking the system\(aqs load average, and suspend the
 execution of the command process when the system load goes
 over \fINUMBER\fP\&. To pause the process, \fISTOP\fP signal will be
@@ -93,13 +93,13 @@ under which load value the process is resumed, otherwise
 when the system load falls below \fINUMBER/2\fP the process will
 be resumed.
 .TP
-.BI \-l \ NUMBER\fP,\fB \ \-\-load\-low \ NUMBER
+.BI \-l \ NUMBER\fR,\fB \ \-\-load\-low \ NUMBER
 When using \fB\-L\fP, the command process execution will be
 resumed when the system load falls below \fINUMBER\fP, instead of
 using the default behavior of resuming the process when the
 load falls below half the limit specified with \fB\-L\fP\&.
 .TP
-.BI \-E \ ENVVAR\fP,\fB \ \-\-environ \ ENVVAR
+.BI \-E \ ENVVAR\fR,\fB \ \-\-environ \ ENVVAR
 Manipulates environment variables. Specifying just a variable
 name (e.g. \fB\-E foo\fP) as \fIENVVAR\fP will clear it and remove
 the variable from the environment. Adding a value will define
@@ -108,13 +108,13 @@ specified multiple times. Environment variables will affect
 \fIboth\fP the \fBdmon\fP and the child process; this is intended
 behaviour.
 .TP
-.BI \-u \ UIDGID\fP,\fB \ \-\-cmd\-user \ UIDGID
+.BI \-u \ UIDGID\fR,\fB \ \-\-cmd\-user \ UIDGID
 Executes the command with the credentials of user \fIUID\fP,
 and additional group \fIGID\fP specified separated with
 semicolons. Both user and group identifiers might be given
 as strings or numerically.
 .TP
-.BI \-U \ UIDGID\fP,\fB \ \-\-log\-user \ UIDGID
+.BI \-U \ UIDGID\fR,\fB \ \-\-log\-user \ UIDGID
 Executes the \fBlog\fP command with the credentials of user
 \fIUID\fP, and additional group \fIGID\fP specified separated with
 semicolons. Both user and group identifiers might be given
@@ -134,6 +134,13 @@ or with a non\-zero exit status, it is respawned. This option
 tends to be used in conjunction with \fB\-n\fP, and cannot be
 used with \fB\-i\fP\&.
 .TP
+.BI \-m \ COUNT\fR,\fB \ \-\-max\-respawns \ COUNT
+Respawn command m number of times. \fBdmon\fP does not check the
+exit status on each respawn. For example, if you want the
+command to never respawn, set \fB\-m 0\fP\&. After the set number of
+respawns have passed \fBdmon\fP will NOT respawn the cmd.
+Instead, \fBdmon\fP will exit and stop the logging process.
+.TP
 .B \-e\fP,\fB  \-\-stderr\-redir
 Redirect both the standard error and standard output streams
 to the log command. If not specified, only the standard output
@@ -147,7 +154,7 @@ Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 Forward signals \fICONT\fP, \fIALRM\fP, \fIQUIT\fP, \fIUSR1\fP, \fIUSR2\fP and
 \fIHUP\fP to the log command when \fBdmon\fP receives them.
 .TP
-.BI \-r \ LIMIT\fP,\fB \ \-\-limit \ LIMIT
+.BI \-r \ LIMIT\fR,\fB \ \-\-limit \ LIMIT
 Set \fILIMIT\fP for process execution. Limits are specified as
 \fBname=value\fP strings, and multiple limits may be set by
 using \fB\-r\fP multiple times. The available set of limits
@@ -388,6 +395,10 @@ Additional options will be picked from the \fBDMON_OPTIONS\fP environment
 variable, if defined. Any command line option can be specified this way.
 Arguments read from the environment variable will be prepended to the ones
 given in the command line, so they may still be overriden.
+.sp
+If the \fBDMON_LIST_MULTICALL_APPLETS\fP is defined and has a non\-zero value,
+the list of applets compiled into a multicall binary will be printed out,
+and the program will exit immediately.
 .SH SEE ALSO
 .sp
 \fIdlog(8)\fP, \fIdslog(8)\fP, \fIrotlog(8)\fP, \fImultilog(8)\fP, \fIsupervise(8)\fP, \fIcron(8)\fP

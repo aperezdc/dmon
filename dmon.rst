@@ -119,7 +119,7 @@ Command line options:
               tends to be used in conjunction with ``-n``, and cannot be
               used with ``-i``.
 
--m, --max-respawns
+-m COUNT, --max-respawns COUNT
               Respawn command m number of times. ``dmon`` does not check the
               exit status on each respawn. For example, if you want the
               command to never respawn, set ``-m 0``. After the set number of
