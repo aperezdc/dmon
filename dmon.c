@@ -538,10 +538,12 @@ dmon_main (int argc, char **argv)
     cmd_task.write_fd = log_fds[1];
     log_task.read_fd  = log_fds[0];
 
+    int retcode = 0;
     while (running) {
         clog_debug(">>> loop iteration");
         if (check_child) {
-            int retcode = reap_and_check ();
+            retcode = reap_and_check ();
+            clog_debug("retcode = %d", retcode);
 
             /*
              * Wait the specified timeout but DO NOT use safe_sleep(): here
@@ -625,7 +627,10 @@ dmon_main (int argc, char **argv)
         status_file = NULL;
     }
 
-    exit (EXIT_SUCCESS);
+    if (WIFEXITED (retcode))
+        exit (WEXITSTATUS (retcode));
+
+    exit (EXIT_FAILURE);
 }
 
 /* vim: expandtab shiftwidth=4 tabstop=4
