@@ -57,7 +57,7 @@ struct dbuf*
 dbuf_new(size_t prealloc)
 {
     struct dbuf *b = mrealloc(NULL, sizeof(struct dbuf));
-    *b = (struct dbuf)DBUF_INIT;
+    *b = DBUF_INIT;
     bresize(b, prealloc);
     return b;
 }
