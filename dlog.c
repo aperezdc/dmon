@@ -120,7 +120,7 @@ dlog_main (int argc, char **argv)
             die ("%s: error reading input: %s\n", argv0, ERRSTR);
 
         if (!skip_empty || dbuf_size(&linebuf) > 1) {
-            struct iovec iov[6];
+            struct iovec iov[5];
             int n_iov = 0;
 
             char timebuf[TSTAMP_LEN+1];

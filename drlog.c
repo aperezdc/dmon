@@ -267,7 +267,7 @@ recreate_ts:
         return;
 
     char timebuf[TSTAMP_LEN+1];
-    struct iovec iov[3];
+    struct iovec iov[2];
     int n_iov = 0;
 
     if (timestamp) {
