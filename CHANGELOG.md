@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.5.1] - 2021-02-23
+### Added
+- The `dlog`, `dslog`, and `drlog` tools now log empty input lines. The
+  `--skip-empty`/`-e` command line option has been added to disable
+  logging empty lines.
+- The `dmon` tool has gained a `--max-respawns`/`-m` command line option which
+  can be used to specify how many times to respawn monitored processes
+  before exiting. (Patch by Matt Schulte <<mschulte@wyze.com>>.)
+- New `libsetunbuf.so` helper which can be used to disable buffering of
+  the standard output stream on arbitrary programs via `LD_PRELOAD`.
+  (Patch by Matt Schulte <<mschulte@wyze.com>>.)
+
+### Fixed
+- The exit status of monitored processes is now correctly propagated as
+  exit code of `dmon` itself.
+- The `dlog`, `dslog`, and `drlog` tools will no longer exit unexpectedly
+  when they receive an empty input line. (Patch by Matt Schulte
+  <<mschulte@wyze.com>>.)
+
 ## [v0.5.0] - 2020-08-27
 ### Added
 - Support listing applets compiled into a multicall `dmon` binary when the
@@ -40,7 +59,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - `dlog` and `drlog` now handle the `INT`, `TERM`, and `HUP` signals gracefully.
 
-[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.5.1...HEAD
+[v0.5.1]: https://github.com/aperezdc/dmon/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/aperezdc/dmon/compare/v0.4.5...v0.5.0
 [v0.4.5]: https://github.com/aperezdc/dmon/compare/v0.4.4...v0.4.5
 [v0.4.4]: https://github.com/aperezdc/dmon/compare/v0.4.3...v0.4.4
