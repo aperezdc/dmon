@@ -161,7 +161,7 @@ dlog_main (int argc, char **argv)
         dbuf_clear(&linebuf);
     }
 
-    if (close (log_fd) != 0)
+    if (log_fd >= 0 && close(log_fd) != 0)
         clog_warning("Closing log: %s", strerror(errno));
 
     exit (EXIT_SUCCESS);
