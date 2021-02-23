@@ -79,6 +79,7 @@ static unsigned long long curtime    = 0;
 static unsigned long long cursize    = 0;
 static bool               timestamp  = false;
 static bool               buffered   = false;
+static bool               skip_empty = false;
 static int                returncode = 0;
 static struct dbuf        line       = DBUF_INIT;
 static struct dbuf        overflow   = DBUF_INIT;
@@ -262,7 +263,7 @@ recreate_ts:
         }
     }
 
-    if (dbuf_empty (&line))
+    if (dbuf_empty(&line) || (skip_empty && dbuf_size(&line) == 1))
         return;
 
     char timebuf[TSTAMP_LEN+1];
@@ -352,6 +353,8 @@ static const struct cflag drlog_options[] = {
           "Buffered operation, do not flush to disk after each line."),
     CFLAG(bool, "timestamp", 't', &timestamp,
           "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line."),
+    CFLAG(bool, "skip-empty", 'e', &skip_empty,
+          "Ignore empty lines with no characters."),
     CFLAG_HELP,
     CFLAG_END
 };

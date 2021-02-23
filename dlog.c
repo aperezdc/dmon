@@ -32,11 +32,12 @@
 #endif /* !TSTAMP_LEN */
 
 
-static bool  timestamp = false;
-static bool  buffered  = false;
-static char *prefix    = NULL;
-static int   log_fd    = -1;
-static int   in_fd     = STDIN_FILENO;
+static bool  timestamp  = false;
+static bool  skip_empty = false;
+static bool  buffered   = false;
+static char *prefix     = NULL;
+static int   log_fd     = -1;
+static int   in_fd      = STDIN_FILENO;
 
 
 static const struct cflag dlog_options[] = {
@@ -48,6 +49,8 @@ static const struct cflag dlog_options[] = {
         "Buffered operation, do not use flush to disk after each line."),
     CFLAG(bool, "timestamp", 't', &timestamp,
         "Prepend a timestamp in YYYY-MM-DD/HH:MM:SS format to each line."),
+    CFLAG(bool, "skip-empty", 'e', &skip_empty,
+        "Ignore empty lines with no characters."),
     CFLAG_HELP,
     CFLAG_END
 };
@@ -116,7 +119,7 @@ dlog_main (int argc, char **argv)
         if (bytes < 0)
             die ("%s: error reading input: %s\n", argv0, ERRSTR);
 
-        if (dbuf_size(&linebuf)) {
+        if (!skip_empty || dbuf_size(&linebuf) > 1) {
             struct iovec iov[6];
             int n_iov = 0;
 

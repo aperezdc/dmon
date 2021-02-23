@@ -151,6 +151,7 @@ dslog_main (int argc, char **argv)
     int facility = name_to_facility (DEFAULT_FACILITY);
     int priority = name_to_priority (DEFAULT_PRIORITY);
     bool console = false;
+    bool skip_empty = false;
     char *env_opts = NULL;
     struct dbuf linebuf = DBUF_INIT;
     struct dbuf overflow = DBUF_INIT;
@@ -172,6 +173,8 @@ dslog_main (int argc, char **argv)
               "File descriptor to read input from (default: stdin)."),
         CFLAG(bool, "console", 'c', &console,
               "Log to console if sending messages to logger fails."),
+        CFLAG(bool, "skip-empty", 'e', &skip_empty,
+              "Ignore empty lines with no characters."),
         CFLAG_HELP,
         CFLAG_END
     };
@@ -202,7 +205,7 @@ dslog_main (int argc, char **argv)
             exit (111);
         }
 
-        if (dbuf_size(&linebuf))
+        if (!skip_empty || dbuf_size(&linebuf) > 1)
             syslog(priority, "%s", dbuf_str(&linebuf));
 
         dbuf_clear(&linebuf);

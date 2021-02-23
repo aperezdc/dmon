@@ -76,6 +76,11 @@ Command line options:
             is ``YYYY-mm-dd/HH:MM:SS``, following that of rotated log files.
             It is easy to parse and sort. And human-readable, too.
 
+-e, --skip-empty
+              Ignore empty input lines. An empty line is one that does not
+              contain any characters; a line which contains whitespace is
+              **not** considered empty.
+
 
 SEE ALSO
 ========

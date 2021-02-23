@@ -49,6 +49,11 @@ Command line options:
               timestamps are disabled. Timestamp format is
               ``YYYY-mm-dd/HH:MM:SS``.
 
+-e, --skip-empty
+              Ignore empty input lines. An empty line is one that does not
+              contain any characters; a line which contains whitespace is
+              **not** considered empty.
+
 -h, --help    Show a summary of available options.
 
 Albeit it can be used stan-alone, most of the time you will be running
