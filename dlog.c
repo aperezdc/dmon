@@ -139,7 +139,6 @@ dlog_main (int argc, char **argv)
             }
 
             iov[n_iov++] = iov_from_buffer (&linebuf);
-            iov[n_iov++] = iov_from_literal ("\n");
 
             assert ((unsigned) n_iov <= (sizeof (iov) / sizeof (iov[0])));
 

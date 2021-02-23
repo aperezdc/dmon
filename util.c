@@ -603,7 +603,6 @@ freaduntil(int          fd,
             memmove (dbuf_data(overflow),
                      dbuf_data(overflow) + len,
                      dbuf_size(overflow));
-            dbuf_resize(buffer, dbuf_size(buffer) - 1);
             return dbuf_size(buffer);
         }
 
