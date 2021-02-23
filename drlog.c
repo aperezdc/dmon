@@ -280,7 +280,6 @@ recreate_ts:
     }
 
     iov[n_iov++] = iov_from_buffer (&line);
-    iov[n_iov++] = iov_from_literal ("\n");
     assert ((unsigned) n_iov <= (sizeof (iov) / sizeof (iov[0])));
 
     for (;;) {
