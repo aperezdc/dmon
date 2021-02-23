@@ -12,8 +12,10 @@ declare -a TARGETS=(
 	#mips64-linux-musl
 	#mips64el-linux-musl
 	powerpc-linux-musl
-	riscv32-linux-musl
-	riscv64-linux-musl
+	#powerpc64-linux-musl
+	#powerpc64le-linux-musl
+	#riscv32-linux-musl
+	#riscv64-linux-musl
 )
 
 declare -a CFLAGS=(
