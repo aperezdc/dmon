@@ -1,0 +1,57 @@
+#! /bin/bash
+set -e
+
+declare -a TARGETS=(
+	x86_64-linux-musl
+	aarch64-linux-musl
+	arm-linux-musleabi
+	arm-linux-musleabihf
+	i386-linux-musl
+	mips-linux-musl
+	mipsel-linux-musl
+	#mips64-linux-musl
+	#mips64el-linux-musl
+	powerpc-linux-musl
+	riscv32-linux-musl
+	riscv64-linux-musl
+)
+
+declare -a CFLAGS=(
+	-Os
+	-flto
+	-fPIE
+	-D_FORTIFY_SOURCE=2
+	-pipe
+	-fstack-protector-strong
+	-fno-plt
+)
+declare -a LDFLAGS=(
+	-O1
+	-s
+	-flto
+	-fPIE
+	-Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now,--icf=safe,--gc-sections
+)
+	
+V=$(jq -r .version package.json)
+
+for T in "${TARGETS[@]}"
+do
+	O="dmon-$V-${T%-musl}"
+	echo "===== $O ===="
+	if [[ -x $O ]] ; then
+		echo '  -> Already built'
+		continue
+	fi
+
+	make -s clean
+	make -sj$(nproc) \
+		AR='llvm-ar' \
+		CC="zig cc -target $T" \
+		CFLAGS="${CFLAGS[*]}" \
+		CPPFLAGS="${CPPFLAGS[*]}"
+	mv dmon "$O"
+	llvm-strip -x --strip-unneeded "$O"
+	echo '  -> Done'
+done
+make -s clean
