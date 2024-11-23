@@ -1,11 +1,12 @@
 /*
  * dmon.c
- * Copyright (C) 2010-2014 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2024 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
 #define _GNU_SOURCE 1
+#define _POSIX_C_SOURCE 199309L
 
 #include "deps/cflag/cflag.h"
 #include "deps/clog/clog.h"

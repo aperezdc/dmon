@@ -5,6 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
+#define _DEFAULT_SOURCE
+
 #include "deps/cflag/cflag.h"
 #include "deps/dbuf/dbuf.h"
 #include "util.h"

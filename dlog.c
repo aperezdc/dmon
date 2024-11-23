@@ -5,6 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
+#define _POSIX_C_SOURCE 199309L
+
 #include "deps/cflag/cflag.h"
 #include "deps/clog/clog.h"
 #include "deps/dbuf/dbuf.h"

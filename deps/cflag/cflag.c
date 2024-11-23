@@ -4,6 +4,8 @@
  * Distributed under terms of the MIT license.
  */
 
+#define _POSIX_C_SOURCE 199309L
+
 #include "cflag.h"
 
 #include <assert.h>

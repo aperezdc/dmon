@@ -5,6 +5,9 @@
  * Distributed under terms of the MIT license.
  */
 
+#define _POSIX_C_SOURCE 199309L
+#define _DEFAULT_SOURCE
+
 #include "task.h"
 #include "deps/clog/clog.h"
 #include <assert.h>
