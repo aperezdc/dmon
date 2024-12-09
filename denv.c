@@ -4,14 +4,23 @@
  * SPDX-License-Identifier: MIT
  */
 
+#define _DEFAULT_SOURCE
 #define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200809L
 
 #include "deps/cflag/cflag.h"
 #include "deps/clog/clog.h"
+#include "deps/dbuf/dbuf.h"
+#include "util.h"
+
 #include <assert.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #if !(defined(MULTICALL) && MULTICALL)
@@ -63,10 +72,8 @@ env_add(char *entry)
 		} else {
 			env = calloc(env_a, sizeof(char*));
 		}
-		if (!env) {
-			fputs("cannot allocate memory\n", stderr);
-			_exit(111);
-		}
+		if (!env)
+			die("cannot allocate memory\n");
 	}
 	assert(env_a > (env_n + 1));
 
@@ -124,6 +131,87 @@ _environ_option(const struct cflag *spec, const char *arg)
     return CFLAG_OK;
 }
 
+#ifndef AT_NO_AUTOMOUNT
+#define AT_NO_AUTOMOUNT 0
+#endif /* !AT_NO_AUTOMOUNT */
+
+static inline bool
+is_trim_char(int c)
+{
+	switch (c) {
+		case '\r':
+		case '\n':
+		case '\v':
+		case '\t':
+		case ' ':
+			return true;
+		default:
+			return false;
+	}
+}
+
+static enum cflag_status
+_environ_directory(const struct cflag *spec, const char *arg)
+{
+	if (!spec)
+		return CFLAG_NEEDS_ARG;
+
+	DIR *d = opendir(arg);
+	if (!d)
+		die("Error opening '%s': %s.\n", arg, strerror(errno));
+
+	struct dirent *de;
+	while ((de = readdir(d))) {
+		if (de->d_name[0] == '.')
+			continue;
+
+		struct stat st;
+		if (fstatat(dirfd(d), de->d_name, &st, AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW) == -1) {
+			clog_warning("cannot stat '%s' (%s)", de->d_name, strerror(errno));
+			continue;
+		}
+		if (!S_ISREG(st.st_mode)) {
+			continue;
+		}
+
+		/* Remove from the environment if the file is empty. */
+		if (st.st_size == 0) {
+			env_del(de->d_name, strlen(de->d_name));
+			continue;
+		}
+
+		int fd = openat(dirfd(d), de->d_name, O_RDONLY);
+		if (fd < 0) {
+			clog_warning("cannot open '%s' (%s)", de->d_name, strerror(errno));
+			continue;
+		}
+
+		struct dbuf linebuf = DBUF_INIT;
+		struct dbuf overflow = DBUF_INIT;
+
+		dbuf_addstr(&linebuf, de->d_name);
+		dbuf_addch(&linebuf, '=');
+
+		ssize_t bytes = freadline(fd, &linebuf, &overflow, 0);
+		if (bytes < 1)
+			die("error reading '%s' (%s).", de->d_name, strerror(errno));
+
+		/* Chomp spaces around the value. */
+		char* entry = dbuf_str(&linebuf);
+		while (is_trim_char(entry[bytes - 1]))
+			bytes--;
+
+		env_add(strndup(entry, bytes));
+
+		dbuf_clear(&overflow);
+		dbuf_clear(&linebuf);
+		close(fd);
+	}
+	closedir(d);
+
+	return CFLAG_OK;
+}
+
 static const struct cflag denv_options[] = {
 	{
 		.name = "inherit-env", .letter = 'I',
@@ -142,6 +230,13 @@ static const struct cflag denv_options[] = {
             "Define an environment variable, or if no value is given, "
             "delete it. This option can be specified multiple times.",
     },
+	{
+		.name = "direnv", .letter = 'd',
+		.func = _environ_directory,
+		.help =
+			"Add environment variables from the contents of files in "
+			"a directory.",
+	},
 	CFLAG_HELP,
 	CFLAG_END
 };
