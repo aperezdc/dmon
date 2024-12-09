@@ -5,7 +5,7 @@ PREFIX    = /usr/local
 RST2MAN   = rst2man
 RM        = rm -f
 
-APPLETS   = dlog drlog dslog
+APPLETS   = denv dlog drlog dslog
 
 O = deps/cflag/cflag.o deps/clog/clog.o deps/dbuf/dbuf.o \
 	conf.o task.o multicall.o util.o

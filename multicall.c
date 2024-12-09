@@ -1,6 +1,6 @@
 /*
  * multicall.c
- * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2024 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern int denv_main(int, char**);
 extern int dlog_main(int, char**);
 extern int dmon_main(int, char**);
 extern int drlog_main(int, char**);
@@ -20,6 +21,7 @@ static const struct {
     const char *name;
     int (*func)(int, char**);
 } applets[] = {
+	{ .name = "denv", .func = denv_main },
     { .name = "dmon", .func = dmon_main },
     { .name = "dlog", .func = dlog_main },
     { .name = "drlog", .func = drlog_main },

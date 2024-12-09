@@ -3,6 +3,7 @@
 *.so
 .*.sw[op]
 libdmon.a
+denv
 dmon
 drlog
 dslog
