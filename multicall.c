@@ -26,6 +26,7 @@ static const struct {
     { .name = "dlog", .func = dlog_main },
     { .name = "drlog", .func = drlog_main },
     { .name = "dslog", .func = dslog_main },
+	{ .name = "envdir", .func = denv_main },
 };
 
 

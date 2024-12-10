@@ -82,23 +82,28 @@ env_add(char *entry)
 	env[env_n] = NULL;
 }
 
+static void
+env_inherit_all(void)
+{
+	for (size_t i = 0; environ[i]; i++) {
+		assert(strchr(environ[i], '='));
+		env_add(environ[i]);
+	}
+}
+
 static enum cflag_status
-_environ_inherit(const struct cflag *spec, const char *arg)
+opt_inherit_env(const struct cflag *spec, const char *arg)
 {
 	(void) arg;
 	if (!spec)
 		return CFLAG_OK;
 
-	for (size_t i = 0; environ[i]; i++) {
-		assert(strchr(environ[i], '='));
-		env_add(environ[i]);
-	}
-
+	env_inherit_all();
 	return CFLAG_OK;
 }
 
 static enum cflag_status
-_environ_inherit_var(const struct cflag *spec, const char *arg)
+opt_inherit(const struct cflag *spec, const char *arg)
 {
 	if (!spec)
 		return CFLAG_NEEDS_ARG;
@@ -117,7 +122,7 @@ _environ_inherit_var(const struct cflag *spec, const char *arg)
 }
 
 static enum cflag_status
-_environ_option(const struct cflag *spec, const char *arg)
+opt_environ(const struct cflag *spec, const char *arg)
 {
     if (!spec)
         return CFLAG_NEEDS_ARG;
@@ -151,15 +156,14 @@ is_trim_char(int c)
 	}
 }
 
-static enum cflag_status
-_environ_directory(const struct cflag *spec, const char *arg)
+static void
+env_envdir(const char *path)
 {
-	if (!spec)
-		return CFLAG_NEEDS_ARG;
+	assert(path);
 
-	DIR *d = opendir(arg);
+	DIR *d = opendir(path);
 	if (!d)
-		die("Error opening '%s': %s.\n", arg, strerror(errno));
+		die("Error opening '%s': %s.\n", path, strerror(errno));
 
 	struct dirent *de;
 	while ((de = readdir(d))) {
@@ -212,12 +216,20 @@ _environ_directory(const struct cflag *spec, const char *arg)
 		close(fd);
 	}
 	closedir(d);
+}
 
+static enum cflag_status
+opt_envdir(const struct cflag *spec, const char *arg)
+{
+	if (!spec)
+		return CFLAG_NEEDS_ARG;
+
+	env_envdir(arg);
 	return CFLAG_OK;
 }
 
 static enum cflag_status
-_environ_file(const struct cflag *spec, const char *arg)
+opt_file(const struct cflag *spec, const char *arg)
 {
     if (!spec)
         return CFLAG_NEEDS_ARG;
@@ -266,31 +278,31 @@ _environ_file(const struct cflag *spec, const char *arg)
 static const struct cflag denv_options[] = {
 	{
 		.name = "inherit-env", .letter = 'I',
-		.func = _environ_inherit,
+		.func = opt_inherit_env,
 		.help = "Inherit all environment variables of the calling process.",
 	},
 	{
 		.name = "inherit", .letter = 'i',
-		.func = _environ_inherit_var,
+		.func = opt_inherit,
 		.help = "Inherit an environment variable of the calling process.",
 	},
     {
         .name = "environ", .letter = 'E',
-        .func = _environ_option,
+        .func = opt_environ,
         .help =
             "Define an environment variable, or if no value is given, "
             "delete it. This option can be specified multiple times.",
     },
 	{
 		.name = "envdir", .letter = 'd',
-		.func = _environ_directory,
+		.func = opt_envdir,
 		.help =
 			"Add environment variables from the contents of files in "
 			"a directory.",
 	},
 	{
 		.name = "file", .letter = 'f',
-		.func = _environ_file,
+		.func = opt_file,
 		.help =
 			"Add environment variables from a file in the environment.d(5)"
 			" format. Note: $VARIABLE expansions are not supported.",
@@ -304,10 +316,29 @@ denv_main(int argc, char **argv)
 {
 	clog_init(NULL);
 
-	const char *argv0 = cflag_apply(denv_options, "[path] command [command-options...]", &argc, &argv);
-	if (!argc) {
-		fprintf(stderr, "%s: No command specified.\n", argv0);
-		return EXIT_FAILURE;
+	/* XXX: It would be neat to have e.g. a cflag_argv0() function that did this. */
+	const char *argv0 = strrchr(argv[0], '/');
+	if (argv0 == NULL)
+		argv0 = argv[0];
+	else
+		argv0++;
+
+	if (strcmp(argv0, "envdir") == 0) {
+		if (argc < 3)
+			die("Usage: %s d child\n", argv[0]);
+
+		env_inherit_all();
+		env_envdir(argv[1]);
+
+		/* Adjust directly because replace_args_shift() does not touch argv[0]. */
+		argv += 2;
+		argc -= 2;
+	} else {
+		cflag_apply(denv_options, "[path] command [command-options...]", &argc, &argv);
+		if (!argc) {
+			fprintf(stderr, "%s: No command specified.\n", argv0);
+			return EXIT_FAILURE;
+		}
 	}
 
 	execvpe(argv[0], argv, env);

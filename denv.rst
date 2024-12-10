@@ -14,6 +14,13 @@ SYNOPSIS
 
 ``denv [options] command [command-options]``
 
+``envdir d child``
+
+The second form mimics the command line interface of the `envdir(8)`
+tool included in DJB's daemontools package, see CAVEATS_ for the
+differences.
+
+
 DESCRIPTION
 ===========
 
@@ -75,3 +82,11 @@ SEE ALSO
 
 http://cr.yp.to/daemontools.html
 
+
+CAVEATS
+=======
+
+The original `envdir(8)` program included in the daemontools suite converts
+null characters (``\0``) into new lines (``\n``). This behaviour is
+deliberately left unimplemented in ``denv``, even when it runs in ``envdir``
+mode.
