@@ -195,7 +195,7 @@ _environ_directory(const struct cflag *spec, const char *arg)
 
 		ssize_t bytes = freadline(fd, &linebuf, &overflow, 0);
 		if (bytes < 1)
-			die("error reading '%s' (%s).", de->d_name, strerror(errno));
+			die("error reading '%s' (%s).\n", de->d_name, strerror(errno));
 
 		/* Chomp spaces around the value. */
 		char* entry = dbuf_str(&linebuf);
