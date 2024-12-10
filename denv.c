@@ -173,13 +173,11 @@ env_envdir(const char *path)
 			continue;
 
 		struct stat st;
-		if (fstatat(dirfd(d), de->d_name, &st, AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW) == -1) {
-			clog_warning("Cannot stat '%s/%s': %s.", path, de->d_name, ERRSTR);
+		if (fstatat(dirfd(d), de->d_name, &st, AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW) == -1)
+			die("Cannot stat '%s/%s': %s.", path, de->d_name, ERRSTR);
+
+		if (!S_ISREG(st.st_mode))
 			continue;
-		}
-		if (!S_ISREG(st.st_mode)) {
-			continue;
-		}
 
 		/* Remove from the environment if the file is empty. */
 		if (st.st_size == 0) {
@@ -188,10 +186,8 @@ env_envdir(const char *path)
 		}
 
 		int fd = safe_openat(dirfd(d), de->d_name, O_RDONLY);
-		if (fd < 0) {
-			clog_warning("Cannot open '%s/%s': %s.\n", path, de->d_name, ERRSTR);
-			continue;
-		}
+		if (fd < 0)
+			die("Cannot open '%s/%s': %s.\n", path, de->d_name, ERRSTR);
 
 		struct dbuf linebuf = DBUF_INIT;
 		struct dbuf overflow = DBUF_INIT;
