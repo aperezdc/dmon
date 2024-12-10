@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
+#ifndef __linux
+#define _BSD_SOURCE
+#endif
+
 #define _DEFAULT_SOURCE
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L

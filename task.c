@@ -1,12 +1,16 @@
 /*
  * task.c
- * Copyright (C) 2010-2020 Adrian Perez <aperez@igalia.com>
+ * Copyright (C) 2010-2024 Adrian Perez <aperez@igalia.com>
  *
  * Distributed under terms of the MIT license.
  */
 
-#define _POSIX_C_SOURCE 199309L
+#ifndef __linux
+#define _BSD_SOURCE
+#endif
+
 #define _DEFAULT_SOURCE
+#define _POSIX_C_SOURCE 199309L
 
 #include "task.h"
 #include "deps/clog/clog.h"

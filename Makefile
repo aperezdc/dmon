@@ -1,6 +1,6 @@
 MULTICALL = 1
 CFLAGS    = -Os -g -Wall -W
-CFLAGS   += -std=c23
+CFLAGS   += -std=c2x
 PREFIX    = /usr/local
 RST2MAN   = rst2man
 RM        = rm -f

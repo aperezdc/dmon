@@ -5,8 +5,12 @@
  * Distributed under terms of the MIT license.
  */
 
-#define _GNU_SOURCE 1
-#define _POSIX_C_SOURCE 199309L
+#ifndef __linux
+#define _BSD_SOURCE
+#endif
+
+#define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200809L
 
 #include "deps/cflag/cflag.h"
 #include "deps/clog/clog.h"
