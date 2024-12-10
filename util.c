@@ -26,19 +26,7 @@
 #include <grp.h>
 #include <pwd.h>
 
-#ifdef __GLIBC_PREREQ
-# if __GLIBC_PREREQ(2, 29)
-#  define USE_LIBC_REALLOCARRAY 1
-# endif
-#endif
-
-#ifndef USE_LIBC_REALLOCARRAY
-# define USE_LIBC_REALLOCARRAY 0
-#endif
-
 #if !USE_LIBC_REALLOCARRAY
-static void* util_reallocarray(void*, size_t, size_t);
-#define reallocarray util_reallocarray
 #define DEF_WEAK(dummy)
 #include "fallback/reallocarray.c"
 #endif /* !LIBC_HAS_REALLOCARRAY */

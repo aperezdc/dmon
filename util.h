@@ -23,6 +23,22 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+
+#ifdef __GLIBC_PREREQ
+# if __GLIBC_PREREQ(2, 29)
+#  define USE_LIBC_REALLOCARRAY 1
+# endif
+#endif
+
+#ifndef USE_LIBC_REALLOCARRAY
+# define USE_LIBC_REALLOCARRAY 0
+#endif
+
+#if !USE_LIBC_REALLOCARRAY
+void* util_reallocarray(void*, size_t, size_t);
+#define reallocarray util_reallocarray
+#endif /* !LIBC_HAS_REALLOCARRAY */
+
 #define DMON_GID_COUNT 76
 
 #define ERRSTR (strerror (errno))
