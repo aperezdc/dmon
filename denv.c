@@ -199,10 +199,13 @@ _environ_directory(const struct cflag *spec, const char *arg)
 
 		/* Chomp spaces around the value. */
 		char* entry = dbuf_str(&linebuf);
-		while (is_trim_char(entry[bytes - 1]))
-			bytes--;
+		while (--bytes && is_trim_char(entry[bytes]))
+			/* empty */;
 
-		env_add(strndup(entry, bytes));
+		if (entry[bytes++] == '=')
+		    env_del(entry, bytes - 1);
+		else
+		    env_add(strndup(entry, bytes));
 
 		dbuf_clear(&overflow);
 		dbuf_clear(&linebuf);
