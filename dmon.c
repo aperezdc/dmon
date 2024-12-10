@@ -468,7 +468,7 @@ dmon_main (int argc, char **argv)
     }
 
     if (status_path) {
-        int fd = open (status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
+        int fd = safe_openatm(AT_FDCWD, status_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
         if (fd < 0)
             die ("%s: Cannot open '%s' for writing, %s\n", argv0, status_path, ERRSTR);
         status_file = fdopen (fd, "w");
@@ -531,7 +531,7 @@ dmon_main (int argc, char **argv)
         die ("%s: No command to run given.\n", argv0);
 
     if (pidfile_path) {
-        int fd = open (pidfile_path, O_TRUNC | O_CREAT | O_WRONLY, 0666);
+        int fd = safe_openatm(AT_FDCWD, pidfile_path, O_TRUNC | O_CREAT | O_WRONLY, 0666);
         if (fd < 0) {
             die ("%s: cannot open '%s' for writing, %s\n",
                  argv0, pidfile_path, ERRSTR);

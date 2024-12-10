@@ -5,10 +5,12 @@
  * Distributed under terms of the MIT license.
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <sys/types.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "util.h"
 
 
 pid_t
@@ -21,18 +23,18 @@ fork (void)
 int
 daemon (int nochdir, int noclose)
 {
-    if (!nochdir == 0) {
+    if (!nochdir) {
         if (chdir ("/"))
             return -1;
     }
     if (!noclose) {
-        close (0);
-        if (open ("/dev/null", O_RDONLY, 0) != 0)
+        safe_close (0);
+        if (safe_openat(AT_FDCWD, "/dev/null", O_RDONLY) == -1)
             return -1;
-        close (1);
-        if (open ("/dev/null", O_WRONLY, 0) != 1)
+        safe_close(1);
+        if (safe_openat(AT_FDCWD, "/dev/null", O_WRONLY) != 1)
             return -1;
-        close (2);
+        safe_close(2);
         if (dup (1) != 2)
             return -1;
     }

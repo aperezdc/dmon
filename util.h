@@ -12,11 +12,17 @@
 # define __attribute__(dummy)
 #endif
 
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
+# define NODISCARD [[nodiscard]]
+#else
+# define NODISCARD __attribute__((warn_unused_result))
+#endif
+
 #include "deps/dbuf/dbuf.h"
+#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#include <stdio.h>
 #define DMON_GID_COUNT 76
 
 #define ERRSTR (strerror (errno))
@@ -40,11 +46,19 @@ int parse_uidgids (char*, uidgid_t*);
 int name_to_uidgid (const char*, uid_t*, gid_t*);
 int name_to_gid (const char*, gid_t*);
 
-void fd_cloexec (int);
-void become_daemon (void);
+int safe_close(int fd);
+int safe_fsync(int fd);
+NODISCARD int safe_openat(int fd, const char*, int flags);
+NODISCARD int safe_openatm(int fd, const char*, int flags, mode_t);
+NODISCARD ssize_t safe_read(int fd, void*, size_t);
+NODISCARD ssize_t safe_writev(int fd, const struct iovec*, int iovcnt);
+NODISCARD FILE* safe_fdopen(int fd, const char *mode);
 void safe_sleep (unsigned);
 void safe_sigaction (const char*, int, struct sigaction*);
 void safe_setrlimit (int what, long value);
+
+void fd_cloexec (int);
+void become_daemon (void);
 int  interruptible_sleep (unsigned);
 const char* limit_name (int);
 

@@ -9,6 +9,7 @@
 
 #include "util.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 extern int denv_main(int, char**);

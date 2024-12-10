@@ -6,7 +6,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#define _POSIX_C_SOURCE 199309L
+#define _POSIX_C_SOURCE 200809L
 
 #include "deps/cflag/cflag.h"
 #include "deps/dbuf/dbuf.h"
@@ -182,11 +182,12 @@ testdir:
         if (snprintf (path, sizeof (path), "%s/" LOGFILE_CURRENT, directory) < 0)
             die ("Path name too long: %s\n", directory);
 
-        if ((out_fd = open (path, O_APPEND | O_CREAT | O_WRONLY, LOGFILE_PERMS)) < 0)
+        if ((out_fd = safe_openatm(AT_FDCWD, path, O_APPEND | O_CREAT | O_WRONLY, LOGFILE_PERMS)) < 0)
             die ("Cannot open '%s': %s\n", path, ERRSTR);
 
         if (snprintf (path, sizeof (path), "%s/" LOGDIR_TSTAMP, directory) < 0) {
-            close (out_fd);
+			/* TODO: Warn on close failures. */
+            safe_close(out_fd);
             die ("Path name too long: %s\n", directory);
         }
 
@@ -194,11 +195,12 @@ testdir:
             int ts_fd;
 recreate_ts:
             ts = time (NULL);
-            if ((ts_fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, LOGFILE_PERMS)) < 0) {
-                close (out_fd);
+            if ((ts_fd = safe_openatm(AT_FDCWD, path, O_WRONLY | O_CREAT | O_TRUNC, LOGFILE_PERMS)) < 0) {
+                /* TODO: Warn in close failures. */
+                safe_close(out_fd);
                 die ("Unable to write timestamp to '%s', %s\n", directory, ERRSTR);
             }
-            ts_file = fdopen (ts_fd, "w");
+            ts_file = safe_fdopen(ts_fd, "w");
             assert (ts_file != NULL);
 
             if (fprintf (ts_file, "%lu\n", (unsigned long) ts) < 0)
@@ -213,6 +215,7 @@ recreate_ts:
             }
             ts = ts_;
         }
+		/* TODO: Warn on errors. */
         fclose (ts_file);
         ts_file = NULL;
 
@@ -251,7 +254,8 @@ recreate_ts:
 
             rotate_log ();
 
-            close (out_fd);
+			/* TODO: Warn on close errors. */
+            safe_close(out_fd);
             out_fd = -1;
 
             if (rename (path, newpath) < 0 && unlink (path) < 0)
@@ -286,7 +290,7 @@ recreate_ts:
     assert ((unsigned) n_iov <= (sizeof (iov) / sizeof (iov[0])));
 
     for (;;) {
-        ssize_t r = writev (out_fd, iov, n_iov);
+        ssize_t r = safe_writev(out_fd, iov, n_iov);
         if (r > 0) {
             cursize += r;
             break;
@@ -296,8 +300,10 @@ recreate_ts:
         safe_sleep (5);
     }
 
-    if (!buffered)
-        fsync (out_fd);
+    if (!buffered) {
+		/* TODO: Warn on errors. */
+        safe_fsync(out_fd);
+	}
 
     dbuf_clear(&line);
 }
@@ -309,7 +315,7 @@ close_log (void)
     flush_line ();
 
     for (;;) {
-        if (close (out_fd) == 0) {
+        if (safe_close(out_fd) == 0) {
             out_fd = -1;
             break;
         }
@@ -375,6 +381,7 @@ int drlog_main (int argc, char **argv)
     if (!argc)
         die ("%s: No log directory path was specified.\n", argv0);
 
+	/* TODO: Open a fd handle to the directory to use *at() functions afterwards. */
     directory = argv[0];
 
     sigemptyset (&sa.sa_mask);

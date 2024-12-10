@@ -50,6 +50,75 @@ fd_cloexec (int fd)
         die ("unable to set FD_CLOEXEC\n");
 }
 
+int
+safe_fsync(int fd)
+{
+    int ret;
+    do {
+        ret = fsync(fd);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+}
+
+int
+safe_close(int fd)
+{
+    int ret;
+    do {
+        ret = close(fd);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+}
+
+int
+safe_openat(int dirfd, const char *name, int flags)
+{
+    int ret;
+    do {
+        ret = openat(dirfd, name, flags);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+}
+
+int
+safe_openatm(int dirfd, const char *name, int flags, mode_t mode)
+{
+    int ret;
+    do {
+        ret = openat(dirfd, name, flags, mode);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+}
+
+FILE*
+safe_fdopen(int fd, const char *mode)
+{
+    FILE *ret;
+    do {
+        ret = fdopen(fd, mode);
+    } while (!ret && errno == EINTR);
+    return ret;
+}
+
+ssize_t
+safe_read(int fd, void *buf, size_t count)
+{
+    ssize_t ret;
+    do {
+        ret = read(fd, buf, count);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+}
+
+ssize_t
+safe_writev(int fd, const struct iovec *iov, int iovcnt)
+{
+    ssize_t ret;
+    do {
+        ret = writev(fd, iov, iovcnt);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+}
 
 void
 safe_sleep (unsigned seconds)
@@ -236,23 +305,31 @@ parse_uidgids (char     *s,
     return (pos == NULL) ? 0 : _parse_gids (pos + 1, u);
 }
 
+static int
+safe_dup2(int oldfd, int newfd)
+{
+    int ret;
+    do {
+        ret = dup2(oldfd, newfd);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+}
 
 void
 become_daemon (void)
 {
     pid_t pid;
-    int nullfd = open ("/dev/null", O_RDWR, 0);
-
+    int nullfd = safe_openat(AT_FDCWD, "/dev/null", O_RDWR);
     if (nullfd < 0)
         die ("cannot daemonize, unable to open '/dev/null': $E\n");
 
     fd_cloexec (nullfd);
 
-    if (dup2 (nullfd, STDIN_FILENO) < 0)
+    if (safe_dup2(nullfd, STDIN_FILENO) < 0)
         die ("cannot daemonize, unable to redirect stdin: %s\n", ERRSTR);
-    if (dup2 (nullfd, STDOUT_FILENO) < 0)
+    if (safe_dup2(nullfd, STDOUT_FILENO) < 0)
         die ("cannot daemonize, unable to redirect stdout: %s\n", ERRSTR);
-    if (dup2 (nullfd, STDERR_FILENO) < 0)
+    if (safe_dup2(nullfd, STDERR_FILENO) < 0)
         die ("cannot daemonize, unable to redirect stderr: %s\n", ERRSTR);
 
     pid = fork ();
@@ -617,9 +694,7 @@ freaduntil(int          fd,
             overflow->size = oldlen;
         }
 
-        ssize_t r = read(fd,
-                         dbuf_data(overflow) + dbuf_size(overflow),
-                         readbytes);
+        ssize_t r = safe_read(fd, dbuf_data(overflow) + dbuf_size(overflow), readbytes);
         if (r > 0) {
             overflow->size += r;
         } else {

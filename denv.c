@@ -27,6 +27,8 @@
 # define denv_main main
 #endif /* MULTICALL */
 
+extern char **environ;
+
 static char** env = NULL;
 static size_t env_a = 0;
 static size_t env_n = 0;
@@ -185,7 +187,7 @@ env_envdir(const char *path)
 			continue;
 		}
 
-		int fd = openat(dirfd(d), de->d_name, O_RDONLY);
+		int fd = safe_openat(dirfd(d), de->d_name, O_RDONLY);
 		if (fd < 0) {
 			clog_warning("cannot open '%s' (%s)", de->d_name, strerror(errno));
 			continue;
@@ -213,7 +215,9 @@ env_envdir(const char *path)
 
 		dbuf_clear(&overflow);
 		dbuf_clear(&linebuf);
-		close(fd);
+
+		if (safe_close(fd) == -1)
+			clog_warning("closing '%s/%s: %s (ignored).", path, de->d_name, strerror(errno));
 	}
 	closedir(d);
 }
@@ -234,7 +238,7 @@ opt_file(const struct cflag *spec, const char *arg)
     if (!spec)
         return CFLAG_NEEDS_ARG;
 
-    int fd = open(arg, O_RDONLY);
+    int fd = safe_openat(AT_FDCWD, arg, O_RDONLY);
     if (fd < 0)
         die("cannot open '%s' (%s)\n", arg, strerror(errno));
 
@@ -271,7 +275,8 @@ opt_file(const struct cflag *spec, const char *arg)
 
     dbuf_clear(&overflow);
     dbuf_clear(&linebuf);
-    close(fd);
+	if (safe_close(fd) == -1)
+		clog_warning("closing '%s: %s (ignored).", arg, strerror(errno));
     return CFLAG_OK;
 }
 

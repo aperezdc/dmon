@@ -190,7 +190,8 @@ dslog_main (int argc, char **argv)
         flags |= LOG_CONS;
 
     /* We will be no longer using standard output. */
-    close (STDOUT_FILENO);
+    if (safe_close(STDOUT_FILENO) == -1)
+        syslog(priority, "dlog: cannot close stdout (%s), continuing anyway.", strerror(errno));
 
     if (!argc)
         die ("%s: process name not specified.\n", argv0);

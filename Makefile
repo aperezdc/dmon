@@ -41,8 +41,8 @@ dmon $P: dmon.o $(P:=.o) libdmon.a
 
 nofork: libnofork.so
 
-libnofork.so: nofork.o
-	$(CC) $(LDFLAGS) -shared -o $@ nofork.o $(LDLIBS)
+libnofork.so: nofork.o util.o
+	$(CC) $(LDFLAGS) -shared -o $@ nofork.o util.o $(LDLIBS)
 
 setunbuf: libsetunbuf.so
 

@@ -5,7 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#define _POSIX_C_SOURCE 199309L
+#define _POSIX_C_SOURCE 200809L
 
 #include "deps/cflag/cflag.h"
 #include "deps/clog/clog.h"
@@ -62,9 +62,9 @@ static void
 handle_signal (int signum)
 {
     if (log_fd >= 0 && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO && !isatty(log_fd)) {
-        if (fsync (log_fd) != 0)
+        if (safe_fsync(log_fd) == -1)
             clog_warning("Flushing log: %s", strerror(errno));
-        if (close (log_fd) != 0)
+        if (safe_close(log_fd) == -1)
             clog_warning("Closing log: %s", strerror(errno));
         log_fd = -1;
     }
@@ -96,9 +96,8 @@ dlog_main (int argc, char **argv)
 
     if (!argc) {
         log_fd = STDOUT_FILENO;
-    }
-    else {
-        close (STDOUT_FILENO);
+    } else if (safe_close(STDOUT_FILENO) == -1) {
+		clog_warning("Closing stdout: %s", strerror(errno));
     }
 
     sigemptyset (&sa.sa_mask);
@@ -148,22 +147,22 @@ dlog_main (int argc, char **argv)
             assert ((unsigned) n_iov <= (sizeof (iov) / sizeof (iov[0])));
 
             if (log_fd < 0) {
-                if ((log_fd = open (argv[0], O_CREAT | O_APPEND | O_WRONLY, 0666)) < 0)
+                if ((log_fd = safe_openatm(AT_FDCWD, argv[0], O_CREAT | O_APPEND | O_WRONLY, 0666)) < 0)
                     die ("%s: cannot open '%s': %s\n", argv0, argv[0], ERRSTR);
             }
 
-            if (writev (log_fd, iov, n_iov) < 0)
+            if (safe_writev(log_fd, iov, n_iov) < 0)
                 clog_warning("Writing to log: %s", strerror(errno));
 
             if (!buffered && log_fd != STDOUT_FILENO && log_fd != STDERR_FILENO && !isatty(log_fd)) {
-                if (fsync (log_fd) != 0)
+                if (safe_fsync(log_fd) != 0)
                     clog_warning("Flushing log: %s", strerror(errno));
             }
         }
         dbuf_clear(&linebuf);
     }
 
-    if (log_fd >= 0 && close(log_fd) != 0)
+    if (log_fd >= 0 && safe_close(log_fd) == -1)
         clog_warning("Closing log: %s", strerror(errno));
 
     exit (EXIT_SUCCESS);
