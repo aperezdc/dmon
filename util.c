@@ -309,7 +309,7 @@ become_daemon (void)
     pid_t pid;
     int nullfd = safe_openat(AT_FDCWD, "/dev/null", O_RDWR);
     if (nullfd < 0)
-        die ("cannot daemonize, unable to open '/dev/null': $E\n");
+        die ("cannot daemonize, unable to open '/dev/null': %s\n", ERRSTR);
 
     fd_cloexec (nullfd);
 
