@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.6.0] - 2024-12-10
+### Added
+- New `denv` utility, inspired by daemontools' `envdir`, which may be
+  used to manipulate the environment before executing a chained child
+  process.
+
+### Fixed
+- Retry system calls that may return with `errno` set to `EINTR` when
+  interrupted by signals to indicate they can be restarted from user space.
+- Remove leftover, useless `$E` format specifier when reporting errors
+  during daemonization.
+
+### Changed
+- The project is now built in C23 mode by default. In practice `-std=c2x`
+  gets used to cover systems which may have slightly older compilers.
+
 ## [v0.5.1] - 2021-02-23
 ### Added
 - The `dlog`, `dslog`, and `drlog` tools now log empty input lines. The
@@ -59,7 +75,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - `dlog` and `drlog` now handle the `INT`, `TERM`, and `HUP` signals gracefully.
 
-[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/aperezdc/dmon/compare/v0.6.0...HEAD
+[v0.6.0]: https://github.com/aperezdc/dmon/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/aperezdc/dmon/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/aperezdc/dmon/compare/v0.4.5...v0.5.0
 [v0.4.5]: https://github.com/aperezdc/dmon/compare/v0.4.4...v0.4.5

@@ -1,7 +1,7 @@
 {
   "name": "dmon",
   "repo": "aperezdc/dmon",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "license": "MIT",
   "description": "Small process daemonization and monitoring tool",
   "keywords": ["monitor", "process", "daemonization", "logging"],
@@ -15,6 +15,7 @@
   "src": [
     "conf.c",
     "conf.h",
+	"denv.c",
     "dlog.c",
     "dmon.c",
     "drlog.c",
