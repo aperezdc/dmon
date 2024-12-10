@@ -41,13 +41,13 @@ dmon $P: dmon.o $(P:=.o) libdmon.a
 
 nofork: libnofork.so
 
-libnofork.so: nofork.o util.o
-	$(CC) $(LDFLAGS) -shared -o $@ nofork.o util.o $(LDLIBS)
+libnofork.so: nofork.c util.c
+	$(CC) $(LDFLAGS) -fPIC -shared -o $@ nofork.c util.c $(LDLIBS)
 
 setunbuf: libsetunbuf.so
 
-libsetunbuf.so: setunbuf.o
-	$(CC) $(LDFLAGS) -shared -o $@ setunbuf.o $(LDLIBS)
+libsetunbuf.so: setunbuf.c
+	$(CC) $(LDFLAGS) -fPIC -shared -o $@ setunbuf.c $(LDLIBS)
 
 .PHONY: nofork setunbuf
 
