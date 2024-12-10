@@ -58,7 +58,7 @@ $A: dmon
 
 .PHONY: $(A:=-symlink)
 
-man: dmon.8 dlog.8 dslog.8 drlog.8
+man: denv.8 dmon.8 dlog.8 dslog.8 drlog.8
 
 .rst.8:
 	$(RST2MAN) $< $@
