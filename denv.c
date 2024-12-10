@@ -216,6 +216,53 @@ _environ_directory(const struct cflag *spec, const char *arg)
 	return CFLAG_OK;
 }
 
+static enum cflag_status
+_environ_file(const struct cflag *spec, const char *arg)
+{
+    if (!spec)
+        return CFLAG_NEEDS_ARG;
+
+    int fd = open(arg, O_RDONLY);
+    if (fd < 0)
+        die("cannot open '%s' (%s)\n", arg, strerror(errno));
+
+    struct dbuf linebuf = DBUF_INIT;
+    struct dbuf overflow = DBUF_INIT;
+
+    for (;;) {
+        ssize_t bytes = freadline(fd, &linebuf, &overflow, 0);
+        if (bytes == 0)
+            break; /* EOF */
+
+        if (bytes < 0)
+            die("error reading '%s' (%s)\n", arg, strerror(errno));
+
+        /* Chomp spaces around the entry. */
+        char *entry = dbuf_str(&linebuf);
+
+        while (bytes && is_trim_char(entry[0]))
+            bytes--, entry++;
+        while (bytes && is_trim_char(entry[bytes]))
+            bytes--;
+
+        if (bytes-- && entry[0] != '#') {
+            const char *equalsign = strchr(entry, '=');
+            assert(equalsign);
+            if (equalsign - entry + 1 == bytes)
+                env_del(entry, equalsign - entry);
+            else
+                env_add(strndup(entry, bytes));
+        }
+
+        dbuf_clear(&linebuf);
+    }
+
+    dbuf_clear(&overflow);
+    dbuf_clear(&linebuf);
+    close(fd);
+    return CFLAG_OK;
+}
+
 static const struct cflag denv_options[] = {
 	{
 		.name = "inherit-env", .letter = 'I',
@@ -240,6 +287,13 @@ static const struct cflag denv_options[] = {
 		.help =
 			"Add environment variables from the contents of files in "
 			"a directory.",
+	},
+	{
+		.name = "file", .letter = 'f',
+		.func = _environ_file,
+		.help =
+			"Add environment variables from a file in the environment.d(5)"
+			" format. Note: $VARIABLE expansions are not supported.",
 	},
 	CFLAG_HELP,
 	CFLAG_END
