@@ -692,18 +692,51 @@ freaduntil(int          fd,
     }
 }
 
-void
-die (const char *format, ...)
+NORETURN static inline void
+doexit(int code)
 {
-    va_list al;
+    if (code == 111)
+        _exit(111);
+    else
+        exit(code);
+}
 
-    va_start (al, format);
-    if (format) {
-        vfprintf (stderr, format, al);
-        fflush (stderr);
-    }
-    va_end (al);
-    exit (EXIT_FAILURE);
+static inline void
+errmsgv(const char *format, va_list args)
+{
+    if (format)
+        vfprintf(stderr, format, args);
+    fflush(stderr);
+}
+
+void
+errexit(int code, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    errmsgv(format, args);
+    va_end(args);
+    doexit(code);
+}
+
+void
+die(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    errmsgv(format, args);
+    va_end(args);
+    doexit(EXIT_FAILURE);
+}
+
+void
+fatal(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    errmsgv(format, args);
+    va_end(args);
+    doexit(111);
 }
 
 /* vim: expandtab shiftwidth=4 tabstop=4

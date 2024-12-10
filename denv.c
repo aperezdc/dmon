@@ -29,7 +29,8 @@
 
 extern char **environ;
 
-static char** env = NULL;
+static char *argv0 = "denv";
+static char **env = NULL;
 static size_t env_a = 0;
 static size_t env_n = 0;
 
@@ -75,7 +76,7 @@ env_add(char *entry)
 			env = calloc(env_a, sizeof(char*));
 		}
 		if (!env)
-			die("cannot allocate memory\n");
+			fatal("%s: Cannot allocate memory.\n", argv0);
 	}
 	assert(env_a > (env_n + 1));
 
@@ -165,7 +166,7 @@ env_envdir(const char *path)
 
 	DIR *d = opendir(path);
 	if (!d)
-		die("Cannot open directory '%s': %s.\n", path, ERRSTR);
+		fatal("%s: Cannot open directory '%s': %s.\n", argv0, path, ERRSTR);
 
 	struct dirent *de;
 	while ((de = readdir(d))) {
@@ -174,7 +175,7 @@ env_envdir(const char *path)
 
 		struct stat st;
 		if (fstatat(dirfd(d), de->d_name, &st, AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW) == -1)
-			die("Cannot stat '%s/%s': %s.", path, de->d_name, ERRSTR);
+			fatal("%s: Cannot stat '%s/%s': %s.", argv0, path, de->d_name, ERRSTR);
 
 		if (!S_ISREG(st.st_mode))
 			continue;
@@ -187,7 +188,7 @@ env_envdir(const char *path)
 
 		int fd = safe_openat(dirfd(d), de->d_name, O_RDONLY);
 		if (fd < 0)
-			die("Cannot open '%s/%s': %s.\n", path, de->d_name, ERRSTR);
+			fatal("%s: Cannot open '%s/%s': %s.\n", argv0, path, de->d_name, ERRSTR);
 
 		struct dbuf linebuf = DBUF_INIT;
 		struct dbuf overflow = DBUF_INIT;
@@ -197,7 +198,7 @@ env_envdir(const char *path)
 
 		ssize_t bytes = freadline(fd, &linebuf, &overflow, 0);
 		if (bytes < 1)
-			die("Cannot read '%s': %s.\n", de->d_name, ERRSTR);
+			fatal("%s: Cannot read '%s': %s.\n", argv0, de->d_name, ERRSTR);
 
 		/* Chomp spaces around the value. */
 		char* entry = dbuf_str(&linebuf);
@@ -236,7 +237,7 @@ opt_file(const struct cflag *spec, const char *arg)
 
     int fd = safe_openat(AT_FDCWD, arg, O_RDONLY);
     if (fd < 0)
-        die("Cannot open '%s': %s.\n", arg, ERRSTR);
+        fatal("%s: Cannot open '%s': %s.\n", argv0, arg, ERRSTR);
 
     struct dbuf linebuf = DBUF_INIT;
     struct dbuf overflow = DBUF_INIT;
@@ -247,7 +248,7 @@ opt_file(const struct cflag *spec, const char *arg)
             break; /* EOF */
 
         if (bytes < 0)
-            die("Cannot read '%s': %s.\n", arg, ERRSTR);
+            fatal("%s: Cannot read '%s': %s.\n", argv0, arg, ERRSTR);
 
         /* Chomp spaces around the entry. */
         char *entry = dbuf_str(&linebuf);
@@ -318,7 +319,7 @@ denv_main(int argc, char **argv)
 	clog_init(NULL);
 
 	/* XXX: It would be neat to have e.g. a cflag_argv0() function that did this. */
-	const char *argv0 = strrchr(argv[0], '/');
+	argv0 = strrchr(argv[0], '/');
 	if (argv0 == NULL)
 		argv0 = argv[0];
 	else
@@ -326,7 +327,7 @@ denv_main(int argc, char **argv)
 
 	if (strcmp(argv0, "envdir") == 0) {
 		if (argc < 3)
-			die("Usage: %s d child\n", argv[0]);
+			fatal("%s: usage: %s d child\n", argv0, argv0);
 
 		env_inherit_all();
 		env_envdir(argv[1]);
@@ -336,15 +337,10 @@ denv_main(int argc, char **argv)
 		argc -= 2;
 	} else {
 		cflag_apply(denv_options, "[path] command [command-options...]", &argc, &argv);
-		if (!argc) {
-			fprintf(stderr, "%s: No command specified.\n", argv0);
-			return EXIT_FAILURE;
-		}
+		if (!argc)
+			fatal("%s: No command specified.\n", argv0);
 	}
 
 	execvpe(argv[0], argv, env);
-	_exit(111);
-
-	assert(!"unreachable");
-	return EXIT_FAILURE;
+	fatal("%s: Cannot execute '%s': %s.\n", argv0, argv[0], ERRSTR);
 }

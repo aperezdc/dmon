@@ -14,8 +14,14 @@
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
 # define NODISCARD [[nodiscard]]
+# define NORETURN [[noreturn]]
 #else
 # define NODISCARD __attribute__((warn_unused_result))
+# if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define NORETURN _Noreturn
+# else
+#  define NORETURN __attribute__((noreturn))
+# endif
 #endif
 
 #include "deps/dbuf/dbuf.h"
@@ -108,9 +114,14 @@ freadline(int          fd,
     return freaduntil(fd, buffer, overflow, '\n', readbytes);
 }
 
-void die(const char *format, ...)
-    __attribute__ ((format (printf, 1, 2)))
-    __attribute__ ((noreturn));
+NORETURN void errexit(int code, const char *format, ...)
+    __attribute__((format (printf, 2, 3)));
+
+NORETURN void die(const char *format, ...)
+    __attribute__((format (printf, 1, 2)));
+
+NORETURN void fatal(const char *format, ...)
+    __attribute__((format (printf, 1, 2)));
 
 static inline struct iovec
 iov_from_data (void *data, size_t size)

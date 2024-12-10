@@ -75,6 +75,14 @@ The ``denv`` program is often used in concert with `dmon(8)` to setup
 the environment under which supervised programs run.
 
 
+EXIT CODES
+==========
+
+``denv`` exits with code **111** if it has trouble preparing the environment
+before executing the chained child process, or if the child process cannot
+be executed. Otherwise its exit code is that of the child process.
+
+
 SEE ALSO
 ========
 

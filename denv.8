@@ -93,6 +93,11 @@ based on \fIenvironment.d(5)\fP\&.
 .sp
 The \fBdenv\fP program is often used in concert with \fIdmon(8)\fP to setup
 the environment under which supervised programs run.
+.SH EXIT CODES
+.sp
+\fBdenv\fP exits with code \fB111\fP if it has trouble preparing the environment
+before executing the chained child process, or if the child process cannot
+be executed. Otherwise its exit code is that of the child process.
 .SH SEE ALSO
 .sp
 \fIdmon(8)\fP, \fIenvdir(8)\fP, \fIenvironment.d(5)\fP
