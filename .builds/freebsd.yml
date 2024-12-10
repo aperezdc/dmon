@@ -1,6 +1,0 @@
-image: freebsd/latest
-sources:
-  - https://git.sr.ht/~aperezdc/dmon
-tasks:
-  - build: |
-      make -C dmon
