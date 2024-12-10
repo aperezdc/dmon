@@ -2,20 +2,20 @@
 set -e
 
 declare -a TARGETS=(
+	x86-linux-musl
 	x86_64-linux-musl
 	aarch64-linux-musl
 	arm-linux-musleabi
 	arm-linux-musleabihf
-	i386-linux-musl
 	mips-linux-musl
 	mipsel-linux-musl
-	#mips64-linux-musl
-	#mips64el-linux-musl
+	mips64-linux-musl
+	mips64el-linux-musl
 	powerpc-linux-musl
-	#powerpc64-linux-musl
-	#powerpc64le-linux-musl
+	powerpc64-linux-musl
+	powerpc64le-linux-musl
 	#riscv32-linux-musl
-	#riscv64-linux-musl
+	riscv64-linux-musl
 )
 
 declare -a CFLAGS=(
