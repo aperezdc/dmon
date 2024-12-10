@@ -282,7 +282,7 @@ static const struct cflag denv_options[] = {
             "delete it. This option can be specified multiple times.",
     },
 	{
-		.name = "direnv", .letter = 'd',
+		.name = "envdir", .letter = 'd',
 		.func = _environ_directory,
 		.help =
 			"Add environment variables from the contents of files in "
