@@ -56,7 +56,7 @@ Command line options:
 
 -h, --help    Show a summary of available options.
 
-Albeit it can be used stan-alone, most of the time you will be running
+Albeit it can be used stand-alone, most of the time you will be running
 ``dlog`` under a process control tool like `dmon(8)` or `supervise(8)`.
 
 
