@@ -165,7 +165,7 @@ env_envdir(const char *path)
 
 	DIR *d = opendir(path);
 	if (!d)
-		die("Error opening '%s': %s.\n", path, strerror(errno));
+		die("Cannot open directory '%s': %s.\n", path, ERRSTR);
 
 	struct dirent *de;
 	while ((de = readdir(d))) {
@@ -174,7 +174,7 @@ env_envdir(const char *path)
 
 		struct stat st;
 		if (fstatat(dirfd(d), de->d_name, &st, AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW) == -1) {
-			clog_warning("cannot stat '%s' (%s)", de->d_name, strerror(errno));
+			clog_warning("Cannot stat '%s/%s': %s.", path, de->d_name, ERRSTR);
 			continue;
 		}
 		if (!S_ISREG(st.st_mode)) {
@@ -189,7 +189,7 @@ env_envdir(const char *path)
 
 		int fd = safe_openat(dirfd(d), de->d_name, O_RDONLY);
 		if (fd < 0) {
-			clog_warning("cannot open '%s' (%s)", de->d_name, strerror(errno));
+			clog_warning("Cannot open '%s/%s': %s.\n", path, de->d_name, ERRSTR);
 			continue;
 		}
 
@@ -201,7 +201,7 @@ env_envdir(const char *path)
 
 		ssize_t bytes = freadline(fd, &linebuf, &overflow, 0);
 		if (bytes < 1)
-			die("error reading '%s' (%s).\n", de->d_name, strerror(errno));
+			die("Cannot read '%s': %s.\n", de->d_name, ERRSTR);
 
 		/* Chomp spaces around the value. */
 		char* entry = dbuf_str(&linebuf);
@@ -217,7 +217,7 @@ env_envdir(const char *path)
 		dbuf_clear(&linebuf);
 
 		if (safe_close(fd) == -1)
-			clog_warning("closing '%s/%s: %s (ignored).", path, de->d_name, strerror(errno));
+			clog_warning("Cannot close '%s/%s: %s (ignored).", path, de->d_name, ERRSTR);
 	}
 	closedir(d);
 }
@@ -240,7 +240,7 @@ opt_file(const struct cflag *spec, const char *arg)
 
     int fd = safe_openat(AT_FDCWD, arg, O_RDONLY);
     if (fd < 0)
-        die("cannot open '%s' (%s)\n", arg, strerror(errno));
+        die("Cannot open '%s': %s.\n", arg, ERRSTR);
 
     struct dbuf linebuf = DBUF_INIT;
     struct dbuf overflow = DBUF_INIT;
@@ -251,7 +251,7 @@ opt_file(const struct cflag *spec, const char *arg)
             break; /* EOF */
 
         if (bytes < 0)
-            die("error reading '%s' (%s)\n", arg, strerror(errno));
+            die("Cannot read '%s': %s.\n", arg, ERRSTR);
 
         /* Chomp spaces around the entry. */
         char *entry = dbuf_str(&linebuf);
@@ -276,7 +276,7 @@ opt_file(const struct cflag *spec, const char *arg)
     dbuf_clear(&overflow);
     dbuf_clear(&linebuf);
 	if (safe_close(fd) == -1)
-		clog_warning("closing '%s: %s (ignored).", arg, strerror(errno));
+		clog_warning("Cannot close '%s: %s (ignored).\n", arg, ERRSTR);
     return CFLAG_OK;
 }
 
