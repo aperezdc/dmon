@@ -67,7 +67,7 @@ man: denv.8 dmon.8 dlog.8 dslog.8 drlog.8
 .SUFFIXES: .rst .8
 
 clean:
-	$(RM) dmon dlog dslog drlog libdmon.a dmon.o dlog.o dslog.o drlog.o nofork.o libnofork.so setunbuf.o libsetunbuf.so $O
+	$(RM) dmon denv dlog dslog drlog libdmon.a dmon.o denv.o dlog.o dslog.o drlog.o nofork.o libnofork.so setunbuf.o libsetunbuf.so $O
 
 mrproper: clean
 	$(RM) $D
@@ -77,6 +77,7 @@ mrproper: clean
 install-all: install-all-multicall-$(MULTICALL)
 
 install-all-multicall-1: install-common
+	ln -sf dmon $(DESTDIR)$(PREFIX)/bin/denv
 	ln -sf dmon $(DESTDIR)$(PREFIX)/bin/dlog
 	ln -sf dmon $(DESTDIR)$(PREFIX)/bin/drlog
 	ln -sf dmon $(DESTDIR)$(PREFIX)/bin/dslog
@@ -86,7 +87,7 @@ install-all-multicall-0: install-common
 
 install-common:
 	install -d $(DESTDIR)$(PREFIX)/share/man/man8
-	install -m 644 dmon.8 dlog.8 dslog.8 drlog.8 \
+	install -m 644 denv.8 dmon.8 dlog.8 dslog.8 drlog.8 \
 		$(DESTDIR)$(PREFIX)/share/man/man8
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 dmon $(DESTDIR)$(PREFIX)/bin
