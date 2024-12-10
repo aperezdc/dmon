@@ -143,6 +143,7 @@ is_trim_char(int c)
 		case '\n':
 		case '\v':
 		case '\t':
+		case '\f':
 		case ' ':
 			return true;
 		default:
